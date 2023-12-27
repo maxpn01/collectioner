@@ -1,18 +1,19 @@
 {
-  "name": "collectioner",
-  "version": "1.0.0",
-  "description": "personal collection management",
-  "repository": "https://github.com/maxpn01/collection-management.git",
-  "author": "maxpn",
-  "license": "MIT",
-  "scripts": {
-    "start": "cross-env NODE_PATH=dist node dist/index.js",
-    "dev": "cross-env NODE_PATH=src ts-node-dev -P tsconfig.json --transpile-only src/index.ts"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "cross-env": "^7.0.3",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
-  }
+    "name": "collectioner",
+    "version": "1.0.0",
+    "description": "personal collection management",
+    "repository": "https://github.com/maxpn01/collection-management.git",
+    "author": "maxpn",
+    "license": "MIT",
+    "scripts": {
+        "start": "cross-env NODE_PATH=dist node dist/index.js",
+        "dev": "cross-env NODE_PATH=src ts-node-dev -P tsconfig.json --transpile-only src/index.ts"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@types/node": "^20.10.5",
+        "cross-env": "^7.0.3",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.3.3"
+    }
 }
