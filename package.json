@@ -1,0 +1,9 @@
+{
+  "name": "collectioner",
+  "version": "1.0.0",
+  "description": "personal collection management",
+  "main": "index.js",
+  "repository": "https://github.com/maxpn01/collection-management.git",
+  "author": "maxpn",
+  "license": "MIT"
+}
