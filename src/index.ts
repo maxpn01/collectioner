@@ -315,7 +315,7 @@ class SetUserBlockedUseCase {
 	}
 }
 
-class AdminBlockUserUseCase {
+class BlockUserUseCase {
 	userRepository: UserRepository;
 	checkIsAdminUseCase: CheckIsAdminUseCase;
 	setUserBlockedUseCase: SetUserBlockedUseCase;
@@ -341,7 +341,7 @@ class AdminBlockUserUseCase {
 	}
 }
 
-class AdminUnblockUserUseCase {
+class UnblockUserUseCase {
 	userRepository: UserRepository;
 	checkIsAdminUseCase: CheckIsAdminUseCase;
 	setUserBlockedUseCase: SetUserBlockedUseCase;
@@ -367,7 +367,7 @@ class AdminUnblockUserUseCase {
 	}
 }
 
-class AdminDeleteUserUseCase {
+class DeleteUserUseCase {
 	userRepository: UserRepository;
 	checkIsAdminUseCase: CheckIsAdminUseCase;
 
@@ -391,5 +391,78 @@ class AdminDeleteUserUseCase {
 		if (deleteResult.err) return deleteResult;
 
 		return Ok(None);
+	}
+}
+
+class SetUserIsAdminUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(id: string, isAdmin: boolean): Promise<Result<None, Failure>> {
+		const userResult = await this.userRepository.get(id);
+		if (userResult.err) return userResult;
+
+		const user = structuredClone(userResult.val);
+		user.isAdmin = isAdmin;
+
+		const updateResult = await this.userRepository.update(id, user);
+		if (updateResult.err) return updateResult;
+
+		return Ok(None);
+	}
+}
+
+class GrantAdminPrivilegesUseCase {
+	userRepository: UserRepository;
+	checkIsAdminUseCase: CheckIsAdminUseCase;
+	setUserIsAdminUseCase: SetUserIsAdminUseCase;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+		this.checkIsAdminUseCase = new CheckIsAdminUseCase(userRepository);
+		this.setUserIsAdminUseCase = new SetUserIsAdminUseCase(userRepository);
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		const isAdmin = this.checkIsAdminUseCase.execute(
+			senderId,
+			checkSenderIsAuthenticated,
+		);
+		if (!isAdmin) return Err(new NotAuthorizedFailure());
+
+		return this.setUserIsAdminUseCase.execute(id, true);
+	}
+}
+
+class RevokeAdminPrivilegesUseCase {
+	userRepository: UserRepository;
+	checkIsAdminUseCase: CheckIsAdminUseCase;
+	setUserIsAdminUseCase: SetUserIsAdminUseCase;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+		this.checkIsAdminUseCase = new CheckIsAdminUseCase(userRepository);
+		this.setUserIsAdminUseCase = new SetUserIsAdminUseCase(userRepository);
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		const isAdmin = this.checkIsAdminUseCase.execute(
+			senderId,
+			checkSenderIsAuthenticated,
+		);
+		if (!isAdmin) return Err(new NotAuthorizedFailure());
+
+		return this.setUserIsAdminUseCase.execute(id, false);
 	}
 }
