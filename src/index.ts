@@ -254,9 +254,9 @@ class AdminViewUserUseCase {
 	async execute(
 		id: string,
 		senderId: string,
-		checkIsAuthenticated: () => boolean,
+		checkSenderIsAuthenticated: () => boolean,
 	): Promise<Result<AdminViewUserResult, Failure>> {
-		if (!checkIsAuthenticated()) {
+		if (!checkSenderIsAuthenticated()) {
 			return Err(new NotAuthorizedFailure());
 		}
 
@@ -272,7 +272,7 @@ class AdminViewUserUseCase {
 	}
 }
 
-class AdminBlockUserUseCase {
+class AdminSetUserBlockedUseCase {
 	userRepository: UserRepository;
 
 	constructor(userRepository: UserRepository) {
@@ -281,10 +281,11 @@ class AdminBlockUserUseCase {
 
 	async execute(
 		id: string,
+		blocked: boolean,
 		senderId: string,
-		checkIsAuthenticated: () => boolean,
+		checkSenderIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkIsAuthenticated()) {
+		if (!checkSenderIsAuthenticated()) {
 			return Err(new NotAuthorizedFailure());
 		}
 
@@ -300,11 +301,61 @@ class AdminBlockUserUseCase {
 		if (userResult.err) return userResult;
 
 		const user = structuredClone(userResult.val);
-		user.blocked = true;
+		user.blocked = blocked;
 
 		const updateResult = await this.userRepository.update(id, user);
 		if (updateResult.err) return updateResult;
 
 		return Ok(None);
+	}
+}
+
+class AdminBlockUserUseCase {
+	userRepository: UserRepository;
+	adminSetUserBlockedUseCase: AdminSetUserBlockedUseCase;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+		this.adminSetUserBlockedUseCase = new AdminSetUserBlockedUseCase(
+			userRepository,
+		);
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		return this.adminSetUserBlockedUseCase.execute(
+			id,
+			true,
+			senderId,
+			checkSenderIsAuthenticated,
+		);
+	}
+}
+
+class AdminUnblockUserUseCase {
+	userRepository: UserRepository;
+	adminSetUserBlockedUseCase: AdminSetUserBlockedUseCase;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+		this.adminSetUserBlockedUseCase = new AdminSetUserBlockedUseCase(
+			userRepository,
+		);
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		return this.adminSetUserBlockedUseCase.execute(
+			id,
+			false,
+			senderId,
+			checkSenderIsAuthenticated,
+		);
 	}
 }
