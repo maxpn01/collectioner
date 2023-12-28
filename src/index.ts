@@ -47,22 +47,27 @@ type ItemField = {
 	name: string;
 };
 type NumberField = {
+	id: string;
 	field: ItemField;
 	value: number;
 };
 type TextField = {
+	id: string;
 	field: ItemField;
 	value: string;
 };
 type MultilineTextField = {
+	id: string;
 	field: ItemField;
 	value: string;
 };
 type CheckboxField = {
+	id: string;
 	field: ItemField;
 	value: boolean;
 };
 type DateField = {
+	id: string;
 	field: ItemField;
 	value: Date;
 };
