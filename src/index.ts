@@ -232,3 +232,41 @@ class ViewUserUseCase {
 		});
 	}
 }
+
+type AdminViewUserResult = {
+	id: string;
+	email: string;
+	fullname: string;
+	blocked: boolean;
+	isAdmin: boolean;
+};
+
+class NotAuthorizedFailure extends Failure {}
+
+class AdminViewUserUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkIsAuthenticated: () => boolean,
+	): Promise<Result<AdminViewUserResult, Failure>> {
+		if (!checkIsAuthenticated()) {
+			return Err(new NotAuthorizedFailure());
+		}
+
+		const senderResult = await this.userRepository.get(senderId);
+		if (senderResult.err) return senderResult;
+
+		const sender = senderResult.val;
+		if (!sender.isAdmin) {
+			return Err(new NotAuthorizedFailure());
+		}
+
+		return this.userRepository.get(id);
+	}
+}
