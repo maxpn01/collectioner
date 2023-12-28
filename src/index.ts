@@ -40,6 +40,7 @@ type Item = {
 	checkboxFields: CheckboxField[];
 	dateFields: DateField[];
 	likes: Like[];
+	comments: Comment[];
 };
 type ItemField = {
 	id: string;
@@ -65,7 +66,6 @@ type DateField = {
 	field: ItemField;
 	value: Date;
 };
-
 type Comment = {
 	id: string;
 	author: User;
