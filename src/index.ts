@@ -1,7 +1,7 @@
 import "node";
 import bcrypt from "bcryptjs";
 import { Result, Ok, Err, Option, Some, None } from "ts-results";
-import { Failure } from "utils/failure";
+import { Failure, NotFoundFailure } from "utils/failure";
 import { nanoid } from "nanoid";
 
 type User = {
@@ -78,18 +78,13 @@ type Like = {
 	author: User;
 };
 
-interface UserRepository {
-	get(id: string): Promise<Result<User, Failure>>;
-	create(user: User): Promise<Result<None, Failure>>;
-}
-
-class PasswordTooShort extends Failure {}
+class PasswordTooShortFailure extends Failure {}
 
 function validatePassword(password: string): Failure[] {
 	const failures: Failure[] = [];
 
 	if (password.length < 8) {
-		failures.push(new PasswordTooShort());
+		failures.push(new PasswordTooShortFailure());
 	}
 
 	return failures;
@@ -129,6 +124,12 @@ async function generatePasswordHash(password: string): Promise<string> {
 	return await bcrypt.hash(password, salt);
 }
 
+interface UserRepository {
+	get(id: string): Promise<Result<User, Failure>>;
+	getByEmail(email: string): Promise<Result<User, Failure>>;
+	create(user: User): Promise<Result<None, Failure>>;
+}
+
 type SignUpWithEmailRequest = {
 	fullname: string;
 	email: string;
@@ -145,11 +146,58 @@ class SignUpWithEmailUseCase {
 	async execute(
 		request: SignUpWithEmailRequest,
 	): Promise<Result<None, Failure[]>> {
-		const result1 = await createNewUser(request);
-		if (result1.err) return result1;
+		const userResult = await createNewUser(request);
+		if (userResult.err) return userResult;
 
-		const result2 = await this.userRepository.create(result1.val);
-		if (result2.err) return Err([result2.val]);
+		const noneResult = await this.userRepository.create(userResult.val);
+		if (noneResult.err) return Err([noneResult.val]);
+
+		return Ok(None);
+	}
+}
+
+async function checkPasswordMatches(
+	raw: string,
+	hash: string,
+): Promise<boolean> {
+	return await bcrypt.compare(raw, hash);
+}
+
+class InvalidCredentialsFailure extends Failure {}
+
+type SignInWithEmailRequest = {
+	email: string;
+	password: string;
+};
+
+class SignInWithEmailUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		request: SignInWithEmailRequest,
+	): Promise<Result<None, Failure>> {
+		const userResult = await this.userRepository.getByEmail(request.email);
+		if (userResult.err) {
+			const failure = userResult.val;
+
+			if (failure instanceof NotFoundFailure) {
+				return Err(new InvalidCredentialsFailure());
+			}
+
+			return userResult;
+		}
+
+		const user = userResult.val;
+
+		const matches = await checkPasswordMatches(
+			request.password,
+			user.passwordHash,
+		);
+		if (!matches) return Err(new InvalidCredentialsFailure());
 
 		return Ok(None);
 	}
