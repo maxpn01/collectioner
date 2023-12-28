@@ -207,3 +207,28 @@ class SignInWithEmailUseCase {
 		return Ok(None);
 	}
 }
+
+type ViewUserResult = {
+	id: string;
+	fullname: string;
+	blocked: boolean;
+};
+class ViewUserUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(id: string): Promise<Result<ViewUserResult, Failure>> {
+		const userResult = await this.userRepository.get(id);
+
+		return userResult.map((user) => {
+			return {
+				id: user.id,
+				fullname: user.fullname,
+				blocked: user.blocked,
+			};
+		});
+	}
+}
