@@ -133,6 +133,7 @@ interface UserRepository {
 	get(id: string): Promise<Result<User, Failure>>;
 	getByEmail(email: string): Promise<Result<User, Failure>>;
 	create(user: User): Promise<Result<None, Failure>>;
+	update(id: string, user: User): Promise<Result<None, Failure>>;
 }
 
 type SignUpWithEmailRequest = {
@@ -268,5 +269,42 @@ class AdminViewUserUseCase {
 		}
 
 		return this.userRepository.get(id);
+	}
+}
+
+class AdminBlockUserUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		if (!checkIsAuthenticated()) {
+			return Err(new NotAuthorizedFailure());
+		}
+
+		const senderResult = await this.userRepository.get(senderId);
+		if (senderResult.err) return senderResult;
+
+		const sender = senderResult.val;
+		if (!sender.isAdmin) {
+			return Err(new NotAuthorizedFailure());
+		}
+
+		const userResult = await this.userRepository.get(id);
+		if (userResult.err) return userResult;
+
+		const user = structuredClone(userResult.val);
+		user.blocked = true;
+
+		const updateResult = await this.userRepository.update(id, user);
+		if (updateResult.err) return updateResult;
+
+		return Ok(None);
 	}
 }
