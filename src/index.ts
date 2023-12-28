@@ -134,6 +134,7 @@ interface UserRepository {
 	getByEmail(email: string): Promise<Result<User, Failure>>;
 	create(user: User): Promise<Result<None, Failure>>;
 	update(id: string, user: User): Promise<Result<None, Failure>>;
+	delete(id: string): Promise<Result<None, Failure>>;
 }
 
 type SignUpWithEmailRequest = {
@@ -272,7 +273,7 @@ class AdminViewUserUseCase {
 	}
 }
 
-class AdminSetUserBlockedUseCase {
+class CheckIsAdminUseCase {
 	userRepository: UserRepository;
 
 	constructor(userRepository: UserRepository) {
@@ -280,23 +281,27 @@ class AdminSetUserBlockedUseCase {
 	}
 
 	async execute(
-		id: string,
-		blocked: boolean,
 		senderId: string,
 		checkSenderIsAuthenticated: () => boolean,
-	): Promise<Result<None, Failure>> {
-		if (!checkSenderIsAuthenticated()) {
-			return Err(new NotAuthorizedFailure());
-		}
+	): Promise<boolean> {
+		if (!checkSenderIsAuthenticated()) return false;
 
 		const senderResult = await this.userRepository.get(senderId);
-		if (senderResult.err) return senderResult;
+		if (senderResult.err) throw new Error();
 
 		const sender = senderResult.val;
-		if (!sender.isAdmin) {
-			return Err(new NotAuthorizedFailure());
-		}
+		return sender.isAdmin;
+	}
+}
 
+class SetUserBlockedUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(id: string, blocked: boolean): Promise<Result<None, Failure>> {
 		const userResult = await this.userRepository.get(id);
 		if (userResult.err) return userResult;
 
@@ -312,13 +317,13 @@ class AdminSetUserBlockedUseCase {
 
 class AdminBlockUserUseCase {
 	userRepository: UserRepository;
-	adminSetUserBlockedUseCase: AdminSetUserBlockedUseCase;
+	checkIsAdminUseCase: CheckIsAdminUseCase;
+	setUserBlockedUseCase: SetUserBlockedUseCase;
 
 	constructor(userRepository: UserRepository) {
 		this.userRepository = userRepository;
-		this.adminSetUserBlockedUseCase = new AdminSetUserBlockedUseCase(
-			userRepository,
-		);
+		this.checkIsAdminUseCase = new CheckIsAdminUseCase(userRepository);
+		this.setUserBlockedUseCase = new SetUserBlockedUseCase(userRepository);
 	}
 
 	async execute(
@@ -326,24 +331,25 @@ class AdminBlockUserUseCase {
 		senderId: string,
 		checkSenderIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		return this.adminSetUserBlockedUseCase.execute(
-			id,
-			true,
+		const isAdmin = this.checkIsAdminUseCase.execute(
 			senderId,
 			checkSenderIsAuthenticated,
 		);
+		if (!isAdmin) return Err(new NotAuthorizedFailure());
+
+		return this.setUserBlockedUseCase.execute(id, true);
 	}
 }
 
 class AdminUnblockUserUseCase {
 	userRepository: UserRepository;
-	adminSetUserBlockedUseCase: AdminSetUserBlockedUseCase;
+	checkIsAdminUseCase: CheckIsAdminUseCase;
+	setUserBlockedUseCase: SetUserBlockedUseCase;
 
 	constructor(userRepository: UserRepository) {
 		this.userRepository = userRepository;
-		this.adminSetUserBlockedUseCase = new AdminSetUserBlockedUseCase(
-			userRepository,
-		);
+		this.checkIsAdminUseCase = new CheckIsAdminUseCase(userRepository);
+		this.setUserBlockedUseCase = new SetUserBlockedUseCase(userRepository);
 	}
 
 	async execute(
@@ -351,11 +357,39 @@ class AdminUnblockUserUseCase {
 		senderId: string,
 		checkSenderIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		return this.adminSetUserBlockedUseCase.execute(
-			id,
-			false,
+		const isAdmin = this.checkIsAdminUseCase.execute(
 			senderId,
 			checkSenderIsAuthenticated,
 		);
+		if (!isAdmin) return Err(new NotAuthorizedFailure());
+
+		return this.setUserBlockedUseCase.execute(id, false);
+	}
+}
+
+class AdminDeleteUserUseCase {
+	userRepository: UserRepository;
+	checkIsAdminUseCase: CheckIsAdminUseCase;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+		this.checkIsAdminUseCase = new CheckIsAdminUseCase(userRepository);
+	}
+
+	async execute(
+		id: string,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		const isAdmin = this.checkIsAdminUseCase.execute(
+			senderId,
+			checkSenderIsAuthenticated,
+		);
+		if (!isAdmin) return Err(new NotAuthorizedFailure());
+
+		const deleteResult = await this.userRepository.delete(id);
+		if (deleteResult.err) return deleteResult;
+
+		return Ok(None);
 	}
 }
