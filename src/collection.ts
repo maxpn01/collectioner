@@ -147,6 +147,10 @@ function checkAllowedUpdateCollection(requester: User, collection: Collection) {
 	return isOwner || requester.isAdmin;
 }
 
+function checkAllowedDeleteCollection(requester: User, collection: Collection) {
+	return checkAllowedUpdateCollection(requester, collection);
+}
+
 interface TopicRepository {
 	get(id: string): Result<Topic, Failure>;
 }
@@ -293,6 +297,47 @@ class UpdateCollectionUseCase {
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;
+
+		return Ok(None);
+	}
+}
+
+class DeleteCollectionUseCase {
+	collectionRepository: CollectionRepository;
+	userRepository: UserRepository;
+
+	constructor(
+		collectionRepository: CollectionRepository,
+		userRepository: UserRepository,
+	) {
+		this.collectionRepository = collectionRepository;
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		id: string,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		if (!checkRequesterIsAuthenticated())
+			return Err(new NotAuthorizedFailure());
+
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
+		const requester = requesterResult.val;
+
+		const collectionResult = await this.collectionRepository.get(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		const allowedDeleteCollection = checkAllowedDeleteCollection(
+			requester,
+			collection,
+		);
+		if (!allowedDeleteCollection) return Err(new NotAuthorizedFailure());
+
+		const deleteResult = await this.collectionRepository.delete(id);
+		if (deleteResult.err) return deleteResult;
 
 		return Ok(None);
 	}
