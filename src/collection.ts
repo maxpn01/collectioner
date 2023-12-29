@@ -102,6 +102,47 @@ function createNewCollection({
 	};
 }
 
+function updateCollection(
+	collection: Collection,
+	{
+		name,
+		topic,
+		numberFields,
+		textFields,
+		multilineTextFields,
+		checkboxFields,
+		dateFields,
+	}: {
+		name: string;
+		topic: Topic;
+		numberFields: ItemField[];
+		textFields: ItemField[];
+		multilineTextFields: ItemField[];
+		checkboxFields: ItemField[];
+		dateFields: ItemField[];
+	},
+): Collection {
+	return {
+		id: collection.id,
+		owner: collection.owner,
+		items: collection.items,
+		image: collection.image,
+		name,
+		topic,
+		numberFields,
+		textFields,
+		multilineTextFields,
+		checkboxFields,
+		dateFields,
+	};
+}
+
+function checkAllowedUpdateCollection(user: User, collection: Collection) {
+	const isOwner = user.id === collection.owner.id;
+
+	return isOwner || user.isAdmin;
+}
+
 interface TopicRepository {
 	get(id: string): Result<Topic, Failure>;
 }
@@ -156,6 +197,82 @@ class CreateCollectionUseCase {
 
 		const createResult = await this.collectionRepository.create(collection);
 		if (createResult.err) return createResult;
+
+		return Ok(None);
+	}
+}
+
+type UpdateCollectionRequestItemField = {
+	id: string;
+	name: string;
+};
+
+type UpdateCollectionRequest = {
+	name: string;
+	topicId: string;
+	numberFields: UpdateCollectionRequestItemField[];
+	textFields: UpdateCollectionRequestItemField[];
+	multilineTextFields: UpdateCollectionRequestItemField[];
+	checkboxFields: UpdateCollectionRequestItemField[];
+	dateFields: UpdateCollectionRequestItemField[];
+};
+
+class UpdateCollectionUseCase {
+	collectionRepository: CollectionRepository;
+	topicRepository: TopicRepository;
+	userRepository: UserRepository;
+
+	constructor(
+		collectionRepository: CollectionRepository,
+		topicRepository: TopicRepository,
+		userRepository: UserRepository,
+	) {
+		this.collectionRepository = collectionRepository;
+		this.topicRepository = topicRepository;
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		id: string,
+		request: UpdateCollectionRequest,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		if (!checkSenderIsAuthenticated()) return Err(new NotAuthorizedFailure());
+
+		const senderResult = await this.userRepository.get(senderId);
+		if (senderResult.err) return senderResult;
+		const sender = senderResult.val;
+
+		const collectionResult = await this.collectionRepository.get(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		const allowedUpdateCollection = checkAllowedUpdateCollection(
+			sender,
+			collection,
+		);
+		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());
+
+		const topicResult = this.topicRepository.get(request.topicId);
+		if (topicResult.err) return topicResult;
+		const topic = topicResult.val;
+
+		const updatedCollection = updateCollection(collection, {
+			name: request.name,
+			topic,
+			numberFields: request.numberFields,
+			textFields: request.textFields,
+			multilineTextFields: request.multilineTextFields,
+			checkboxFields: request.checkboxFields,
+			dateFields: request.dateFields,
+		});
+
+		const updateResult = await this.collectionRepository.update(
+			id,
+			updatedCollection,
+		);
+		if (updateResult.err) return updateResult;
 
 		return Ok(None);
 	}
