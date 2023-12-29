@@ -102,6 +102,10 @@ function createNewCollection({
 	};
 }
 
+function checkAllowedCreateCollection(requester: User, owner: User): boolean {
+	return requester.id === owner.id || requester.isAdmin;
+}
+
 function updateCollection(
 	collection: Collection,
 	{
@@ -137,10 +141,10 @@ function updateCollection(
 	};
 }
 
-function checkAllowedUpdateCollection(user: User, collection: Collection) {
-	const isOwner = user.id === collection.owner.id;
+function checkAllowedUpdateCollection(requester: User, collection: Collection) {
+	const isOwner = requester.id === collection.owner.id;
 
-	return isOwner || user.isAdmin;
+	return isOwner || requester.isAdmin;
 }
 
 interface TopicRepository {
@@ -155,6 +159,7 @@ interface CollectionRepository {
 }
 
 type CreateCollectionRequest = {
+	ownerId: string;
 	name: string;
 	topicId: string;
 };
@@ -176,18 +181,32 @@ class CreateCollectionUseCase {
 
 	async execute(
 		request: CreateCollectionRequest,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkSenderIsAuthenticated()) return Err(new NotAuthorizedFailure());
+		if (!checkRequesterIsAuthenticated())
+			return Err(new NotAuthorizedFailure());
+
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
+		const requester = requesterResult.val;
+
+		const ownerResult =
+			request.ownerId === requester.id
+				? Ok(requester)
+				: await this.userRepository.get(request.ownerId);
+		if (ownerResult.err) return ownerResult;
+		const owner = ownerResult.val;
+
+		const allowedCreateCollection = checkAllowedCreateCollection(
+			requester,
+			owner,
+		);
+		if (!allowedCreateCollection) return Err(new NotAuthorizedFailure());
 
 		const topicResult = this.topicRepository.get(request.topicId);
 		if (topicResult.err) return topicResult;
 		const topic = topicResult.val;
-
-		const ownerResult = await this.userRepository.get(senderId);
-		if (ownerResult.err) return ownerResult;
-		const owner = ownerResult.val;
 
 		const collection = createNewCollection({
 			owner,
@@ -235,21 +254,22 @@ class UpdateCollectionUseCase {
 	async execute(
 		id: string,
 		request: UpdateCollectionRequest,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkSenderIsAuthenticated()) return Err(new NotAuthorizedFailure());
+		if (!checkRequesterIsAuthenticated())
+			return Err(new NotAuthorizedFailure());
 
-		const senderResult = await this.userRepository.get(senderId);
-		if (senderResult.err) return senderResult;
-		const sender = senderResult.val;
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
+		const requester = requesterResult.val;
 
 		const collectionResult = await this.collectionRepository.get(id);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
 
 		const allowedUpdateCollection = checkAllowedUpdateCollection(
-			sender,
+			requester,
 			collection,
 		);
 		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());

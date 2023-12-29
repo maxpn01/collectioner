@@ -183,18 +183,18 @@ class AdminViewUserUseCase {
 
 	async execute(
 		id: string,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<AdminViewUserResult, Failure>> {
-		if (!checkSenderIsAuthenticated()) {
+		if (!checkRequesterIsAuthenticated()) {
 			return Err(new NotAuthorizedFailure());
 		}
 
-		const senderResult = await this.userRepository.get(senderId);
-		if (senderResult.err) return senderResult;
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
 
-		const sender = senderResult.val;
-		if (!sender.isAdmin) {
+		const requester = requesterResult.val;
+		if (!requester.isAdmin) {
 			return Err(new NotAuthorizedFailure());
 		}
 
@@ -210,16 +210,16 @@ class CheckIsAdminUseCase {
 	}
 
 	async execute(
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<boolean> {
-		if (!checkSenderIsAuthenticated()) return false;
+		if (!checkRequesterIsAuthenticated()) return false;
 
-		const senderResult = await this.userRepository.get(senderId);
-		if (senderResult.err) throw new Error();
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) throw new Error();
 
-		const sender = senderResult.val;
-		return sender.isAdmin;
+		const requester = requesterResult.val;
+		return requester.isAdmin;
 	}
 }
 
@@ -257,12 +257,12 @@ class BlockUserUseCase {
 
 	async execute(
 		id: string,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const isAdmin = this.checkIsAdminUseCase.execute(
-			senderId,
-			checkSenderIsAuthenticated,
+			requesterId,
+			checkRequesterIsAuthenticated,
 		);
 		if (!isAdmin) return Err(new NotAuthorizedFailure());
 
@@ -283,12 +283,12 @@ class UnblockUserUseCase {
 
 	async execute(
 		id: string,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const isAdmin = this.checkIsAdminUseCase.execute(
-			senderId,
-			checkSenderIsAuthenticated,
+			requesterId,
+			checkRequesterIsAuthenticated,
 		);
 		if (!isAdmin) return Err(new NotAuthorizedFailure());
 
@@ -307,12 +307,12 @@ class DeleteUserUseCase {
 
 	async execute(
 		id: string,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const isAdmin = this.checkIsAdminUseCase.execute(
-			senderId,
-			checkSenderIsAuthenticated,
+			requesterId,
+			checkRequesterIsAuthenticated,
 		);
 		if (!isAdmin) return Err(new NotAuthorizedFailure());
 
@@ -357,12 +357,12 @@ class GrantAdminPrivilegesUseCase {
 
 	async execute(
 		id: string,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const isAdmin = this.checkIsAdminUseCase.execute(
-			senderId,
-			checkSenderIsAuthenticated,
+			requesterId,
+			checkRequesterIsAuthenticated,
 		);
 		if (!isAdmin) return Err(new NotAuthorizedFailure());
 
@@ -383,12 +383,12 @@ class RevokeAdminPrivilegesUseCase {
 
 	async execute(
 		id: string,
-		senderId: string,
-		checkSenderIsAuthenticated: () => boolean,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const isAdmin = this.checkIsAdminUseCase.execute(
-			senderId,
-			checkSenderIsAuthenticated,
+			requesterId,
+			checkRequesterIsAuthenticated,
 		);
 		if (!isAdmin) return Err(new NotAuthorizedFailure());
 
