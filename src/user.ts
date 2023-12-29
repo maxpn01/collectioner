@@ -58,7 +58,7 @@ async function generatePasswordHash(password: string): Promise<string> {
 	return await bcrypt.hash(password, salt);
 }
 
-interface UserRepository {
+export interface UserRepository {
 	get(id: string): Promise<Result<User, Failure>>;
 	getByEmail(email: string): Promise<Result<User, Failure>>;
 	create(user: User): Promise<Result<None, Failure>>;
@@ -172,7 +172,7 @@ type AdminViewUserResult = {
 	isAdmin: boolean;
 };
 
-class NotAuthorizedFailure extends Failure {}
+export class NotAuthorizedFailure extends Failure {}
 
 class AdminViewUserUseCase {
 	userRepository: UserRepository;

@@ -1,6 +1,7 @@
-import { User } from "user";
+import { User, NotAuthorizedFailure, UserRepository } from "user";
 import { Result, Ok, Err, Option, Some, None } from "ts-results";
 import { Failure, NotFoundFailure } from "utils/failure";
+import { nanoid } from "nanoid";
 
 type Topic = {
 	id: string;
@@ -72,3 +73,90 @@ type Comment = {
 type Like = {
 	author: User;
 };
+
+function generateCollectionId(): string {
+	return nanoid();
+}
+
+function createNewCollection({
+	owner,
+	name,
+	topic,
+}: {
+	owner: User;
+	name: string;
+	topic: Topic;
+}): Collection {
+	return {
+		id: generateCollectionId(),
+		owner,
+		name,
+		topic,
+		items: [],
+		image: None,
+		numberFields: [],
+		textFields: [],
+		multilineTextFields: [],
+		checkboxFields: [],
+		dateFields: [],
+	};
+}
+
+interface TopicRepository {
+	get(id: string): Result<Topic, Failure>;
+}
+
+interface CollectionRepository {
+	get(id: string): Promise<Result<Collection, Failure>>;
+	create(collection: Collection): Promise<Result<None, Failure>>;
+	update(id: string, collection: Collection): Promise<Result<None, Failure>>;
+	delete(id: string): Promise<Result<None, Failure>>;
+}
+
+type CreateCollectionRequest = {
+	name: string;
+	topicId: string;
+};
+
+class CreateCollectionUseCase {
+	collectionRepository: CollectionRepository;
+	topicRepository: TopicRepository;
+	userRepository: UserRepository;
+
+	constructor(
+		collectionRepository: CollectionRepository,
+		topicRepository: TopicRepository,
+		userRepository: UserRepository,
+	) {
+		this.collectionRepository = collectionRepository;
+		this.topicRepository = topicRepository;
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		request: CreateCollectionRequest,
+		senderId: string,
+		checkSenderIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		if (!checkSenderIsAuthenticated()) return Err(new NotAuthorizedFailure());
+
+		const topicResult = this.topicRepository.get(request.topicId);
+		if (topicResult.err) return topicResult;
+		const topic = topicResult.val;
+
+		const ownerResult = await this.userRepository.get(senderId);
+		if (ownerResult.err) return ownerResult;
+		const owner = ownerResult.val;
+
+		const collection = createNewCollection({
+			owner,
+			name: request.name,
+			topic,
+		});
+
+		const createResult = await this.collectionRepository.create(collection);
+		if (createResult.err) return createResult;
+
+		return Ok(None);
+	}
+}
