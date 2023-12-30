@@ -4,15 +4,15 @@ import {
 	CollectionRepository,
 	MemoryCollectionRepository,
 	MemoryTopicRepository,
-	SetCollectionImageUseCase,
 	TopicRepository,
-} from "./collection";
+} from ".";
 import {
 	MemoryUserRepository,
 	User,
 	UserRepository,
 	NotAuthorizedFailure,
-} from "./user";
+} from "../user";
+import { SetCollectionImageUseCase } from "./update-collection";
 
 const collectionId = "collectionid";
 const image = "testfilename.jpg";
@@ -63,7 +63,6 @@ describe("set collection image use case", () => {
 					topic,
 					id: collectionId,
 					name: "",
-					items: [],
 					imageOption: None,
 				},
 			],
@@ -145,7 +144,6 @@ describe("set collection image use case", () => {
 					owner: structuredClone(owner),
 					id: collectionId,
 					name: "",
-					items: [],
 					topic: {
 						id: "topicid",
 						name: "",
