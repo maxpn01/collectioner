@@ -51,10 +51,4 @@ type Comment = {
 	author: User;
 	text: string;
 	createdAt: Date;
-	// likes: CommentLike[]; TODO: Implement if enough time
 };
-
-// type CommentLike = {
-// 	comment: Comment;
-// 	author: User;
-// };
