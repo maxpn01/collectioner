@@ -3,7 +3,9 @@ import { Some, None, Option } from "ts-results";
 import {
 	CollectionRepository,
 	MemoryCollectionRepository,
+	MemoryTopicRepository,
 	SetCollectionImageUseCase,
+	TopicRepository,
 } from "./collection";
 import {
 	MemoryUserRepository,
@@ -12,24 +14,25 @@ import {
 	NotAuthorizedFailure,
 } from "./user";
 
-describe("set collection image use case", () => {
-	const collectionId = "collectionid";
-	const image = "testfilename.jpg";
-	const ownerId = "ownerid";
-	const adminId = "adminid";
+const collectionId = "collectionid";
+const image = "testfilename.jpg";
+const ownerId = "ownerid";
+const adminId = "adminid";
+const owner: User = {
+	id: ownerId,
+	email: "",
+	fullname: "",
+	blocked: false,
+	isAdmin: false,
+	passwordHash: "",
+};
 
-	let checkRequesterIsAuthenticated: () => boolean;
-	let userRepository: MemoryUserRepository;
-	let collectionRepository: MemoryCollectionRepository;
+let userRepository: MemoryUserRepository;
+let collectionRepository: MemoryCollectionRepository;
+let checkRequesterIsAuthenticated: () => boolean;
+
+describe("set collection image use case", () => {
 	let setCollectionImage: SetCollectionImageUseCase;
-	const owner: User = {
-		id: ownerId,
-		email: "",
-		fullname: "",
-		blocked: false,
-		isAdmin: false,
-		passwordHash: "",
-	};
 
 	beforeEach(() => {
 		userRepository = new MemoryUserRepository([
@@ -52,17 +55,15 @@ describe("set collection image use case", () => {
 			},
 		]);
 		checkRequesterIsAuthenticated = () => true;
+		const topic = { id: "topicid", name: "" };
 		collectionRepository = new MemoryCollectionRepository(
 			[
 				{
 					owner,
+					topic,
 					id: collectionId,
 					name: "",
 					items: [],
-					topic: {
-						id: "topicid",
-						name: "",
-					},
 					imageOption: None,
 					numberFields: [],
 					textFields: [],
@@ -72,6 +73,7 @@ describe("set collection image use case", () => {
 				},
 			],
 			userRepository,
+			new MemoryTopicRepository([topic]),
 		);
 		setCollectionImage = new SetCollectionImageUseCase(
 			collectionRepository,
@@ -141,6 +143,7 @@ describe("set collection image use case", () => {
 	});
 
 	it("should remove image", async () => {
+		const topic = { id: "topicid", name: "" };
 		collectionRepository = new MemoryCollectionRepository(
 			[
 				{
@@ -161,6 +164,7 @@ describe("set collection image use case", () => {
 				},
 			],
 			userRepository,
+			new MemoryTopicRepository([topic]),
 		);
 		setCollectionImage = new SetCollectionImageUseCase(
 			collectionRepository,

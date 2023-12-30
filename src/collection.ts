@@ -150,14 +150,6 @@ function checkAllowedUpdateCollection(requester: User, collection: Collection) {
 	return isOwner || requester.isAdmin;
 }
 
-function checkAllowedDeleteCollection(requester: User, collection: Collection) {
-	return checkAllowedUpdateCollection(requester, collection);
-}
-
-interface TopicRepository {
-	get(id: string): Result<Topic, Failure>;
-}
-
 export interface CollectionRepository {
 	get(id: string): Promise<Result<Collection, Failure>>;
 	create(collection: Collection): Promise<Result<None, Failure>>;
@@ -168,10 +160,16 @@ export interface CollectionRepository {
 export class MemoryCollectionRepository implements CollectionRepository {
 	collections: Collection[];
 	userRepository: MemoryUserRepository;
+	topicRepository: TopicRepository;
 
-	constructor(collections: Collection[], userRepository: MemoryUserRepository) {
+	constructor(
+		collections: Collection[],
+		userRepository: MemoryUserRepository,
+		topicRepository: TopicRepository,
+	) {
 		this.collections = collections;
 		this.userRepository = userRepository;
+		this.topicRepository = topicRepository;
 	}
 
 	async get(id: string): Promise<Result<Collection, Failure>> {
@@ -180,11 +178,16 @@ export class MemoryCollectionRepository implements CollectionRepository {
 		);
 		if (!collection) return Err(new NotFoundFailure());
 
-		const userResult = await this.userRepository.get(collection.owner.id);
-		if (userResult.err) return userResult;
-		const user = userResult.val;
+		const ownerResult = await this.userRepository.get(collection.owner.id);
+		if (ownerResult.err) return ownerResult;
+		const owner = ownerResult.val;
+		collection.owner = owner;
 
-		collection.owner = user;
+		const topicResult = await this.topicRepository.get(collection.topic.id);
+		if (topicResult.err) return topicResult;
+		const topic = topicResult.val;
+		collection.topic = topic;
+
 		return Ok(collection);
 	}
 
@@ -208,6 +211,62 @@ export class MemoryCollectionRepository implements CollectionRepository {
 		if (index === -1) return Err(new NotFoundFailure());
 		this.collections.splice(index, 1);
 		return Ok(None);
+	}
+}
+
+export interface TopicRepository {
+	get(id: string): Promise<Result<Topic, Failure>>;
+}
+
+export class MemoryTopicRepository implements TopicRepository {
+	topics: Topic[];
+
+	constructor(topics: Topic[]) {
+		this.topics = topics;
+	}
+
+	async get(id: string): Promise<Result<Topic, Failure>> {
+		const topic = this.topics.find((t) => t.id === id);
+		if (!topic) return Err(new NotFoundFailure());
+		return Ok(topic);
+	}
+}
+
+class AuthorizeCollectionUpdateUseCase {
+	collectionRepository: CollectionRepository;
+	userRepository: UserRepository;
+
+	constructor(
+		collectionRepository: CollectionRepository,
+		userRepository: UserRepository,
+	) {
+		this.collectionRepository = collectionRepository;
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		id: string,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
+	): Promise<Result<Collection, Failure>> {
+		if (!checkRequesterIsAuthenticated())
+			return Err(new NotAuthorizedFailure());
+
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
+		const requester = requesterResult.val;
+
+		const collectionResult = await this.collectionRepository.get(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		const allowedUpdateCollection = checkAllowedUpdateCollection(
+			requester,
+			collection,
+		);
+		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());
+
+		return Ok(collection);
 	}
 }
 
@@ -257,7 +316,7 @@ class CreateCollectionUseCase {
 		);
 		if (!allowedCreateCollection) return Err(new NotAuthorizedFailure());
 
-		const topicResult = this.topicRepository.get(request.topicId);
+		const topicResult = await this.topicRepository.get(request.topicId);
 		if (topicResult.err) return topicResult;
 		const topic = topicResult.val;
 
@@ -293,6 +352,7 @@ class UpdateCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -302,6 +362,10 @@ class UpdateCollectionUseCase {
 		this.collectionRepository = collectionRepository;
 		this.topicRepository = topicRepository;
 		this.userRepository = userRepository;
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+			collectionRepository,
+			userRepository,
+		);
 	}
 
 	async execute(
@@ -310,24 +374,15 @@ class UpdateCollectionUseCase {
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkRequesterIsAuthenticated())
-			return Err(new NotAuthorizedFailure());
-
-		const requesterResult = await this.userRepository.get(requesterId);
-		if (requesterResult.err) return requesterResult;
-		const requester = requesterResult.val;
-
-		const collectionResult = await this.collectionRepository.get(id);
+		const collectionResult = await this.authorizeCollectionUpdate.execute(
+			id,
+			requesterId,
+			checkRequesterIsAuthenticated,
+		);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
 
-		const allowedUpdateCollection = checkAllowedUpdateCollection(
-			requester,
-			collection,
-		);
-		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());
-
-		const topicResult = this.topicRepository.get(request.topicId);
+		const topicResult = await this.topicRepository.get(request.topicId);
 		if (topicResult.err) return topicResult;
 		const topic = topicResult.val;
 
@@ -357,6 +412,7 @@ class UpdateCollectionUseCase {
 class DeleteCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -364,6 +420,10 @@ class DeleteCollectionUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+			collectionRepository,
+			userRepository,
+		);
 	}
 
 	async execute(
@@ -371,22 +431,12 @@ class DeleteCollectionUseCase {
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkRequesterIsAuthenticated())
-			return Err(new NotAuthorizedFailure());
-
-		const requesterResult = await this.userRepository.get(requesterId);
-		if (requesterResult.err) return requesterResult;
-		const requester = requesterResult.val;
-
-		const collectionResult = await this.collectionRepository.get(id);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
-
-		const allowedDeleteCollection = checkAllowedDeleteCollection(
-			requester,
-			collection,
+		const authorizeResult = await this.authorizeCollectionUpdate.execute(
+			id,
+			requesterId,
+			checkRequesterIsAuthenticated,
 		);
-		if (!allowedDeleteCollection) return Err(new NotAuthorizedFailure());
+		if (authorizeResult.err) return authorizeResult;
 
 		const deleteResult = await this.collectionRepository.delete(id);
 		if (deleteResult.err) return deleteResult;
@@ -407,6 +457,7 @@ function setCollectionImage(
 export class SetCollectionImageUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -414,6 +465,10 @@ export class SetCollectionImageUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+			collectionRepository,
+			userRepository,
+		);
 	}
 
 	async execute(
@@ -422,22 +477,13 @@ export class SetCollectionImageUseCase {
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkRequesterIsAuthenticated())
-			return Err(new NotAuthorizedFailure());
-
-		const requesterResult = await this.userRepository.get(requesterId);
-		if (requesterResult.err) return requesterResult;
-		const requester = requesterResult.val;
-
-		const collectionResult = await this.collectionRepository.get(id);
+		const collectionResult = await this.authorizeCollectionUpdate.execute(
+			id,
+			requesterId,
+			checkRequesterIsAuthenticated,
+		);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
-
-		const allowedUpdateCollection = checkAllowedUpdateCollection(
-			requester,
-			collection,
-		);
-		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());
 
 		const updatedCollection = setCollectionImage(imageOption, collection);
 
