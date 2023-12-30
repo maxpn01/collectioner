@@ -9,8 +9,9 @@ import {
 } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
-import { NotAuthorizedFailure, User, UserRepository } from "../user";
+import { User, UserRepository } from "../user";
 import { Failure, NotFoundFailure } from "../utils/failure";
+import { NotAuthorizedFailure } from "../user/view-user";
 
 function updateCollection(
 	collection: Collection,

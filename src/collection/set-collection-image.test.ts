@@ -6,13 +6,9 @@ import {
 	MemoryTopicRepository,
 	TopicRepository,
 } from ".";
-import {
-	MemoryUserRepository,
-	User,
-	UserRepository,
-	NotAuthorizedFailure,
-} from "../user";
+import { MemoryUserRepository, User, UserRepository } from "../user";
 import { SetCollectionImageUseCase } from "./update-collection";
+import { NotAuthorizedFailure } from "../user/view-user";
 
 const collectionId = "collectionid";
 const image = "testfilename.jpg";
