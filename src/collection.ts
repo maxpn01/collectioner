@@ -1,6 +1,11 @@
-import { User, NotAuthorizedFailure, UserRepository } from "user";
+import {
+	User,
+	NotAuthorizedFailure,
+	UserRepository,
+	MemoryUserRepository,
+} from "./user";
 import { Result, Ok, Err, Option, Some, None } from "ts-results";
-import { Failure, NotFoundFailure } from "utils/failure";
+import { Failure, NotFoundFailure } from "./utils/failure";
 import { nanoid } from "nanoid";
 
 type Topic = {
@@ -13,7 +18,7 @@ type Collection = {
 	name: string;
 	items: Item[];
 	topic: Topic;
-	image: Option<Buffer>;
+	imageOption: Option<string>;
 	numberFields: ItemField[];
 	textFields: ItemField[];
 	multilineTextFields: ItemField[];
@@ -93,7 +98,7 @@ function createNewCollection({
 		name,
 		topic,
 		items: [],
-		image: None,
+		imageOption: None,
 		numberFields: [],
 		textFields: [],
 		multilineTextFields: [],
@@ -107,7 +112,6 @@ function checkAllowedCreateCollection(requester: User, owner: User): boolean {
 }
 
 function updateCollection(
-	collection: Collection,
 	{
 		name,
 		topic,
@@ -125,20 +129,19 @@ function updateCollection(
 		checkboxFields: ItemField[];
 		dateFields: ItemField[];
 	},
+	collection: Collection,
 ): Collection {
-	return {
-		id: collection.id,
-		owner: collection.owner,
-		items: collection.items,
-		image: collection.image,
-		name,
-		topic,
-		numberFields,
-		textFields,
-		multilineTextFields,
-		checkboxFields,
-		dateFields,
-	};
+	collection = structuredClone(collection);
+
+	collection.name = name;
+	collection.topic = topic;
+	collection.numberFields = numberFields;
+	collection.textFields = textFields;
+	collection.multilineTextFields = multilineTextFields;
+	collection.checkboxFields = checkboxFields;
+	collection.dateFields = dateFields;
+
+	return collection;
 }
 
 function checkAllowedUpdateCollection(requester: User, collection: Collection) {
@@ -155,11 +158,57 @@ interface TopicRepository {
 	get(id: string): Result<Topic, Failure>;
 }
 
-interface CollectionRepository {
+export interface CollectionRepository {
 	get(id: string): Promise<Result<Collection, Failure>>;
 	create(collection: Collection): Promise<Result<None, Failure>>;
 	update(id: string, collection: Collection): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
+}
+
+export class MemoryCollectionRepository implements CollectionRepository {
+	collections: Collection[];
+	userRepository: MemoryUserRepository;
+
+	constructor(collections: Collection[], userRepository: MemoryUserRepository) {
+		this.collections = collections;
+		this.userRepository = userRepository;
+	}
+
+	async get(id: string): Promise<Result<Collection, Failure>> {
+		const collection = structuredClone(
+			this.collections.find((c) => c.id === id),
+		);
+		if (!collection) return Err(new NotFoundFailure());
+
+		const userResult = await this.userRepository.get(collection.owner.id);
+		if (userResult.err) return userResult;
+		const user = userResult.val;
+
+		collection.owner = user;
+		return Ok(collection);
+	}
+
+	async create(collection: Collection): Promise<Result<None, Failure>> {
+		this.collections.push(collection);
+		return Ok(None);
+	}
+
+	async update(
+		id: string,
+		collection: Collection,
+	): Promise<Result<None, Failure>> {
+		const index = this.collections.findIndex((c) => c.id === id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.collections[index] = collection;
+		return Ok(None);
+	}
+
+	async delete(id: string): Promise<Result<None, Failure>> {
+		const index = this.collections.findIndex((c) => c.id === id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.collections.splice(index, 1);
+		return Ok(None);
+	}
 }
 
 type CreateCollectionRequest = {
@@ -282,15 +331,18 @@ class UpdateCollectionUseCase {
 		if (topicResult.err) return topicResult;
 		const topic = topicResult.val;
 
-		const updatedCollection = updateCollection(collection, {
-			name: request.name,
-			topic,
-			numberFields: request.numberFields,
-			textFields: request.textFields,
-			multilineTextFields: request.multilineTextFields,
-			checkboxFields: request.checkboxFields,
-			dateFields: request.dateFields,
-		});
+		const updatedCollection = updateCollection(
+			{
+				name: request.name,
+				topic,
+				numberFields: request.numberFields,
+				textFields: request.textFields,
+				multilineTextFields: request.multilineTextFields,
+				checkboxFields: request.checkboxFields,
+				dateFields: request.dateFields,
+			},
+			collection,
+		);
 
 		const updateResult = await this.collectionRepository.update(
 			id,
@@ -338,6 +390,62 @@ class DeleteCollectionUseCase {
 
 		const deleteResult = await this.collectionRepository.delete(id);
 		if (deleteResult.err) return deleteResult;
+
+		return Ok(None);
+	}
+}
+
+function setCollectionImage(
+	imageOption: Option<string>,
+	collection: Collection,
+): Collection {
+	collection = structuredClone(collection);
+	collection.imageOption = imageOption;
+	return collection;
+}
+
+export class SetCollectionImageUseCase {
+	collectionRepository: CollectionRepository;
+	userRepository: UserRepository;
+
+	constructor(
+		collectionRepository: CollectionRepository,
+		userRepository: UserRepository,
+	) {
+		this.collectionRepository = collectionRepository;
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		imageOption: Option<string>,
+		id: string,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
+	): Promise<Result<None, Failure>> {
+		if (!checkRequesterIsAuthenticated())
+			return Err(new NotAuthorizedFailure());
+
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
+		const requester = requesterResult.val;
+
+		const collectionResult = await this.collectionRepository.get(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		const allowedUpdateCollection = checkAllowedUpdateCollection(
+			requester,
+			collection,
+		);
+		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());
+
+		const updatedCollection = setCollectionImage(imageOption, collection);
+
+		const updateResult = await this.collectionRepository.update(
+			id,
+			updatedCollection,
+		);
+		if (updateResult.err) return updateResult;
 
 		return Ok(None);
 	}

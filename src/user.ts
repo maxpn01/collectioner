@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Result, Ok, Err, None } from "ts-results";
-import { Failure, NotFoundFailure } from "utils/failure";
+import { Failure, NotFoundFailure } from "./utils/failure";
 import { nanoid } from "nanoid";
 
 export type User = {
@@ -64,6 +64,45 @@ export interface UserRepository {
 	create(user: User): Promise<Result<None, Failure>>;
 	update(id: string, user: User): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
+}
+
+export class MemoryUserRepository implements UserRepository {
+	users: User[];
+
+	constructor(users: User[]) {
+		this.users = users;
+	}
+
+	async get(id: string): Promise<Result<User, Failure>> {
+		const user = structuredClone(this.users.find((u) => u.id === id));
+		if (!user) return Err(new NotFoundFailure());
+		return Ok(user);
+	}
+
+	async getByEmail(email: string): Promise<Result<User, Failure>> {
+		const user = this.users.find((u) => u.email === email);
+		if (!user) return Err(new NotFoundFailure());
+		return Ok(user);
+	}
+
+	async create(user: User): Promise<Result<None, Failure>> {
+		this.users.push(user);
+		return Ok(None);
+	}
+
+	async update(id: string, user: User): Promise<Result<None, Failure>> {
+		const index = this.users.findIndex((u) => u.id === id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.users[index] = user;
+		return Ok(None);
+	}
+
+	async delete(id: string): Promise<Result<None, Failure>> {
+		const index = this.users.findIndex((u) => u.id === id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.users.splice(index, 1);
+		return Ok(None);
+	}
 }
 
 type SignUpWithEmailRequest = {
@@ -233,8 +272,8 @@ class SetUserBlockedUseCase {
 	async execute(id: string, blocked: boolean): Promise<Result<None, Failure>> {
 		const userResult = await this.userRepository.get(id);
 		if (userResult.err) return userResult;
+		const user = userResult.val;
 
-		const user = structuredClone(userResult.val);
 		user.blocked = blocked;
 
 		const updateResult = await this.userRepository.update(id, user);
@@ -333,8 +372,8 @@ class SetUserIsAdminUseCase {
 	async execute(id: string, isAdmin: boolean): Promise<Result<None, Failure>> {
 		const userResult = await this.userRepository.get(id);
 		if (userResult.err) return userResult;
+		const user = userResult.val;
 
-		const user = structuredClone(userResult.val);
 		user.isAdmin = isAdmin;
 
 		const updateResult = await this.userRepository.update(id, user);
