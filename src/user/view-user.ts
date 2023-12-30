@@ -1,30 +1,66 @@
-import { Result, Err } from "ts-results";
+import { Result, Err, Option, Ok } from "ts-results";
 import { UserRepository } from ".";
 import { Failure } from "../utils/failure";
+import { Collection, CollectionRepository } from "../collection";
 
-type ViewUserResult = {
+type ViewUserResponse = {
 	id: string;
 	fullname: string;
 	blocked: boolean;
+	collections: ViewUserResponseCollection[];
+};
+
+type ViewUserResponseCollection = {
+	id: string;
+	name: string;
+	topic: {
+		id: string;
+		name: string;
+	};
+	imageOption: Option<string>;
 };
 
 class ViewUserUseCase {
 	userRepository: UserRepository;
+	collectionRepository: CollectionRepository;
 
-	constructor(userRepository: UserRepository) {
+	constructor(
+		userRepository: UserRepository,
+		collectionRepository: CollectionRepository,
+	) {
 		this.userRepository = userRepository;
+		this.collectionRepository = collectionRepository;
 	}
 
-	async execute(id: string): Promise<Result<ViewUserResult, Failure>> {
+	async execute(id: string): Promise<Result<ViewUserResponse, Failure>> {
 		const userResult = await this.userRepository.get(id);
+		if (userResult.err) return userResult;
+		const user = userResult.val;
 
-		return userResult.map((user) => {
-			return {
-				id: user.id,
-				fullname: user.fullname,
-				blocked: user.blocked,
-			};
+		const collectionsResult = await this.collectionRepository.getByUser(
+			user.id,
+		);
+		if (collectionsResult.err) return collectionsResult;
+		const collections = collectionsResult.val.map(this.toResponseCollection);
+
+		return Ok({
+			id: user.id,
+			fullname: user.fullname,
+			blocked: user.blocked,
+			collections,
 		});
+	}
+
+	private toResponseCollection(c: Collection): ViewUserResponseCollection {
+		return {
+			id: c.id,
+			name: c.name,
+			topic: {
+				id: c.topic.id,
+				name: c.topic.name,
+			},
+			imageOption: c.imageOption,
+		};
 	}
 }
 

@@ -30,6 +30,7 @@ export enum ItemFieldType {
 
 export interface CollectionRepository {
 	get(id: string): Promise<Result<Collection, Failure>>;
+	getByUser(userId: string): Promise<Result<Collection[], Failure>>;
 	create(collection: Collection): Promise<Result<None, Failure>>;
 	update(id: string, collection: Collection): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
@@ -67,6 +68,20 @@ export class MemoryCollectionRepository implements CollectionRepository {
 		collection.topic = topic;
 
 		return Ok(collection);
+	}
+
+	async getByUser(userId: string): Promise<Result<Collection[], Failure>> {
+		const collections: Collection[] = [];
+
+		for (const collection of this.collections) {
+			if (collection.owner.id === userId) {
+				const collectionResult = await this.get(collection.id);
+				if (collectionResult.err) return collectionResult;
+				collections.push(collectionResult.val);
+			}
+		}
+
+		return Ok(collections);
 	}
 
 	async create(collection: Collection): Promise<Result<None, Failure>> {
