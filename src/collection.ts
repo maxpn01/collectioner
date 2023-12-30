@@ -12,6 +12,7 @@ type Topic = {
 	id: string;
 	name: string;
 };
+
 type Collection = {
 	owner: User;
 	id: string;
@@ -19,12 +20,21 @@ type Collection = {
 	items: Item[];
 	topic: Topic;
 	imageOption: Option<string>;
-	numberFields: ItemField[];
-	textFields: ItemField[];
-	multilineTextFields: ItemField[];
-	checkboxFields: ItemField[];
-	dateFields: ItemField[];
 };
+type ItemField = {
+	id: string;
+	name: string;
+	collection: Collection;
+	type: ItemFieldType;
+};
+enum ItemFieldType {
+	Number = "number",
+	Text = "text",
+	MultilineText = "multline-string",
+	Checkbox = "checkbox",
+	Date = "date",
+}
+
 type Item = {
 	id: string;
 	name: string;
@@ -37,10 +47,6 @@ type Item = {
 	dateFields: DateField[];
 	likes: Like[];
 	comments: Comment[];
-};
-type ItemField = {
-	id: string;
-	name: string;
 };
 type NumberField = {
 	id: string;
@@ -99,11 +105,6 @@ function createNewCollection({
 		topic,
 		items: [],
 		imageOption: None,
-		numberFields: [],
-		textFields: [],
-		multilineTextFields: [],
-		checkboxFields: [],
-		dateFields: [],
 	};
 }
 
@@ -112,34 +113,19 @@ function checkAllowedCreateCollection(requester: User, owner: User): boolean {
 }
 
 function updateCollection(
+	collection: Collection,
 	{
 		name,
 		topic,
-		numberFields,
-		textFields,
-		multilineTextFields,
-		checkboxFields,
-		dateFields,
 	}: {
 		name: string;
 		topic: Topic;
-		numberFields: ItemField[];
-		textFields: ItemField[];
-		multilineTextFields: ItemField[];
-		checkboxFields: ItemField[];
-		dateFields: ItemField[];
 	},
-	collection: Collection,
 ): Collection {
 	collection = structuredClone(collection);
 
 	collection.name = name;
 	collection.topic = topic;
-	collection.numberFields = numberFields;
-	collection.textFields = textFields;
-	collection.multilineTextFields = multilineTextFields;
-	collection.checkboxFields = checkboxFields;
-	collection.dateFields = dateFields;
 
 	return collection;
 }
@@ -159,12 +145,12 @@ export interface CollectionRepository {
 
 export class MemoryCollectionRepository implements CollectionRepository {
 	collections: Collection[];
-	userRepository: MemoryUserRepository;
+	userRepository: UserRepository;
 	topicRepository: TopicRepository;
 
 	constructor(
 		collections: Collection[],
-		userRepository: MemoryUserRepository,
+		userRepository: UserRepository,
 		topicRepository: TopicRepository,
 	) {
 		this.collections = collections;
@@ -229,6 +215,58 @@ export class MemoryTopicRepository implements TopicRepository {
 		const topic = this.topics.find((t) => t.id === id);
 		if (!topic) return Err(new NotFoundFailure());
 		return Ok(topic);
+	}
+}
+
+export interface ItemFieldRepository {
+	getByCollection(id: string): Promise<Result<ItemField[], Failure>>;
+	get(id: string): Promise<Result<ItemField, Failure>>;
+	has(id: string): Promise<boolean>;
+	create(field: ItemField): Promise<Result<None, Failure>>;
+	update(id: string, field: ItemField): Promise<Result<None, Failure>>;
+	delete(id: string): Promise<Result<None, Failure>>;
+}
+
+export class MemoryItemFieldRepository implements ItemFieldRepository {
+	itemFields: ItemField[];
+
+	constructor(itemFields: ItemField[]) {
+		this.itemFields = itemFields;
+	}
+
+	async getByCollection(id: string): Promise<Result<ItemField[], Failure>> {
+		const fields = this.itemFields.filter((f) => f.collection.id === id);
+		if (!fields) return Err(new NotFoundFailure());
+		return Ok(fields);
+	}
+
+	async has(id: string): Promise<boolean> {
+		return this.itemFields.some((f) => f.id === id);
+	}
+
+	async get(id: string): Promise<Result<ItemField, Failure>> {
+		const field = this.itemFields.find((f) => f.id === id);
+		if (!field) return Err(new NotFoundFailure());
+		return Ok(field);
+	}
+
+	async create(field: ItemField): Promise<Result<None, Failure>> {
+		this.itemFields.push(field);
+		return Ok(None);
+	}
+
+	async update(id: string, field: ItemField): Promise<Result<None, Failure>> {
+		const index = this.itemFields.findIndex((f) => f.id === id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.itemFields[index] = field;
+		return Ok(None);
+	}
+
+	async delete(id: string): Promise<Result<None, Failure>> {
+		const index = this.itemFields.findIndex((f) => f.id === id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.itemFields.splice(index, 1);
+		return Ok(None);
 	}
 }
 
@@ -333,19 +371,26 @@ class CreateCollectionUseCase {
 	}
 }
 
-type UpdateCollectionRequestItemField = {
-	id: string;
-	name: string;
-};
+function generateItemFieldId(): string {
+	return nanoid();
+}
 
 type UpdateCollectionRequest = {
 	name: string;
 	topicId: string;
-	numberFields: UpdateCollectionRequestItemField[];
-	textFields: UpdateCollectionRequestItemField[];
-	multilineTextFields: UpdateCollectionRequestItemField[];
-	checkboxFields: UpdateCollectionRequestItemField[];
-	dateFields: UpdateCollectionRequestItemField[];
+	fields: UpdateCollectionRequestItemField[];
+	newFields: UpdateCollectionRequestNewItemField[];
+};
+
+type UpdateCollectionRequestItemField = {
+	id: string;
+	name: string;
+	type: ItemFieldType;
+};
+
+type UpdateCollectionRequestNewItemField = {
+	name: string;
+	type: ItemFieldType;
 };
 
 class UpdateCollectionUseCase {
@@ -353,11 +398,13 @@ class UpdateCollectionUseCase {
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	itemFieldRepository: ItemFieldRepository;
 
 	constructor(
 		collectionRepository: CollectionRepository,
 		topicRepository: TopicRepository,
 		userRepository: UserRepository,
+		itemFieldRepository: ItemFieldRepository,
 	) {
 		this.collectionRepository = collectionRepository;
 		this.topicRepository = topicRepository;
@@ -366,6 +413,7 @@ class UpdateCollectionUseCase {
 			collectionRepository,
 			userRepository,
 		);
+		this.itemFieldRepository = itemFieldRepository;
 	}
 
 	async execute(
@@ -386,24 +434,48 @@ class UpdateCollectionUseCase {
 		if (topicResult.err) return topicResult;
 		const topic = topicResult.val;
 
-		const updatedCollection = updateCollection(
-			{
-				name: request.name,
-				topic,
-				numberFields: request.numberFields,
-				textFields: request.textFields,
-				multilineTextFields: request.multilineTextFields,
-				checkboxFields: request.checkboxFields,
-				dateFields: request.dateFields,
-			},
+		const updateItemFieldsResult = await this.updateItemFields(
+			request,
 			collection,
 		);
+		if (updateItemFieldsResult.err) return updateItemFieldsResult;
+
+		const updatedCollection = updateCollection(collection, {
+			name: request.name,
+			topic,
+		});
 
 		const updateResult = await this.collectionRepository.update(
 			id,
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;
+
+		return Ok(None);
+	}
+
+	async updateItemFields(
+		request: UpdateCollectionRequest,
+		collection: Collection,
+	): Promise<Result<None, Failure>> {
+		for (let i = 0; i < request.fields.length; i++) {
+			const field = request.fields[i];
+			const fieldExists = await this.itemFieldRepository.has(field.id);
+			if (!fieldExists) return Err(new NotFoundFailure());
+
+			const updatedField: ItemField = { collection, ...field };
+			await this.itemFieldRepository.update(field.id, updatedField);
+		}
+
+		for (let i = 0; i < request.newFields.length; i++) {
+			const field = request.newFields[i];
+			const createdField: ItemField = {
+				id: generateItemFieldId(),
+				collection,
+				...field,
+			};
+			await this.itemFieldRepository.create(createdField);
+		}
 
 		return Ok(None);
 	}
