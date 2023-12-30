@@ -9,7 +9,12 @@ import {
 } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
-import { User, UserRepository } from "../user";
+import {
+	AuthorizeUserUpdateUseCase,
+	User,
+	UserRepository,
+	authorizeUserUpdate,
+} from "../user";
 import { Failure, NotFoundFailure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../user/view-user";
 
@@ -31,15 +36,10 @@ function updateCollection(
 	return collection;
 }
 
-function checkAllowedUpdateCollection(requester: User, collection: Collection) {
-	const isOwner = requester.id === collection.owner.id;
-
-	return isOwner || requester.isAdmin;
-}
-
 export class AuthorizeCollectionUpdateUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
+	authorizeUserUpdateUseCase: AuthorizeUserUpdateUseCase;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -47,6 +47,9 @@ export class AuthorizeCollectionUpdateUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
+		this.authorizeUserUpdateUseCase = new AuthorizeUserUpdateUseCase(
+			userRepository,
+		);
 	}
 
 	async execute(
@@ -54,22 +57,16 @@ export class AuthorizeCollectionUpdateUseCase {
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<Collection, Failure>> {
-		if (!checkRequesterIsAuthenticated())
-			return Err(new NotAuthorizedFailure());
-
-		const requesterResult = await this.userRepository.get(requesterId);
-		if (requesterResult.err) return requesterResult;
-		const requester = requesterResult.val;
+		const authorized = await this.authorizeUserUpdateUseCase.execute(
+			id,
+			requesterId,
+			checkRequesterIsAuthenticated,
+		);
+		if (!authorized) return Err(new NotAuthorizedFailure());
 
 		const collectionResult = await this.collectionRepository.get(id);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
-
-		const allowedUpdateCollection = checkAllowedUpdateCollection(
-			requester,
-			collection,
-		);
-		if (!allowedUpdateCollection) return Err(new NotAuthorizedFailure());
 
 		return Ok(collection);
 	}

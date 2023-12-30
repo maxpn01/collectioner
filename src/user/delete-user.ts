@@ -1,16 +1,18 @@
 import { Err, None, Ok, Result } from "ts-results";
-import { UserRepository } from ".";
+import { AuthorizeUserUpdateUseCase, UserRepository } from ".";
 import { Failure } from "../utils/failure";
 import { CheckIsAdminUseCase } from "./admin";
 import { NotAuthorizedFailure } from "./view-user";
 
 class DeleteUserUseCase {
 	userRepository: UserRepository;
-	checkIsAdminUseCase: CheckIsAdminUseCase;
+	authorizeUserUpdateUseCase: AuthorizeUserUpdateUseCase;
 
 	constructor(userRepository: UserRepository) {
 		this.userRepository = userRepository;
-		this.checkIsAdminUseCase = new CheckIsAdminUseCase(userRepository);
+		this.authorizeUserUpdateUseCase = new AuthorizeUserUpdateUseCase(
+			userRepository,
+		);
 	}
 
 	async execute(
@@ -18,11 +20,12 @@ class DeleteUserUseCase {
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		const isAdmin = this.checkIsAdminUseCase.execute(
+		const authorized = await this.authorizeUserUpdateUseCase.execute(
+			id,
 			requesterId,
 			checkRequesterIsAuthenticated,
 		);
-		if (!isAdmin) return Err(new NotAuthorizedFailure());
+		if (!authorized) return Err(new NotAuthorizedFailure());
 
 		const deleteResult = await this.userRepository.delete(id);
 		if (deleteResult.err) return deleteResult;

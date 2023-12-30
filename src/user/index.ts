@@ -1,5 +1,6 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { Failure, NotFoundFailure } from "../utils/failure";
+import { NotAuthorizedFailure } from "./view-user";
 
 export type User = {
 	id: string;
@@ -54,5 +55,32 @@ export class MemoryUserRepository implements UserRepository {
 		if (index === -1) return Err(new NotFoundFailure());
 		this.users.splice(index, 1);
 		return Ok(None);
+	}
+}
+
+export function authorizeUserUpdate(userId: string, requester: User) {
+	const isSelf = requester.id === userId;
+	return isSelf || requester.isAdmin;
+}
+
+export class AuthorizeUserUpdateUseCase {
+	userRepository: UserRepository;
+
+	constructor(userRepository: UserRepository) {
+		this.userRepository = userRepository;
+	}
+
+	async execute(
+		id: string,
+		requesterId: string,
+		checkRequesterIsAuthenticated: () => boolean,
+	): Promise<boolean> {
+		if (!checkRequesterIsAuthenticated()) return false;
+
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) throw new Error();
+		const requester = requesterResult.val;
+
+		return authorizeUserUpdate(id, requester);
 	}
 }
