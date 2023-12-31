@@ -1,70 +1,51 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { Some, None, Option } from "ts-results";
 import {
+	Collection,
 	CollectionRepository,
 	MemoryCollectionRepository,
 	MemoryTopicRepository,
+	Topic,
 	TopicRepository,
 } from ".";
 import { MemoryUserRepository, User, UserRepository } from "../user";
 import { SetCollectionImageUseCase } from "./update-collection";
 import { NotAuthorizedFailure } from "../user/view-user";
-
-const collectionId = "collectionid";
-const image = "testfilename.jpg";
-const ownerId = "ownerid";
-const adminId = "adminid";
-const owner: User = {
-	id: ownerId,
-	email: "",
-	fullname: "",
-	blocked: false,
-	isAdmin: false,
-	passwordHash: "",
-};
-
-let userRepository: MemoryUserRepository;
-let collectionRepository: MemoryCollectionRepository;
-let checkRequesterIsAuthenticated: () => boolean;
+import { createTestUser } from "../user/index.test";
+import { createTestCollection, createTestTopic } from "./index.test";
+import { unwrapOption } from "../utils/ts-results";
 
 describe("set collection image use case", () => {
 	let setCollectionImage: SetCollectionImageUseCase;
+	let checkRequesterIsAuthenticated: () => boolean;
+
+	let users: User[];
+	let userRepository: MemoryUserRepository;
+
+	let collections: Collection[];
+	let collectionRepository: MemoryCollectionRepository;
+
+	let topics: Topic[];
+	let topicRepository: MemoryTopicRepository;
 
 	beforeEach(() => {
-		userRepository = new MemoryUserRepository([
-			structuredClone(owner),
-			{
-				id: "anotheruserid",
-				email: "",
-				fullname: "",
-				blocked: false,
-				isAdmin: false,
-				passwordHash: "",
-			},
-			{
-				id: adminId,
-				email: "",
-				fullname: "",
-				blocked: false,
-				isAdmin: true,
-				passwordHash: "",
-			},
-		]);
 		checkRequesterIsAuthenticated = () => true;
-		const topic = { id: "topicid", name: "" };
+
+		const admin = createTestUser("admin");
+		admin.isAdmin = true;
+		users = [createTestUser("owner"), createTestUser("notowner"), admin];
+		userRepository = new MemoryUserRepository(users);
+
+		topics = [createTestTopic("topic1")];
+		topicRepository = new MemoryTopicRepository(topics);
+
+		collections = [createTestCollection("collection1", users[0], topics[0])];
 		collectionRepository = new MemoryCollectionRepository(
-			[
-				{
-					owner,
-					topic,
-					id: collectionId,
-					name: "",
-					imageOption: None,
-				},
-			],
+			collections,
 			userRepository,
-			new MemoryTopicRepository([topic]),
+			topicRepository,
 		);
+
 		setCollectionImage = new SetCollectionImageUseCase(
 			collectionRepository,
 			userRepository,
@@ -74,26 +55,26 @@ describe("set collection image use case", () => {
 	it("should allow the owner", async () => {
 		await setCollectionImage
 			.execute(
-				Some(image),
-				collectionId,
-				ownerId,
+				Some("image"),
+				"collection1",
+				"owner",
 				checkRequesterIsAuthenticated,
 			)
 			.then((result) => result.unwrap());
 
-		const collectionResult = await collectionRepository.get(collectionId);
+		const collectionResult = await collectionRepository.get("collection1");
 		const collection = collectionResult.unwrap();
-		if (collection.imageOption.none) throw new Error();
-		const updatedImage = collection.imageOption.val;
-		expect(updatedImage).toBe(image);
+		const updatedImage = unwrapOption(collection.imageOption);
+		expect(updatedImage).toBe("image");
 	});
 
 	it("should not allow unauthenticated user", async () => {
 		checkRequesterIsAuthenticated = () => false;
+
 		const result = await setCollectionImage.execute(
-			Some(image),
-			collectionId,
-			ownerId,
+			Some("image"),
+			"collection1",
+			"owner",
 			checkRequesterIsAuthenticated,
 		);
 		if (result.ok) throw new Error("The user must not be authorized");
@@ -104,9 +85,9 @@ describe("set collection image use case", () => {
 
 	it("should not allow another user", async () => {
 		const result = await setCollectionImage.execute(
-			Some(image),
-			collectionId,
-			"anotheruserid",
+			Some("image"),
+			"collection1",
+			"notowner",
 			checkRequesterIsAuthenticated,
 		);
 		if (result.ok) throw new Error("The user must not be authorized");
@@ -118,37 +99,31 @@ describe("set collection image use case", () => {
 	it("should allow an admin", async () => {
 		await setCollectionImage
 			.execute(
-				Some(image),
-				collectionId,
-				adminId,
+				Some("image"),
+				"collection1",
+				"admin",
 				checkRequesterIsAuthenticated,
 			)
 			.then((result) => result.unwrap());
 
-		const collectionResult = await collectionRepository.get(collectionId);
+		const collectionResult = await collectionRepository.get("collection1");
 		const collection = collectionResult.unwrap();
-		if (collection.imageOption.none) throw new Error();
-		const updatedImage = collection.imageOption.val;
-		expect(updatedImage).toBe(image);
+		const updatedImage = unwrapOption(collection.imageOption);
+		expect(updatedImage).toBe("image");
 	});
 
 	it("should remove image", async () => {
-		const topic = { id: "topicid", name: "" };
+		const initialCollection = createTestCollection(
+			"collection1",
+			users[0],
+			topics[0],
+		);
+		initialCollection.imageOption = Some("image");
+		collections = [initialCollection];
 		collectionRepository = new MemoryCollectionRepository(
-			[
-				{
-					owner: structuredClone(owner),
-					id: collectionId,
-					name: "",
-					topic: {
-						id: "topicid",
-						name: "",
-					},
-					imageOption: Some(image),
-				},
-			],
+			collections,
 			userRepository,
-			new MemoryTopicRepository([topic]),
+			topicRepository,
 		);
 		setCollectionImage = new SetCollectionImageUseCase(
 			collectionRepository,
@@ -156,10 +131,10 @@ describe("set collection image use case", () => {
 		);
 
 		await setCollectionImage
-			.execute(None, collectionId, ownerId, checkRequesterIsAuthenticated)
+			.execute(None, "collection1", "owner", checkRequesterIsAuthenticated)
 			.then((result) => result.unwrap());
 
-		const collectionResult = await collectionRepository.get(collectionId);
+		const collectionResult = await collectionRepository.get("collection1");
 		const collection = collectionResult.unwrap();
 		expect(collection.imageOption.none).toBe(true);
 	});

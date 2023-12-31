@@ -57,16 +57,16 @@ export class AuthorizeCollectionUpdateUseCase {
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<Collection, Failure>> {
+		const collectionResult = await this.collectionRepository.get(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
 		const authorized = await this.authorizeUserUpdateUseCase.execute(
-			id,
+			collection.owner.id,
 			requesterId,
 			checkRequesterIsAuthenticated,
 		);
 		if (!authorized) return Err(new NotAuthorizedFailure());
-
-		const collectionResult = await this.collectionRepository.get(id);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
 
 		return Ok(collection);
 	}
