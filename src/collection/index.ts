@@ -14,19 +14,29 @@ export type Collection = {
 	topic: Topic;
 	imageOption: Option<string>;
 };
-export type ItemField = {
+export type CollectionField = {
 	id: string;
 	name: string;
 	collection: Collection;
-	type: ItemFieldType;
+	type: CollectionFieldType;
 };
-export enum ItemFieldType {
-	Number = "number",
-	Text = "text",
-	MultilineText = "multline-string",
-	Checkbox = "checkbox",
-	Date = "date",
-}
+
+export const CollectionFieldType = {
+	Number: "Number",
+	Text: "Text",
+	MultilineText: "MultilineText",
+	Checkbox: "Checkbox",
+	Date: "Date",
+} as const;
+export type CollectionFieldType =
+	(typeof CollectionFieldType)[keyof typeof CollectionFieldType];
+export const collectionFieldTypes: CollectionFieldType[] = [
+	"Number",
+	"Text",
+	"MultilineText",
+	"Checkbox",
+	"Date",
+] as const;
 
 export interface CollectionRepository {
 	get(id: string): Promise<Result<Collection, Failure>>;
@@ -125,54 +135,87 @@ export class MemoryTopicRepository implements TopicRepository {
 	}
 }
 
-export interface ItemFieldRepository {
-	getByCollection(id: string): Promise<Result<ItemField[], Failure>>;
-	get(id: string): Promise<Result<ItemField, Failure>>;
+export interface CollectionFieldRepository {
+	getByCollection(id: string): Promise<Result<CollectionField[], Failure>>;
+	get(id: string): Promise<Result<CollectionField, Failure>>;
 	has(id: string): Promise<boolean>;
-	create(field: ItemField): Promise<Result<None, Failure>>;
-	update(id: string, field: ItemField): Promise<Result<None, Failure>>;
+	create(field: CollectionField): Promise<Result<None, Failure>>;
+	update(id: string, field: CollectionField): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-export class MemoryItemFieldRepository implements ItemFieldRepository {
-	itemFields: ItemField[];
+export class MemoryCollectionFieldRepository
+	implements CollectionFieldRepository
+{
+	collectionFields: CollectionField[];
+	collectionRepository: CollectionRepository;
 
-	constructor(itemFields: ItemField[]) {
-		this.itemFields = itemFields;
+	constructor(
+		collectionFields: CollectionField[],
+		collectionRepository: CollectionRepository,
+	) {
+		this.collectionFields = collectionFields;
+		this.collectionRepository = collectionRepository;
 	}
 
-	async getByCollection(id: string): Promise<Result<ItemField[], Failure>> {
-		const fields = this.itemFields.filter((f) => f.collection.id === id);
+	async getByCollection(
+		collectionId: string,
+	): Promise<Result<CollectionField[], Failure>> {
+		const fields = structuredClone(
+			this.collectionFields.filter((f) => f.collection.id === collectionId),
+		);
 		if (!fields) return Err(new NotFoundFailure());
+
+		const collectionResult = await this.collectionRepository.get(collectionId);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		for (const field of fields) {
+			field.collection = collection;
+		}
+
 		return Ok(fields);
 	}
 
 	async has(id: string): Promise<boolean> {
-		return this.itemFields.some((f) => f.id === id);
+		return this.collectionFields.some((f) => f.id === id);
 	}
 
-	async get(id: string): Promise<Result<ItemField, Failure>> {
-		const field = this.itemFields.find((f) => f.id === id);
+	async get(id: string): Promise<Result<CollectionField, Failure>> {
+		const field = structuredClone(
+			this.collectionFields.find((f) => f.id === id),
+		);
 		if (!field) return Err(new NotFoundFailure());
+
+		const collectionResult = await this.collectionRepository.get(
+			field.collection.id,
+		);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		field.collection = collection;
 		return Ok(field);
 	}
 
-	async create(field: ItemField): Promise<Result<None, Failure>> {
-		this.itemFields.push(field);
+	async create(field: CollectionField): Promise<Result<None, Failure>> {
+		this.collectionFields.push(field);
 		return Ok(None);
 	}
 
-	async update(id: string, field: ItemField): Promise<Result<None, Failure>> {
-		const index = this.itemFields.findIndex((f) => f.id === id);
+	async update(
+		id: string,
+		field: CollectionField,
+	): Promise<Result<None, Failure>> {
+		const index = this.collectionFields.findIndex((f) => f.id === id);
 		if (index === -1) return Err(new NotFoundFailure());
-		this.itemFields[index] = field;
+		this.collectionFields[index] = field;
 		return Ok(None);
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
-		const index = this.itemFields.findIndex((f) => f.id === id);
+		const index = this.collectionFields.findIndex((f) => f.id === id);
 		if (index === -1) return Err(new NotFoundFailure());
-		this.itemFields.splice(index, 1);
+		this.collectionFields.splice(index, 1);
 		return Ok(None);
 	}
 }

@@ -1,11 +1,11 @@
 import {
-	ItemFieldType,
+	CollectionFieldType,
 	Topic,
 	TopicRepository,
-	ItemField,
+	CollectionField,
 	Collection,
 	CollectionRepository,
-	ItemFieldRepository,
+	CollectionFieldRepository,
 } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
@@ -86,12 +86,12 @@ type UpdateCollectionRequest = {
 type UpdateCollectionRequestItemField = {
 	id: string;
 	name: string;
-	type: ItemFieldType;
+	type: CollectionFieldType;
 };
 
 type UpdateCollectionRequestNewItemField = {
 	name: string;
-	type: ItemFieldType;
+	type: CollectionFieldType;
 };
 
 class UpdateCollectionUseCase {
@@ -99,13 +99,13 @@ class UpdateCollectionUseCase {
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
-	itemFieldRepository: ItemFieldRepository;
+	itemFieldRepository: CollectionFieldRepository;
 
 	constructor(
 		collectionRepository: CollectionRepository,
 		topicRepository: TopicRepository,
 		userRepository: UserRepository,
-		itemFieldRepository: ItemFieldRepository,
+		itemFieldRepository: CollectionFieldRepository,
 	) {
 		this.collectionRepository = collectionRepository;
 		this.topicRepository = topicRepository;
@@ -164,13 +164,13 @@ class UpdateCollectionUseCase {
 			const fieldExists = await this.itemFieldRepository.has(field.id);
 			if (!fieldExists) return Err(new NotFoundFailure());
 
-			const updatedField: ItemField = { collection, ...field };
+			const updatedField: CollectionField = { collection, ...field };
 			await this.itemFieldRepository.update(field.id, updatedField);
 		}
 
 		for (let i = 0; i < request.newFields.length; i++) {
 			const field = request.newFields[i];
-			const createdField: ItemField = {
+			const createdField: CollectionField = {
 				id: generateItemFieldId(),
 				collection,
 				...field,
