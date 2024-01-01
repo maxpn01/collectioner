@@ -11,15 +11,17 @@ import { UserRepository } from "../../user";
 import { BadRequestFailure, Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
 import { nanoid } from "nanoid";
-import { Item, ItemRepository, ItemField, ItemFieldRepository } from ".";
+import {
+	Item,
+	ItemRepository,
+	generateItemFieldId,
+	ItemFieldRepositories,
+} from ".";
 import { stringify } from "querystring";
 import { areArraysEqual } from "../../utils/array";
+import { KeyValueRepository } from "../../utils/key-value";
 
 function generateItemId(): string {
-	return nanoid();
-}
-
-function generateItemFieldId(): string {
 	return nanoid();
 }
 
@@ -58,43 +60,31 @@ export class CreateItemUseCase {
 	userRepository: UserRepository;
 	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
-	numberFieldRepository: ItemFieldRepository<number>;
-	textFieldRepository: ItemFieldRepository<string>;
-	multilineTextFieldRepository: ItemFieldRepository<string>;
-	checkboxFieldRepository: ItemFieldRepository<boolean>;
-	dateFieldRepository: ItemFieldRepository<Date>;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	itemFieldRepositories: ItemFieldRepositories;
 
 	constructor(
 		userRepository: UserRepository,
 		collectionRepository: CollectionRepository,
 		collectionFieldRepository: CollectionFieldRepository,
 		itemRepository: ItemRepository,
-		numberFieldRepository: ItemFieldRepository<number>,
-		textFieldRepository: ItemFieldRepository<string>,
-		multilineTextFieldRepository: ItemFieldRepository<string>,
-		checkboxFieldRepository: ItemFieldRepository<boolean>,
-		dateFieldRepository: ItemFieldRepository<Date>,
+		itemFieldRepositories: ItemFieldRepositories,
 	) {
 		this.userRepository = userRepository;
 		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
-		this.numberFieldRepository = numberFieldRepository;
-		this.textFieldRepository = textFieldRepository;
-		this.multilineTextFieldRepository = multilineTextFieldRepository;
-		this.checkboxFieldRepository = checkboxFieldRepository;
-		this.dateFieldRepository = dateFieldRepository;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
 			collectionRepository,
 			userRepository,
 		);
+		this.itemFieldRepositories = itemFieldRepositories;
 	}
 
 	async execute(
 		request: CreateItemRequest,
 		requesterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
-	): Promise<Result<None, Failure>> {
+	): Promise<Result<string, Failure>> {
 		const collectionResult = await this.authorizeCollectionUpdate.execute(
 			request.collectionId,
 			requesterId,
@@ -124,78 +114,95 @@ export class CreateItemUseCase {
 		const createItemResult = await this.itemRepository.create(item);
 		if (createItemResult.err) return createItemResult;
 
-		const saveFieldsResult = await this.saveFields(
+		const setFields = new SetFieldsUseCase(
 			request,
-			collectionFields,
 			item,
+			collectionFields,
+			this.itemFieldRepositories,
 		);
-		if (saveFieldsResult.err) return saveFieldsResult;
+		const setFieldsResult = await setFields.execute();
+		if (setFieldsResult.err) return setFieldsResult;
 
-		return Ok(None);
+		return Ok(item.id);
+	}
+}
+
+type SetFieldsRequest = {
+	numberFields: Map<CollectionFieldId, number>;
+	textFields: Map<CollectionFieldId, string>;
+	multilineTextFields: Map<CollectionFieldId, string>;
+	checkboxFields: Map<CollectionFieldId, boolean>;
+	dateFields: Map<CollectionFieldId, Date>;
+};
+
+export class SetFieldsUseCase {
+	request: SetFieldsRequest;
+	item: Item;
+	collectionFields: CollectionField[];
+	itemFieldRepositories: ItemFieldRepositories;
+
+	constructor(
+		request: SetFieldsRequest,
+		item: Item,
+		collectionFields: CollectionField[],
+		itemFieldRepositories: ItemFieldRepositories,
+	) {
+		this.request = request;
+		this.item = item;
+		this.collectionFields = collectionFields;
+		this.itemFieldRepositories = itemFieldRepositories;
 	}
 
-	async saveFields(
-		request: CreateItemRequest,
-		collectionFields: CollectionField[],
-		item: Item,
-	): Promise<Result<None, Failure>> {
-		const saveFieldsOfType = new SaveFieldsOfType(item, collectionFields);
-		const saveFieldsOfTypeFunctions = [
+	async execute(): Promise<Result<None, Failure>> {
+		const setFieldsFns = [
 			() =>
-				saveFieldsOfType.execute(
-					request.numberFields,
-					this.numberFieldRepository,
+				this.setFieldsOfType(
+					this.request.numberFields,
+					this.itemFieldRepositories.number,
 				),
 			() =>
-				saveFieldsOfType.execute(request.textFields, this.textFieldRepository),
-			() =>
-				saveFieldsOfType.execute(
-					request.multilineTextFields,
-					this.multilineTextFieldRepository,
+				this.setFieldsOfType(
+					this.request.textFields,
+					this.itemFieldRepositories.text,
 				),
 			() =>
-				saveFieldsOfType.execute(
-					request.checkboxFields,
-					this.checkboxFieldRepository,
+				this.setFieldsOfType(
+					this.request.multilineTextFields,
+					this.itemFieldRepositories.multilineText,
 				),
 			() =>
-				saveFieldsOfType.execute(request.dateFields, this.dateFieldRepository),
+				this.setFieldsOfType(
+					this.request.checkboxFields,
+					this.itemFieldRepositories.checkbox,
+				),
+			() =>
+				this.setFieldsOfType(
+					this.request.dateFields,
+					this.itemFieldRepositories.date,
+				),
 		];
 
-		for (const fn of saveFieldsOfTypeFunctions) {
-			const result = await fn();
+		for (const setFields of setFieldsFns) {
+			const result = await setFields();
 			if (result.err) return result;
 		}
 
 		return Ok(None);
 	}
-}
 
-class SaveFieldsOfType {
-	item: Item;
-	collectionFields: CollectionField[];
-
-	constructor(item: Item, collectionFields: CollectionField[]) {
-		this.item = item;
-		this.collectionFields = collectionFields;
-	}
-
-	async execute<T>(
+	async setFieldsOfType<T>(
 		requestFields: Map<string, T>,
-		itemFieldRepository: ItemFieldRepository<T>,
+		itemFieldRepository: KeyValueRepository<T>,
 	): Promise<Result<None, Failure>> {
 		for (const [collectionFieldId, value] of requestFields) {
 			const collectionField = this.collectionFields.find(
 				(f) => f.id === collectionFieldId,
 			)!;
-			const itemField: ItemField<T> = {
-				id: generateItemFieldId(),
-				item: this.item,
+			const setResult = await itemFieldRepository.set(
+				generateItemFieldId(this.item.id, collectionField.id),
 				value,
-				collectionField,
-			};
-			const createResult = await itemFieldRepository.create(itemField);
-			if (createResult.err) return createResult;
+			);
+			if (setResult.err) return setResult;
 		}
 
 		return Ok(None);
@@ -210,7 +217,7 @@ type RequestFields = {
 	dateFields: Map<CollectionFieldId, Date>;
 };
 
-class CheckAllFieldsSpecified {
+export class CheckAllFieldsSpecified {
 	request: RequestFields;
 	allCollectionFields: CollectionField[];
 

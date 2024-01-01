@@ -20,8 +20,10 @@ import { CreateItemUseCase } from "./create-item";
 import { ViewCollectionUseCase } from "../view-collection";
 import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
 import { MemoryKeyValueRepository } from "../../utils/key-value";
+import { UpdateItemUseCase } from "./update-item";
 
-describe("create item use case", () => {
+describe("update item use case", () => {
+	let updateItem: UpdateItemUseCase;
 	let createItem: CreateItemUseCase;
 	let viewCollection: ViewCollectionUseCase;
 
@@ -129,27 +131,36 @@ describe("create item use case", () => {
 		dateFields = new Map();
 		dateFieldRepository = new MemoryKeyValueRepository<Date>(dateFields);
 
+		const itemFieldRepositories = {
+			number: numberFieldRepository,
+			text: textFieldRepository,
+			multilineText: multilineTextFieldRepository,
+			checkbox: checkboxFieldRepository,
+			date: dateFieldRepository,
+		};
+
 		createItem = new CreateItemUseCase(
 			userRepository,
 			collectionRepository,
 			collectionFieldRepository,
 			itemRepository,
-			{
-				number: numberFieldRepository,
-				text: textFieldRepository,
-				multilineText: multilineTextFieldRepository,
-				checkbox: checkboxFieldRepository,
-				date: dateFieldRepository,
-			},
+			itemFieldRepositories,
 		);
 		viewCollection = new ViewCollectionUseCase(
 			collectionRepository,
 			itemRepository,
 		);
+		updateItem = new UpdateItemUseCase(
+			userRepository,
+			collectionRepository,
+			collectionFieldRepository,
+			itemRepository,
+			itemFieldRepositories,
+		);
 	});
 
-	it("creates the item", async () => {
-		const result = await createItem.execute(
+	it("updates the item", async () => {
+		const createItemResult = await createItem.execute(
 			{
 				collectionId: "top50fantasy",
 				name: "The Hunger Games",
@@ -172,12 +183,39 @@ But if she is to win, she will have to start making choices that weight survival
 			"alice",
 			checkRequesterIsAuthenticated,
 		);
-		if (result.err) throw result;
+		if (createItemResult.err) throw createItemResult;
+		const itemId = createItemResult.val;
+
+		const updateItemResult = await updateItem.execute(
+			{
+				id: itemId,
+				name: "Do Androids Dream of Electric Sheep?",
+				tags: ["book", "science-fiction", "fantasy", "cyberpunk"],
+				textFields: new Map([["author", "Philip K. Dick"]]),
+				multilineTextFields: new Map([
+					[
+						"description",
+						`It was January 2021, and Rick Deckard had a license to kill. 
+Somewhere among the hordes of humans out there, lurked several rogue androids. 
+Deckard's assignment--find them and then..."retire" them. 
+Trouble was, the androids all looked exactly like humans, and they didn't want to be found!`,
+					],
+				]),
+				numberFields: new Map([["pages", 258]]),
+				checkboxFields: new Map([["read", true]]),
+				dateFields: new Map([["published", new Date("January 1, 1968")]]),
+			},
+			"alice",
+			checkRequesterIsAuthenticated,
+		);
+		if (updateItemResult.err) throw updateItemResult;
 
 		const collectionResult = await viewCollection.execute("top50fantasy");
 		const collection = collectionResult.unwrap();
 
 		expect(collection.items.length).toBe(1);
-		expect(collection.items[0].name).toBe("The Hunger Games");
+		expect(collection.items[0].name).toBe(
+			"Do Androids Dream of Electric Sheep?",
+		);
 	});
 });
