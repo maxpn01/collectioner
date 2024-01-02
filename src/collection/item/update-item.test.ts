@@ -1,5 +1,10 @@
 import { describe, beforeEach, expect, it } from "vitest";
-import { Item, MemoryItemRepository } from ".";
+import {
+	Item,
+	ItemFieldRepositories,
+	MemoryItemFieldRepository,
+	MemoryItemRepository,
+} from ".";
 import {
 	Collection,
 	CollectionField,
@@ -18,8 +23,6 @@ import {
 } from "../index.test";
 import { CreateItemUseCase } from "./create-item";
 import { ViewCollectionUseCase } from "../view-collection";
-import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
-import { MemoryKeyValueRepository } from "../../utils/key-value";
 import { UpdateItemUseCase } from "./update-item";
 
 describe("update item use case", () => {
@@ -45,19 +48,19 @@ describe("update item use case", () => {
 	let itemRepository: MemoryItemRepository;
 
 	let numberFields: Map<string, number>;
-	let numberFieldRepository: MemoryKeyValueRepository<number>;
+	let numberFieldRepository: MemoryItemFieldRepository<number>;
 
 	let textFields: Map<string, string>;
-	let textFieldRepository: MemoryKeyValueRepository<string>;
+	let textFieldRepository: MemoryItemFieldRepository<string>;
 
 	let multilineTextFields: Map<string, string>;
-	let multilineTextFieldRepository: MemoryKeyValueRepository<string>;
+	let multilineTextFieldRepository: MemoryItemFieldRepository<string>;
 
 	let checkboxFields: Map<string, boolean>;
-	let checkboxFieldRepository: MemoryKeyValueRepository<boolean>;
+	let checkboxFieldRepository: MemoryItemFieldRepository<boolean>;
 
 	let dateFields: Map<string, Date>;
-	let dateFieldRepository: MemoryKeyValueRepository<Date>;
+	let dateFieldRepository: MemoryItemFieldRepository<Date>;
 
 	beforeEach(() => {
 		checkRequesterIsAuthenticated = () => true;
@@ -113,25 +116,25 @@ describe("update item use case", () => {
 		itemRepository = new MemoryItemRepository(items, collectionRepository);
 
 		numberFields = new Map();
-		numberFieldRepository = new MemoryKeyValueRepository<number>(numberFields);
+		numberFieldRepository = new MemoryItemFieldRepository<number>(numberFields);
 
 		textFields = new Map();
-		textFieldRepository = new MemoryKeyValueRepository<string>(textFields);
+		textFieldRepository = new MemoryItemFieldRepository<string>(textFields);
 
 		multilineTextFields = new Map();
-		multilineTextFieldRepository = new MemoryKeyValueRepository<string>(
+		multilineTextFieldRepository = new MemoryItemFieldRepository<string>(
 			multilineTextFields,
 		);
 
 		checkboxFields = new Map();
-		checkboxFieldRepository = new MemoryKeyValueRepository<boolean>(
+		checkboxFieldRepository = new MemoryItemFieldRepository<boolean>(
 			checkboxFields,
 		);
 
 		dateFields = new Map();
-		dateFieldRepository = new MemoryKeyValueRepository<Date>(dateFields);
+		dateFieldRepository = new MemoryItemFieldRepository<Date>(dateFields);
 
-		const itemFieldRepositories = {
+		const itemFieldRepositories: ItemFieldRepositories = {
 			number: numberFieldRepository,
 			text: textFieldRepository,
 			multilineText: multilineTextFieldRepository,

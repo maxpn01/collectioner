@@ -2,6 +2,7 @@ import { describe, beforeEach, expect, it } from "vitest";
 import {
 	Item,
 	ItemFieldRepository,
+	ItemFieldRepositories,
 	MemoryItemFieldRepository,
 	MemoryItemRepository,
 } from ".";
@@ -21,12 +22,11 @@ import {
 	createTestCollection,
 	createTestCollectionField,
 } from "../index.test";
-import { CreateItemUseCase } from "./create-item";
-import { ViewCollectionUseCase } from "../view-collection";
+import { createTestItem } from "./index.test";
+import { DeleteItemUseCase } from "./delete-item";
 
-describe("create item use case", () => {
-	let createItem: CreateItemUseCase;
-	let viewCollection: ViewCollectionUseCase;
+describe("delete item use case", () => {
+	let deleteItem: DeleteItemUseCase;
 
 	let checkRequesterIsAuthenticated: () => boolean;
 
@@ -80,28 +80,8 @@ describe("create item use case", () => {
 
 		collectionFields = [
 			createTestCollectionField(
-				"author",
+				"name",
 				CollectionFieldType.Text,
-				collections[0],
-			),
-			createTestCollectionField(
-				"description",
-				CollectionFieldType.MultilineText,
-				collections[0],
-			),
-			createTestCollectionField(
-				"pages",
-				CollectionFieldType.Number,
-				collections[0],
-			),
-			createTestCollectionField(
-				"read",
-				CollectionFieldType.Checkbox,
-				collections[0],
-			),
-			createTestCollectionField(
-				"published",
-				CollectionFieldType.Date,
 				collections[0],
 			),
 		];
@@ -110,13 +90,19 @@ describe("create item use case", () => {
 			collectionRepository,
 		);
 
-		items = [];
+		items = [
+			createTestItem("hungergames", collections[0]),
+			createTestItem("harrypotter", collections[0]),
+		];
 		itemRepository = new MemoryItemRepository(items, collectionRepository);
 
 		numberFields = new Map();
 		numberFieldRepository = new MemoryItemFieldRepository<number>(numberFields);
 
-		textFields = new Map();
+		textFields = new Map([
+			["hungergames->name", "Hunger Games"],
+			["harrypotter->name", "Harry Potter"],
+		]);
 		textFieldRepository = new MemoryItemFieldRepository<string>(textFields);
 
 		multilineTextFields = new Map();
@@ -132,55 +118,34 @@ describe("create item use case", () => {
 		dateFields = new Map();
 		dateFieldRepository = new MemoryItemFieldRepository<Date>(dateFields);
 
-		createItem = new CreateItemUseCase(
+		const itemFieldRepositories: ItemFieldRepositories = {
+			number: numberFieldRepository,
+			text: textFieldRepository,
+			multilineText: multilineTextFieldRepository,
+			checkbox: checkboxFieldRepository,
+			date: dateFieldRepository,
+		};
+
+		deleteItem = new DeleteItemUseCase(
 			userRepository,
 			collectionRepository,
 			collectionFieldRepository,
 			itemRepository,
-			{
-				number: numberFieldRepository,
-				text: textFieldRepository,
-				multilineText: multilineTextFieldRepository,
-				checkbox: checkboxFieldRepository,
-				date: dateFieldRepository,
-			},
-		);
-		viewCollection = new ViewCollectionUseCase(
-			collectionRepository,
-			itemRepository,
+			itemFieldRepositories,
 		);
 	});
 
-	it("creates the item", async () => {
-		const result = await createItem.execute(
-			{
-				collectionId: "top50fantasy",
-				name: "The Hunger Games",
-				tags: ["book", "kids_book", "fantasy"],
-				textFields: new Map([["author", "Suzanne Collins"]]),
-				multilineTextFields: new Map([
-					[
-						"description",
-						`Sixteen-year-old Katniss Everdeen,
-who lives alone with her mother and younger sister,
-regards it as a death sentence when she steps forward to take her sister's place in the Games.
-But Katniss has been close to dead before—and survival, for her, is second nature. Without really meaning to, she becomes a contender.
-But if she is to win, she will have to start making choices that weight survival against humanity and life against love.`,
-					],
-				]),
-				numberFields: new Map([["pages", 374]]),
-				checkboxFields: new Map([["read", false]]),
-				dateFields: new Map([["published", new Date("September 14, 2008")]]),
-			},
+	it("deletes the item", async () => {
+		const deleteResult = await deleteItem.execute(
+			"hungergames",
 			"alice",
 			checkRequesterIsAuthenticated,
 		);
-		if (result.err) throw result;
+		if (deleteResult.err) throw deleteResult;
 
-		const collectionResult = await viewCollection.execute("top50fantasy");
-		const collection = collectionResult.unwrap();
-
-		expect(collection.items.length).toBe(1);
-		expect(collection.items[0].name).toBe("The Hunger Games");
+		expect(items.length).toBe(1);
+		expect(items[0].id).toBe("harrypotter");
+		expect(textFields.size).toBe(1);
+		expect(textFields.get("hungergames->name")).toBe(undefined);
 	});
 });

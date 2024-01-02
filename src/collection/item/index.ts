@@ -7,7 +7,10 @@ import {
 } from "..";
 import { User } from "../../user";
 import { Failure, NotFoundFailure } from "../../utils/failure";
-import { KeyValueRepository } from "../../utils/key-value";
+import {
+	KeyValueRepository,
+	MemoryKeyValueRepository,
+} from "../../utils/key-value";
 
 export type Item = {
 	collection: Collection;
@@ -31,7 +34,7 @@ export type Comment = {
 };
 
 export function generateItemFieldId(itemId: string, collectionFieldId: string) {
-	return `${itemId}++${collectionFieldId}`;
+	return `${itemId}->${collectionFieldId}`;
 }
 
 export interface ItemRepository {
@@ -106,9 +109,37 @@ export class MemoryItemRepository implements ItemRepository {
 }
 
 export type ItemFieldRepositories = {
-	number: KeyValueRepository<number>;
-	text: KeyValueRepository<string>;
-	multilineText: KeyValueRepository<string>;
-	checkbox: KeyValueRepository<boolean>;
-	date: KeyValueRepository<Date>;
+	number: ItemFieldRepository<number>;
+	text: ItemFieldRepository<string>;
+	multilineText: ItemFieldRepository<string>;
+	checkbox: ItemFieldRepository<boolean>;
+	date: ItemFieldRepository<Date>;
 };
+
+export interface ItemFieldRepository<T> extends KeyValueRepository<T> {
+	deleteByItem(
+		itemId: string,
+		collectionFieldIds: string[],
+	): Promise<Result<None, Failure>>;
+}
+
+export class MemoryItemFieldRepository<T>
+	extends MemoryKeyValueRepository<T>
+	implements ItemFieldRepository<T>
+{
+	constructor(map: Map<string, T>) {
+		super(map);
+	}
+
+	async deleteByItem(
+		itemId: string,
+		collectionFieldIds: string[],
+	): Promise<Result<None, Failure>> {
+		for (const collectionFieldId of collectionFieldIds) {
+			const itemFieldId = generateItemFieldId(itemId, collectionFieldId);
+
+			this.map.delete(itemFieldId);
+		}
+		return Ok(None);
+	}
+}
