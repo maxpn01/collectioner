@@ -1,10 +1,5 @@
 import { Err, None, Ok, Result } from "ts-results";
-import {
-	Collection,
-	CollectionRepository,
-	CollectionField,
-	CollectionFieldRepository,
-} from "..";
+import { Collection, CollectionRepository } from "..";
 import { User } from "../../user";
 import { Failure, NotFoundFailure } from "../../utils/failure";
 import {
@@ -25,14 +20,6 @@ type ItemLike = {
 	author: User;
 };
 
-export type Comment = {
-	item: Item;
-	id: string;
-	author: User;
-	text: string;
-	createdAt: Date;
-};
-
 export function generateItemFieldId(itemId: string, collectionFieldId: string) {
 	return `${itemId}->${collectionFieldId}`;
 }
@@ -44,6 +31,7 @@ export interface ItemRepository {
 	update(id: string, item: Item): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
+
 export class MemoryItemRepository implements ItemRepository {
 	private items: Item[] = [];
 	collectionRepository: CollectionRepository;
