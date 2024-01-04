@@ -1,22 +1,9 @@
 import { Result, None, Err, Ok } from "ts-results";
-import {
-	ItemRepository,
-	Item,
-	generateItemFieldId,
-	ItemFieldRepositories,
-} from ".";
-import {
-	CollectionFieldRepository,
-	CollectionRepository,
-	CollectionField,
-	collectionFieldTypes,
-	CollectionFieldType,
-} from "..";
+import { ItemRepository, ItemFieldRepositories } from ".";
+import { CollectionFieldRepository, CollectionRepository } from "..";
 import { UserRepository } from "../../user";
-import { areArraysEqual } from "../../utils/array";
 import { Failure, BadRequestFailure } from "../../utils/failure";
 import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
-import { KeyValueRepository } from "../../utils/key-value";
 import { CheckAllFieldsSpecified, SetFieldsUseCase } from "./create-item";
 
 type UpdateItemRequest = {

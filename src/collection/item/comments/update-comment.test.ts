@@ -1,5 +1,4 @@
 import { beforeEach, describe, it, expect } from "vitest";
-import { CreateCommentUseCase } from "./create-comment";
 import { MemoryUserRepository, User } from "../../../user";
 import {
 	Collection,
@@ -25,9 +24,11 @@ import {
 } from "../../index.test";
 import { createTestItem } from "../index.test";
 import { Comment } from ".";
+import { createTestComment } from "./index.test";
+import { UpdateCommentUseCase } from "./update-comment";
 
-describe("create comment use case", () => {
-	let createComment: CreateCommentUseCase;
+describe("update comment use case", () => {
+	let updateComment: UpdateCommentUseCase;
 
 	let checkRequesterIsAuthenticated: () => boolean;
 
@@ -130,34 +131,27 @@ describe("create comment use case", () => {
 			date: dateFieldRepository,
 		};
 
-		comments = [];
+		comments = [createTestComment("comment1", "alice", items[0])];
 		commentRepository = new MemoryCommentRepository(comments, itemRepository);
 
-		createComment = new CreateCommentUseCase(
-			userRepository,
-			collectionRepository,
-			itemRepository,
-			commentRepository,
-		);
+		updateComment = new UpdateCommentUseCase(commentRepository);
 	});
 
-	it("create a comment", async () => {
-		const createCommentResult = await createComment.execute(
+	it("update a comment", async () => {
+		const updateCommentResult = await updateComment.execute(
 			{
-				itemId: "hungergames",
-				text: "nice book bruh",
+				id: "comment1",
+				text: "nice book",
 			},
-			"john",
+			"alice",
 			checkRequesterIsAuthenticated,
 		);
-		if (createCommentResult.err) throw createCommentResult;
+		if (updateCommentResult.err) throw updateCommentResult;
 
 		const commentResult = await commentRepository.getByItem("hungergames");
 		if (commentResult.err) throw commentResult;
 		const comment = commentResult.val;
 
-		expect(comment.length).toBe(1);
-		expect(comment[0].author.id).toBe(users[1].id);
-		expect(comment[0].text).toBe("nice book bruh");
+		expect(comment[0].text).toBe("nice book");
 	});
 });

@@ -14,7 +14,9 @@ export type Comment = {
 export interface CommentRepository {
 	getByItem(itemId: string): Promise<Result<Comment[], Failure>>;
 	deleteByItem(itemId: string): Promise<Result<None, Failure>>;
+	get(id: string): Promise<Result<Comment, Failure>>;
 	create(comment: Comment): Promise<Result<None, Failure>>;
+	update(comment: Comment): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
@@ -48,8 +50,21 @@ export class MemoryCommentRepository implements CommentRepository {
 		return Ok(None);
 	}
 
+	async get(id: string): Promise<Result<Comment, Failure>> {
+		const comment = this.comments.find((c) => c.id === id);
+		if (!comment) return Err(new NotFoundFailure());
+		return Ok(comment);
+	}
+
 	async create(comment: Comment): Promise<Result<None, Failure>> {
 		this.comments.push(comment);
+		return Ok(None);
+	}
+
+	async update(comment: Comment): Promise<Result<None, Failure>> {
+		const index = this.comments.findIndex((c) => c.id === comment.id);
+		if (index === -1) return Err(new NotFoundFailure());
+		this.comments[index] = comment;
 		return Ok(None);
 	}
 
