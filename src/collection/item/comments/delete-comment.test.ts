@@ -1,5 +1,4 @@
 import { beforeEach, describe, it, expect } from "vitest";
-import { CreateCommentUseCase } from "./create-comment";
 import { MemoryUserRepository, User } from "../../../user";
 import {
 	Collection,
@@ -25,9 +24,13 @@ import {
 } from "../../index.test";
 import { createTestItem } from "../index.test";
 import { Comment } from ".";
+import { createTestComment } from "./index.test";
+import { DeleteCommentUseCase } from "./delete-comment";
+import { NotFoundFailure } from "../../../utils/failure";
+import { NotAuthorizedFailure } from "../../../user/view-user";
 
-describe("create comment use case", () => {
-	let createComment: CreateCommentUseCase;
+describe("delete comment use case", () => {
+	let deleteComment: DeleteCommentUseCase;
 
 	let checkRequesterIsAuthenticated: () => boolean;
 
@@ -130,33 +133,39 @@ describe("create comment use case", () => {
 			date: dateFieldRepository,
 		};
 
-		comments = [];
+		comments = [createTestComment("comment1", "alice", items[0])];
 		commentRepository = new MemoryCommentRepository(comments, itemRepository);
 
-		createComment = new CreateCommentUseCase(
-			userRepository,
-			itemRepository,
-			commentRepository,
-		);
+		deleteComment = new DeleteCommentUseCase(commentRepository);
 	});
 
-	it("create a comment", async () => {
-		const createCommentResult = await createComment.execute(
-			{
-				itemId: "hungergames",
-				text: "nice book bruh",
-			},
+	it("delete a comment", async () => {
+		const deleteCommentResult = await deleteComment.execute(
+			"comment1",
+			"alice",
+			checkRequesterIsAuthenticated,
+		);
+		if (deleteCommentResult.err) throw deleteCommentResult;
+
+		const commentResult = await commentRepository.get("comment1");
+		if (commentResult.ok) throw new Error("Comment not found");
+		const failure = commentResult.val;
+
+		expect(failure).toBeInstanceOf(NotFoundFailure);
+	});
+
+	it("should not allow other users to delete a comment", async () => {
+		const result = await deleteComment.execute(
+			"comment1",
 			"john",
 			checkRequesterIsAuthenticated,
 		);
-		if (createCommentResult.err) throw createCommentResult;
+		if (result.ok)
+			throw new Error(
+				"This user is not allowed to delete another user's comment",
+			);
+		const failure = result.val;
 
-		const commentResult = await commentRepository.getByItem("hungergames");
-		if (commentResult.err) throw commentResult;
-		const comment = commentResult.val;
-
-		expect(comment.length).toBe(1);
-		expect(comment[0].author.id).toBe(users[1].id);
-		expect(comment[0].text).toBe("nice book bruh");
+		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 });

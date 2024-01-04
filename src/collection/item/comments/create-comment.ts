@@ -39,21 +39,15 @@ export class CreateCommentUseCase {
 	userRepository: UserRepository;
 	itemRepository: ItemRepository;
 	commentRepository: CommentRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
 
 	constructor(
 		userRepository: UserRepository,
-		collectionRepository: CollectionRepository,
 		itemRepository: ItemRepository,
 		commentRepository: CommentRepository,
 	) {
 		this.userRepository = userRepository;
 		this.itemRepository = itemRepository;
 		this.commentRepository = commentRepository;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
-			collectionRepository,
-			userRepository,
-		);
 	}
 
 	async execute(

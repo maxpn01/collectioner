@@ -26,6 +26,7 @@ import { createTestItem } from "../index.test";
 import { Comment } from ".";
 import { createTestComment } from "./index.test";
 import { UpdateCommentUseCase } from "./update-comment";
+import { NotAuthorizedFailure } from "../../../user/view-user";
 
 describe("update comment use case", () => {
 	let updateComment: UpdateCommentUseCase;
@@ -153,5 +154,23 @@ describe("update comment use case", () => {
 		const comment = commentResult.val;
 
 		expect(comment[0].text).toBe("nice book");
+	});
+
+	it("should not allow other users to update a comment", async () => {
+		const result = await updateComment.execute(
+			{
+				id: "comment1",
+				text: "nice book",
+			},
+			"john",
+			checkRequesterIsAuthenticated,
+		);
+		if (result.ok)
+			throw new Error(
+				"This user is not allowed to edit another user's comment",
+			);
+		const failure = result.val;
+
+		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 });
