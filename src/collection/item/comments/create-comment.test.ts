@@ -29,7 +29,6 @@ import { createTestItem } from "../index.test";
 import { Comment } from ".";
 
 describe("create comment use case", () => {
-	let createItem: CreateItemUseCase;
 	let createComment: CreateCommentUseCase;
 
 	let checkRequesterIsAuthenticated: () => boolean;
@@ -136,13 +135,6 @@ describe("create comment use case", () => {
 		comments = [];
 		commentRepository = new MemoryCommentRepository(comments, itemRepository);
 
-		createItem = new CreateItemUseCase(
-			userRepository,
-			collectionRepository,
-			collectionFieldRepository,
-			itemRepository,
-			itemFieldRepositories,
-		);
 		createComment = new CreateCommentUseCase(
 			userRepository,
 			collectionRepository,
@@ -154,11 +146,10 @@ describe("create comment use case", () => {
 	it("create a comment", async () => {
 		const createCommentResult = await createComment.execute(
 			{
-				collectionId: "top50fantasy",
 				itemId: "hungergames",
 				text: "nice book bruh",
 			},
-			"alice",
+			"john",
 			checkRequesterIsAuthenticated,
 		);
 		if (createCommentResult.err) throw createCommentResult;
@@ -168,7 +159,7 @@ describe("create comment use case", () => {
 		const comment = commentResult.val;
 
 		expect(comment.length).toBe(1);
-		expect(comment[0].author).toBe(users[0]);
+		expect(comment[0].author).toBe(users[1]);
 		expect(comment[0].text).toBe("nice book bruh");
 	});
 });

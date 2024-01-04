@@ -1,4 +1,4 @@
-import { Result, None, Ok } from "ts-results";
+import { Result, None, Ok, Err } from "ts-results";
 import { Comment, CommentRepository } from ".";
 import { Item, ItemRepository } from "..";
 import { CollectionRepository } from "../..";
@@ -6,6 +6,7 @@ import { User, UserRepository } from "../../../user";
 import { Failure } from "../../../utils/failure";
 import { AuthorizeCollectionUpdateUseCase } from "../../update-collection";
 import { nanoid } from "nanoid";
+import { NotAuthorizedFailure } from "../../../user/view-user";
 
 function generateItemId(): string {
 	return nanoid();
@@ -30,7 +31,6 @@ function createNewComment({
 }
 
 type CreateCommentRequest = {
-	collectionId: string;
 	itemId: string;
 	text: string;
 };
@@ -58,27 +58,23 @@ export class CreateCommentUseCase {
 
 	async execute(
 		request: CreateCommentRequest,
-		requesterId: string,
+		commenterId: string,
 		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		const collectionResult = await this.authorizeCollectionUpdate.execute(
-			request.collectionId,
-			requesterId,
-			checkRequesterIsAuthenticated,
-		);
-		if (collectionResult.err) return collectionResult;
+		if (!checkRequesterIsAuthenticated())
+			return Err(new NotAuthorizedFailure());
 
 		const itemResult = await this.itemRepository.get(request.itemId);
 		if (itemResult.err) return itemResult;
 		const item = itemResult.val;
 
-		const userResult = await this.userRepository.get(requesterId);
-		if (userResult.err) return userResult;
-		const user = userResult.val;
+		const commenterResult = await this.userRepository.get(commenterId);
+		if (commenterResult.err) return commenterResult;
+		const commenter = commenterResult.val;
 
 		const comment: Comment = createNewComment({
 			item,
-			author: user,
+			author: commenter,
 			text: request.text,
 		});
 
