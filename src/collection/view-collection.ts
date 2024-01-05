@@ -1,6 +1,5 @@
 import { Ok, Option, Result } from "ts-results";
-import { Collection, CollectionRepository, TopicRepository } from ".";
-import { User, UserRepository } from "../user";
+import { CollectionRepository } from ".";
 import { ItemRepository } from "./item";
 import { Failure } from "../utils/failure";
 
