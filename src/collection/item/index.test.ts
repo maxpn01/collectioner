@@ -6,7 +6,7 @@ export function createTestItem(id: string, collection: Collection): Item {
 		id,
 		collection,
 		name: "",
-		tags: [],
+		tags: new Set<string>(),
 		createdAt: new Date(),
 	};
 }

@@ -11,7 +11,7 @@ export type Item = {
 	collection: Collection;
 	id: string;
 	name: string;
-	tags: string[];
+	tags: Set<string>;
 	createdAt: Date;
 };
 
@@ -26,6 +26,7 @@ export function generateItemFieldId(itemId: string, collectionFieldId: string) {
 
 export interface ItemRepository {
 	get(id: string): Promise<Result<Item, Failure>>;
+	getAll(): Promise<Result<Item[], Failure>>;
 	getByCollection(collectionId: string): Promise<Result<Item[], Failure>>;
 	create(item: Item): Promise<Result<None, Failure>>;
 	update(id: string, item: Item): Promise<Result<None, Failure>>;
@@ -54,6 +55,10 @@ export class MemoryItemRepository implements ItemRepository {
 		item.collection = collection;
 
 		return Ok(item);
+	}
+
+	async getAll(): Promise<Result<Item[], Failure>> {
+		return Ok(this.items);
 	}
 
 	async getByCollection(
