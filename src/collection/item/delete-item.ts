@@ -8,6 +8,7 @@ import {
 import { UserRepository } from "../../user";
 import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
+import { CommentRepository } from "./comments";
 
 export class DeleteItemUseCase {
 	userRepository: UserRepository;
@@ -15,6 +16,7 @@ export class DeleteItemUseCase {
 	itemRepository: ItemRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
 	itemFieldRepositories: ItemFieldRepositories;
+	commentRepository: CommentRepository;
 
 	constructor(
 		userRepository: UserRepository,
@@ -22,6 +24,7 @@ export class DeleteItemUseCase {
 		collectionFieldRepository: CollectionFieldRepository,
 		itemRepository: ItemRepository,
 		itemFieldRepositories: ItemFieldRepositories,
+		commentRepository: CommentRepository,
 	) {
 		this.userRepository = userRepository;
 		this.collectionFieldRepository = collectionFieldRepository;
@@ -31,6 +34,7 @@ export class DeleteItemUseCase {
 			collectionRepository,
 			userRepository,
 		);
+		this.commentRepository = commentRepository;
 	}
 
 	async execute(
@@ -64,6 +68,11 @@ export class DeleteItemUseCase {
 		);
 		const deleteFieldsResult = await deleteFields.execute();
 		if (deleteFieldsResult.err) return deleteFieldsResult;
+
+		const deleteCommentsResult = await this.commentRepository.deleteByItem(
+			item.id,
+		);
+		if (deleteCommentsResult.err) return deleteCommentsResult;
 
 		return Ok(None);
 	}

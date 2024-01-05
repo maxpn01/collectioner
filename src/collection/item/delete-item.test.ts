@@ -24,6 +24,8 @@ import {
 } from "../index.test";
 import { createTestItem } from "./index.test";
 import { DeleteItemUseCase } from "./delete-item";
+import { Comment, MemoryCommentRepository } from "./comments";
+import { createTestComment } from "./comments/index.test";
 
 describe("delete item use case", () => {
 	let deleteItem: DeleteItemUseCase;
@@ -59,6 +61,9 @@ describe("delete item use case", () => {
 
 	let dateFields: Map<string, Date>;
 	let dateFieldRepository: ItemFieldRepository<Date>;
+
+	let comments: Comment[];
+	let commentRepository: MemoryCommentRepository;
 
 	beforeEach(() => {
 		checkRequesterIsAuthenticated = () => true;
@@ -126,12 +131,16 @@ describe("delete item use case", () => {
 			date: dateFieldRepository,
 		};
 
+		comments = [createTestComment("comment1", "alice", items[0])];
+		commentRepository = new MemoryCommentRepository(comments, itemRepository);
+
 		deleteItem = new DeleteItemUseCase(
 			userRepository,
 			collectionRepository,
 			collectionFieldRepository,
 			itemRepository,
 			itemFieldRepositories,
+			commentRepository,
 		);
 	});
 
@@ -147,5 +156,6 @@ describe("delete item use case", () => {
 		expect(items[0].id).toBe("harrypotter");
 		expect(textFields.size).toBe(1);
 		expect(textFields.get("hungergames->name")).toBe(undefined);
+		expect(commentRepository.comments.length).toBe(0);
 	});
 });
