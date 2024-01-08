@@ -19,7 +19,7 @@ type ViewCollectionResponse = {
 	items: {
 		id: string;
 		name: string;
-		tags: string[];
+		tags: Set<string>;
 		createdAt: Date;
 	}[];
 };

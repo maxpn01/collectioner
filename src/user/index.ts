@@ -5,6 +5,7 @@ import { NotAuthorizedFailure } from "./view-user";
 export type User = {
 	id: string;
 	email: string;
+	username: string;
 	fullname: string;
 	blocked: boolean;
 	isAdmin: boolean;

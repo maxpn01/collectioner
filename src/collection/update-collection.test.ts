@@ -1,14 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { Some, None, Option } from "ts-results";
+import { Some, None } from "ts-results";
 import {
 	Collection,
-	CollectionRepository,
 	MemoryCollectionRepository,
 	MemoryTopicRepository,
 	Topic,
-	TopicRepository,
 } from ".";
-import { MemoryUserRepository, User, UserRepository } from "../user";
+import { MemoryUserRepository, User } from "../user";
 import { SetCollectionImageUseCase } from "./update-collection";
 import { NotAuthorizedFailure } from "../user/view-user";
 import { createTestUser } from "../user/index.test";

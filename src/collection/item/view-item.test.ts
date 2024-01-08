@@ -25,7 +25,6 @@ import {
 	createTestTopic,
 } from "../index.test";
 import { createTestItem } from "./index.test";
-import { text } from "stream/consumers";
 
 describe("view item use case", () => {
 	let viewItem: ViewItemUseCase;

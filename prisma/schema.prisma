@@ -1,0 +1,86 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id           String       @id
+    email        String       @unique
+    username     String       @unique
+    fullname     String
+    blocked      Boolean
+    isAdmin      Boolean
+    passwordHash String
+    Collection   Collection[]
+    Comment      Comment[]
+
+    @@map("user")
+}
+
+model Topic {
+    id         String       @id
+    name       String
+    Collection Collection[]
+
+    @@map("topic")
+}
+
+model Collection {
+    owner           User              @relation(fields: [userId], references: [id])
+    id              String            @id
+    name            String
+    topic           Topic             @relation(fields: [topicId], references: [id])
+    image           String?
+    userId          String
+    topicId         String
+    CollectionField CollectionField[]
+    Item            Item[]
+
+    @@map("collection")
+}
+
+model CollectionField {
+    id           String              @id
+    name         String
+    collection   Collection          @relation(fields: [collectionId], references: [id])
+    type         CollectionFieldType
+    collectionId String
+
+    @@map("collection_field")
+}
+
+enum CollectionFieldType {
+    Number
+    Text
+    MultilineText
+    Checkbox
+    Date
+}
+
+model Item {
+    collection   Collection @relation(fields: [collectionId], references: [id])
+    id           String     @id
+    name         String
+    tags         String[]
+    createdAt    DateTime   @default(now())
+    collectionId String
+    Comment      Comment[]
+
+    @@map("item")
+}
+
+model Comment {
+    item      Item     @relation(fields: [itemId], references: [id])
+    id        String   @id
+    author    User     @relation(fields: [userId], references: [id])
+    text      String
+    createdAt DateTime
+    itemId    String
+    userId    String
+
+    @@map("comment")
+}

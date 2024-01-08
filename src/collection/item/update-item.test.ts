@@ -193,7 +193,7 @@ But if she is to win, she will have to start making choices that weight survival
 			{
 				id: itemId,
 				name: "Do Androids Dream of Electric Sheep?",
-				tags: ["book", "science-fiction", "fantasy", "cyberpunk"],
+				tags: new Set(["book", "science-fiction", "fantasy", "cyberpunk"]),
 				textFields: new Map([["author", "Philip K. Dick"]]),
 				multilineTextFields: new Map([
 					[

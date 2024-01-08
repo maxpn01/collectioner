@@ -1,7 +1,6 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { AuthorizeUserUpdateUseCase, UserRepository } from ".";
 import { Failure } from "../utils/failure";
-import { CheckIsAdminUseCase } from "./admin";
 import { NotAuthorizedFailure } from "./view-user";
 
 class DeleteUserUseCase {

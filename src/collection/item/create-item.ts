@@ -17,7 +17,6 @@ import {
 	generateItemFieldId,
 	ItemFieldRepositories,
 } from ".";
-import { stringify } from "querystring";
 import { areArraysEqual } from "../../utils/array";
 import { KeyValueRepository } from "../../utils/key-value";
 
@@ -31,7 +30,7 @@ function createNewItem({
 	collection,
 }: {
 	name: string;
-	tags: string[];
+	tags: Set<string>;
 	collection: Collection;
 }): Item {
 	return {
@@ -46,7 +45,7 @@ function createNewItem({
 type CreateItemRequest = {
 	collectionId: string;
 	name: string;
-	tags: string[];
+	tags: Set<string>;
 	numberFields: Map<CollectionFieldId, number>;
 	textFields: Map<CollectionFieldId, string>;
 	multilineTextFields: Map<CollectionFieldId, string>;

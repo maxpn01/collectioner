@@ -27,10 +27,12 @@ async function generatePasswordHash(password: string): Promise<string> {
 
 async function createNewUser({
 	email,
+	username,
 	fullname,
 	password,
 }: {
 	email: string;
+	username: string;
 	fullname: string;
 	password: string;
 }): Promise<Result<User, Failure[]>> {
@@ -43,6 +45,7 @@ async function createNewUser({
 	return Ok({
 		id,
 		email,
+		username,
 		passwordHash,
 		fullname,
 		blocked: false,
@@ -51,8 +54,9 @@ async function createNewUser({
 }
 
 type SignUpWithEmailRequest = {
-	fullname: string;
 	email: string;
+	username: string;
+	fullname: string;
 	password: string;
 };
 

@@ -17,7 +17,7 @@ import { CommentRepository } from "./comments";
 type ViewItemResponse = {
 	id: string;
 	name: string;
-	tags: string[];
+	tags: Set<string>;
 	numberFields: Map<CollectionFieldId, number>;
 	textFields: Map<CollectionFieldId, string>;
 	multilineTextFields: Map<CollectionFieldId, string>;

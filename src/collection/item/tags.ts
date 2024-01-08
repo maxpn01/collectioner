@@ -1,8 +1,3 @@
-// i would create a file like tag.ts, add a autocomplete tag use case,
-// and have a tag.test.ts file, move the repo and any functionality regarding tags
-// in these files for the forseeable future, assuming that one file should be enough for
-// tags and if not i can split it later
-
 import { Result, Ok } from "ts-results";
 import { ItemRepository } from ".";
 import { Failure } from "../../utils/failure";

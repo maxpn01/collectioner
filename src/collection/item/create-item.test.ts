@@ -156,7 +156,7 @@ describe("create item use case", () => {
 			{
 				collectionId: "top50fantasy",
 				name: "The Hunger Games",
-				tags: ["book", "kids_book", "fantasy"],
+				tags: new Set(["book", "kids_book", "fantasy"]),
 				textFields: new Map([["author", "Suzanne Collins"]]),
 				multilineTextFields: new Map([
 					[

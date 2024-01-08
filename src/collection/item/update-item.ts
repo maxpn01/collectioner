@@ -9,7 +9,7 @@ import { CheckAllFieldsSpecified, SetFieldsUseCase } from "./create-item";
 type UpdateItemRequest = {
 	id: string;
 	name: string;
-	tags: string[];
+	tags: Set<string>;
 	numberFields: Map<CollectionFieldId, number>;
 	textFields: Map<CollectionFieldId, string>;
 	multilineTextFields: Map<CollectionFieldId, string>;

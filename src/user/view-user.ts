@@ -5,6 +5,7 @@ import { Collection, CollectionRepository } from "../collection";
 
 type ViewUserResponse = {
 	id: string;
+	username: string;
 	fullname: string;
 	blocked: boolean;
 	collections: ViewUserResponseCollection[];
@@ -45,6 +46,7 @@ class ViewUserUseCase {
 
 		return Ok({
 			id: user.id,
+			username: user.username,
 			fullname: user.fullname,
 			blocked: user.blocked,
 			collections,

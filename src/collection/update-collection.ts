@@ -9,12 +9,7 @@ import {
 } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
-import {
-	AuthorizeUserUpdateUseCase,
-	User,
-	UserRepository,
-	authorizeUserUpdate,
-} from "../user";
+import { AuthorizeUserUpdateUseCase, UserRepository } from "../user";
 import { Failure, NotFoundFailure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../user/view-user";
 
