@@ -37,14 +37,13 @@ class SignInWithEmailUseCase {
 
 			return userResult;
 		}
-
 		const user = userResult.val;
 
-		const matches = await checkPasswordMatches(
+		const passwordMatches = await checkPasswordMatches(
 			request.password,
 			user.passwordHash,
 		);
-		if (!matches) return Err(new InvalidCredentialsFailure());
+		if (!passwordMatches) return Err(new InvalidCredentialsFailure());
 
 		return Ok(None);
 	}
