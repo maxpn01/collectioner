@@ -34,22 +34,18 @@ class ViewUserUseCase {
 	}
 
 	async execute(id: string): Promise<Result<ViewUserResponse, Failure>> {
-		const userResult = await this.userRepository.get(id);
+		const userResult = await this.userRepository.get(id, {
+			include: { collections: true },
+		});
 		if (userResult.err) return userResult;
-		const user = userResult.val;
-
-		const collectionsResult = await this.collectionRepository.getByUser(
-			user.id,
-		);
-		if (collectionsResult.err) return collectionsResult;
-		const collections = collectionsResult.val.map(this.toResponseCollection);
+		const { user, collections } = userResult.val;
 
 		return Ok({
 			id: user.id,
 			username: user.username,
 			fullname: user.fullname,
 			blocked: user.blocked,
-			collections,
+			collections: collections.map(this.toResponseCollection),
 		});
 	}
 
@@ -68,6 +64,7 @@ class ViewUserUseCase {
 
 type AdminViewUserResult = {
 	id: string;
+	username: string;
 	email: string;
 	fullname: string;
 	blocked: boolean;
@@ -86,20 +83,17 @@ class AdminViewUserUseCase {
 	async execute(
 		id: string,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<AdminViewUserResult, Failure>> {
-		if (!checkRequesterIsAuthenticated()) {
-			return Err(new NotAuthorizedFailure());
-		}
-
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) return requesterResult;
+		const { user: requester } = requesterResult.val;
 
-		const requester = requesterResult.val;
-		if (!requester.isAdmin) {
-			return Err(new NotAuthorizedFailure());
+		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
+		if (id === requesterId) {
+			return Ok(requester);
 		}
 
-		return this.userRepository.get(id);
+		const userResult = await this.userRepository.get(id);
+		return userResult.map(({ user }) => user);
 	}
 }

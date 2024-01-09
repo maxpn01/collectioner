@@ -50,7 +50,6 @@ export class DeleteItemUseCase {
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
 			collection.id,
 			requesterId,
-			checkRequesterIsAuthenticated,
 		);
 		if (authorizeResult.err) return authorizeResult;
 		const collectionFieldsResult =

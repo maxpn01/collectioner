@@ -12,12 +12,12 @@ export type Comment = {
 };
 
 export interface CommentRepository {
-	getByItem(itemId: string): Promise<Result<Comment[], Failure>>;
-	deleteByItem(itemId: string): Promise<Result<None, Failure>>;
 	get(id: string): Promise<Result<Comment, Failure>>;
+	getByItem(itemId: string): Promise<Result<Comment[], Failure>>;
 	create(comment: Comment): Promise<Result<None, Failure>>;
 	update(comment: Comment): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
+	deleteByItem(itemId: string): Promise<Result<None, Failure>>;
 }
 
 export class MemoryCommentRepository implements CommentRepository {
@@ -29,31 +29,12 @@ export class MemoryCommentRepository implements CommentRepository {
 		this.itemRepository = itemRepository;
 	}
 
-	async getByItem(itemId: string): Promise<Result<Comment[], Failure>> {
-		const comments = structuredClone(
-			this.comments.filter((c) => c.item.id === itemId),
-		);
-
-		const itemResult = await this.itemRepository.get(itemId);
-		if (itemResult.err) return itemResult;
-		const item = itemResult.val;
-
-		for (const comment of comments) {
-			comment.item = item;
-		}
-
-		return Ok(comments);
-	}
-
-	async deleteByItem(itemId: string): Promise<Result<None, Failure>> {
-		this.comments = this.comments.filter((c) => c.item.id !== itemId);
-		return Ok(None);
-	}
-
 	async get(id: string): Promise<Result<Comment, Failure>> {
-		const comment = this.comments.find((c) => c.id === id);
-		if (!comment) return Err(new NotFoundFailure());
-		return Ok(comment);
+		throw new Error("Not implemented");
+	}
+
+	async getByItem(itemId: string): Promise<Result<Comment[], Failure>> {
+		throw new Error("Not implemented");
 	}
 
 	async create(comment: Comment): Promise<Result<None, Failure>> {
@@ -73,6 +54,11 @@ export class MemoryCommentRepository implements CommentRepository {
 		if (index === -1) return Err(new NotFoundFailure());
 
 		this.comments.splice(index, 1);
+		return Ok(None);
+	}
+
+	async deleteByItem(itemId: string): Promise<Result<None, Failure>> {
+		this.comments = this.comments.filter((c) => c.item.id !== itemId);
 		return Ok(None);
 	}
 }

@@ -55,21 +55,17 @@ class CreateCollectionUseCase {
 	async execute(
 		request: CreateCollectionRequest,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkRequesterIsAuthenticated())
-			return Err(new NotAuthorizedFailure());
-
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) return requesterResult;
-		const requester = requesterResult.val;
+		const { user: requester } = requesterResult.val;
 
 		const ownerResult =
 			request.ownerId === requester.id
-				? Ok(requester)
+				? Ok({ user: requester })
 				: await this.userRepository.get(request.ownerId);
 		if (ownerResult.err) return ownerResult;
-		const owner = ownerResult.val;
+		const { user: owner } = ownerResult.val;
 
 		const allowedCreateCollection = checkAllowedCreateCollection(
 			requester,
@@ -83,8 +79,8 @@ class CreateCollectionUseCase {
 
 		const collection = createNewCollection({
 			owner,
-			name: request.name,
 			topic,
+			name: request.name,
 		});
 
 		const createResult = await this.collectionRepository.create(collection);

@@ -52,12 +52,7 @@ describe("set collection image use case", () => {
 
 	it("should allow the owner", async () => {
 		await setCollectionImage
-			.execute(
-				Some("image"),
-				"collection1",
-				"owner",
-				checkRequesterIsAuthenticated,
-			)
+			.execute(Some("image"), "collection1", "owner")
 			.then((result) => result.unwrap());
 
 		const collectionResult = await collectionRepository.get("collection1");
@@ -73,7 +68,6 @@ describe("set collection image use case", () => {
 			Some("image"),
 			"collection1",
 			"owner",
-			checkRequesterIsAuthenticated,
 		);
 		if (result.ok) throw new Error("The user must not be authorized");
 		const failure = result.val;
@@ -86,7 +80,6 @@ describe("set collection image use case", () => {
 			Some("image"),
 			"collection1",
 			"notowner",
-			checkRequesterIsAuthenticated,
 		);
 		if (result.ok) throw new Error("The user must not be authorized");
 		const failure = result.val;
@@ -96,12 +89,7 @@ describe("set collection image use case", () => {
 
 	it("should allow an admin", async () => {
 		await setCollectionImage
-			.execute(
-				Some("image"),
-				"collection1",
-				"admin",
-				checkRequesterIsAuthenticated,
-			)
+			.execute(Some("image"), "collection1", "admin")
 			.then((result) => result.unwrap());
 
 		const collectionResult = await collectionRepository.get("collection1");
@@ -129,7 +117,7 @@ describe("set collection image use case", () => {
 		);
 
 		await setCollectionImage
-			.execute(None, "collection1", "owner", checkRequesterIsAuthenticated)
+			.execute(None, "collection1", "owner")
 			.then((result) => result.unwrap());
 
 		const collectionResult = await collectionRepository.get("collection1");

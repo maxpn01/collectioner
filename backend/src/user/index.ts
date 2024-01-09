@@ -1,5 +1,6 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { Failure, NotFoundFailure } from "../utils/failure";
+import { Collection } from "../collection";
 
 export type User = {
 	id: string;
@@ -14,9 +15,40 @@ export type User = {
 class UsernameIsTakenFailure extends Failure {}
 class EmailIsTakenFailure extends Failure {}
 
+type GetUserResultProperties = {
+	collections: Collection[];
+};
+
+type GetUserInclude = {
+	[K in keyof GetUserResultProperties]?: true;
+};
+type GetUserOptions = {
+	include?: GetUserInclude;
+};
+
+type GetUserResultIncludedProperties<O extends GetUserOptions> =
+	O["include"] extends GetUserInclude
+		? {
+				[K in keyof O["include"]]: K extends keyof GetUserResultProperties
+					? GetUserResultProperties[K]
+					: never;
+		  }
+		: {};
+
+type GetUserResult<O extends GetUserOptions> =
+	GetUserResultIncludedProperties<O> & {
+		user: User;
+	};
+
 export interface UserRepository {
-	get(id: string): Promise<Result<User, Failure>>;
-	getByEmail(email: string): Promise<Result<User, Failure>>;
+	get<O extends GetUserOptions>(
+		id: string,
+		options?: O,
+	): Promise<Result<GetUserResult<O>, Failure>>;
+	getByEmail<O extends GetUserOptions>(
+		email: string,
+		options?: O,
+	): Promise<Result<GetUserResult<O>, Failure>>;
 	create(user: User): Promise<Result<None, Failure>>;
 	update(id: string, user: User): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
@@ -29,16 +61,40 @@ export class MemoryUserRepository implements UserRepository {
 		this.users = users;
 	}
 
-	async get(id: string): Promise<Result<User, Failure>> {
-		const user = structuredClone(this.users.find((u) => u.id === id));
-		if (!user) return Err(new NotFoundFailure());
-		return Ok(user);
+	async get<O extends GetUserOptions>(
+		id: string,
+		options?: O,
+	): Promise<Result<GetUserResult<O>, Failure>> {
+		throw new Error("Not implemented");
+
+		// const user = structuredClone(this.users.find((u) => u.id === id));
+		// if (!user) return Err(new NotFoundFailure());
+
+		// const includedProperties: Partial<GetUserResultProperties> = {};
+
+		// if (options?.include?.collections) {
+		// 	const collections = 1 as any as Omit<Collection, "owner">[];
+		// 	includedProperties.collections = collections.map((collection) => {
+		// 		return {
+		// 			...collection,
+		// 			owner: user,
+		// 		};
+		// 	});
+		// }
+
+		// const result: GetUserResult<O> = {
+		// 	user,
+		// 	...(includedProperties as GetUserResultIncludedProperties<O>),
+		// };
+
+		// return Ok(result);
 	}
 
-	async getByEmail(email: string): Promise<Result<User, Failure>> {
-		const user = this.users.find((u) => u.email === email);
-		if (!user) return Err(new NotFoundFailure());
-		return Ok(user);
+	async getByEmail<O extends GetUserOptions>(
+		email: string,
+		options?: O,
+	): Promise<Result<GetUserResult<O>, Failure>> {
+		throw new Error("Not implemented");
 	}
 
 	async create(user: User): Promise<Result<None, Failure>> {
@@ -83,7 +139,7 @@ export class AuthorizeUserUpdateUseCase {
 
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) throw new Error();
-		const requester = requesterResult.val;
+		const { user: requester } = requesterResult.val;
 
 		return authorizeUserUpdate(id, requester);
 	}

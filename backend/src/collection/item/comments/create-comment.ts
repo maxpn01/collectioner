@@ -53,18 +53,14 @@ export class CreateCommentUseCase {
 	async execute(
 		request: CreateCommentRequest,
 		commenterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		if (!checkRequesterIsAuthenticated())
-			return Err(new NotAuthorizedFailure());
-
 		const itemResult = await this.itemRepository.get(request.itemId);
 		if (itemResult.err) return itemResult;
 		const item = itemResult.val;
 
 		const commenterResult = await this.userRepository.get(commenterId);
 		if (commenterResult.err) return commenterResult;
-		const commenter = commenterResult.val;
+		const { user: commenter } = commenterResult.val;
 
 		const comment: Comment = createNewComment({
 			item,

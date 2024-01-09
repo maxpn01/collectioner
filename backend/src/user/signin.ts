@@ -37,7 +37,7 @@ class SignInWithEmailUseCase {
 
 			return userResult;
 		}
-		const user = userResult.val;
+		const { user } = userResult.val;
 
 		const passwordMatches = await checkPasswordMatches(
 			request.password,

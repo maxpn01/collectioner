@@ -147,7 +147,6 @@ describe("create comment use case", () => {
 				text: "nice book bruh",
 			},
 			"john",
-			checkRequesterIsAuthenticated,
 		);
 		if (createCommentResult.err) throw createCommentResult;
 

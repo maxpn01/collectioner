@@ -17,12 +17,12 @@ class SetUserIsAdminUseCase {
 	): Promise<Result<None, Failure>> {
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) throw new Error();
-		const requester = requesterResult.val;
+		const { user: requester } = requesterResult.val;
 
 		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
 		const userResult = await this.userRepository.get(id);
 		if (userResult.err) return userResult;
-		const user = userResult.val;
+		const { user } = userResult.val;
 
 		user.isAdmin = isAdmin;
 
@@ -47,13 +47,13 @@ class SetUserBlockedUseCase {
 	): Promise<Result<None, Failure>> {
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) throw new Error();
-		const requester = requesterResult.val;
+		const { user: requester } = requesterResult.val;
 
 		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
 
 		const userResult = await this.userRepository.get(id);
 		if (userResult.err) return userResult;
-		const user = userResult.val;
+		const { user } = userResult.val;
 
 		user.blocked = blocked;
 

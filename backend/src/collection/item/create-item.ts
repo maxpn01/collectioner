@@ -87,7 +87,6 @@ export class CreateItemUseCase {
 		const collectionResult = await this.authorizeCollectionUpdate.execute(
 			request.collectionId,
 			requesterId,
-			checkRequesterIsAuthenticated,
 		);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;

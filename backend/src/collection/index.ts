@@ -62,36 +62,11 @@ export class MemoryCollectionRepository implements CollectionRepository {
 	}
 
 	async get(id: string): Promise<Result<Collection, Failure>> {
-		const collection = structuredClone(
-			this.collections.find((c) => c.id === id),
-		);
-		if (!collection) return Err(new NotFoundFailure());
-
-		const ownerResult = await this.userRepository.get(collection.owner.id);
-		if (ownerResult.err) return ownerResult;
-		const owner = ownerResult.val;
-		collection.owner = owner;
-
-		const topicResult = await this.topicRepository.get(collection.topic.id);
-		if (topicResult.err) return topicResult;
-		const topic = topicResult.val;
-		collection.topic = topic;
-
-		return Ok(collection);
+		throw new Error("Not implemented");
 	}
 
 	async getByUser(userId: string): Promise<Result<Collection[], Failure>> {
-		const collections: Collection[] = [];
-
-		for (const collection of this.collections) {
-			if (collection.owner.id === userId) {
-				const collectionResult = await this.get(collection.id);
-				if (collectionResult.err) return collectionResult;
-				collections.push(collectionResult.val);
-			}
-		}
-
-		return Ok(collections);
+		throw new Error("Not implemented");
 	}
 
 	async create(collection: Collection): Promise<Result<None, Failure>> {

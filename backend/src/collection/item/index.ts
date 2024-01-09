@@ -43,22 +43,11 @@ export class MemoryItemRepository implements ItemRepository {
 	}
 
 	async get(id: string): Promise<Result<Item, Failure>> {
-		const item = structuredClone(this.items.find((i) => i.id === id));
-		if (!item) return Err(new NotFoundFailure());
-
-		const collectionResult = await this.collectionRepository.get(
-			item.collection.id,
-		);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
-
-		item.collection = collection;
-
-		return Ok(item);
+		throw new Error("Not implemented");
 	}
 
 	async getAll(): Promise<Result<Item[], Failure>> {
-		return Ok(this.items);
+		throw new Error("Not implemented");
 	}
 
 	async getByCollection(
