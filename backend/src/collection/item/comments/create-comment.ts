@@ -53,7 +53,7 @@ export class CreateCommentUseCase {
 	): Promise<Result<None, Failure>> {
 		const itemResult = await this.itemRepository.get(request.itemId);
 		if (itemResult.err) return itemResult;
-		const item = itemResult.val;
+		const { item } = itemResult.val;
 
 		const commenterResult = await this.userRepository.get(commenterId);
 		if (commenterResult.err) return commenterResult;

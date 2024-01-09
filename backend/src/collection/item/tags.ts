@@ -17,7 +17,7 @@ export class MemoryTagsRepository implements TagsRepository {
 	async getAll(): Promise<Result<Set<string>, Failure>> {
 		const itemsResult = await this.itemRepository.getAll();
 		if (itemsResult.err) return itemsResult;
-		const items = itemsResult.val;
+		const items = itemsResult.val.map(({ item }) => item);
 
 		const tags = new Set<string>();
 
@@ -37,7 +37,7 @@ export class MemoryTagsRepository implements TagsRepository {
 	}
 }
 
-export class TagsAutocompleteUseCase {
+export class AutocompleteTagsUseCase {
 	tagsRepository: TagsRepository;
 
 	constructor(tagsRepository: TagsRepository) {

@@ -4,6 +4,7 @@ import { Failure, NotFoundFailure } from "./failure";
 export interface KeyValueRepository<T> {
 	get(key: string): Promise<Result<T, Failure>>;
 	set(key: string, value: T): Promise<Result<None, Failure>>;
+	setMany(map: Map<string, T>): Promise<Result<None, Failure>>;
 }
 
 export class MemoryKeyValueRepository<T> implements KeyValueRepository<T> {
@@ -22,5 +23,9 @@ export class MemoryKeyValueRepository<T> implements KeyValueRepository<T> {
 	async set(key: string, value: T): Promise<Result<None, Failure>> {
 		this.map.set(key, value);
 		return Ok(None);
+	}
+
+	async setMany(map: Map<string, T>): Promise<Result<None, Failure>> {
+		throw new Error("Not implemented");
 	}
 }

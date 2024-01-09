@@ -87,20 +87,16 @@ export class CreateItemUseCase {
 	): Promise<Result<string, Failure>> {
 		const collectionResult = await this.collectionRepository.get(
 			request.collectionId,
+			{ include: { fields: true } },
 		);
 		if (collectionResult.err) return collectionResult;
-		const { collection } = collectionResult.val;
+		const { collection, fields: collectionFields } = collectionResult.val;
 
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
 			collection,
 			requesterId,
 		);
 		if (authorizeResult.err) return authorizeResult;
-
-		const collectionFieldsResult =
-			await this.collectionFieldRepository.getByCollection(collection.id);
-		if (collectionFieldsResult.err) throw Error();
-		const collectionFields = collectionFieldsResult.val;
 
 		const checkAllFieldsSpecified = new CheckAllFieldsSpecified(
 			request,
@@ -121,7 +117,6 @@ export class CreateItemUseCase {
 		const setFields = new SetFieldsUseCase(
 			request,
 			item,
-			collectionFields,
 			this.itemFieldRepositories,
 		);
 		const setFieldsResult = await setFields.execute();
@@ -142,18 +137,15 @@ type SetFieldsRequest = {
 export class SetFieldsUseCase {
 	request: SetFieldsRequest;
 	item: Item;
-	collectionFields: CollectionField[];
 	itemFieldRepositories: ItemFieldRepositories;
 
 	constructor(
 		request: SetFieldsRequest,
 		item: Item,
-		collectionFields: CollectionField[],
 		itemFieldRepositories: ItemFieldRepositories,
 	) {
 		this.request = request;
 		this.item = item;
-		this.collectionFields = collectionFields;
 		this.itemFieldRepositories = itemFieldRepositories;
 	}
 
@@ -198,16 +190,14 @@ export class SetFieldsUseCase {
 		requestFields: Map<string, T>,
 		itemFieldRepository: KeyValueRepository<T>,
 	): Promise<Result<None, Failure>> {
+		const fields = new Map<string, T>();
+
 		for (const [collectionFieldId, value] of requestFields) {
-			const collectionField = this.collectionFields.find(
-				(f) => f.id === collectionFieldId,
-			)!;
-			const setResult = await itemFieldRepository.set(
-				generateItemFieldId(this.item.id, collectionField.id),
-				value,
-			);
-			if (setResult.err) return setResult;
+			const fieldId = generateItemFieldId(this.item.id, collectionFieldId);
+			fields.set(fieldId, value);
 		}
+		const setManyResult = await itemFieldRepository.setMany(fields);
+		if (setManyResult.err) return setManyResult;
 
 		return Ok(None);
 	}

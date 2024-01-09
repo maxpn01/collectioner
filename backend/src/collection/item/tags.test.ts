@@ -9,10 +9,10 @@ import {
 import { User, MemoryUserRepository } from "../../user";
 import { createTestUser } from "../../user/index.test";
 import { createTestTopic, createTestCollection } from "../index.test";
-import { MemoryTagsRepository, TagsAutocompleteUseCase } from "./tags";
+import { MemoryTagsRepository, AutocompleteTagsUseCase } from "./tags";
 
 describe("tags autocomplete", () => {
-	let tagsAutocomplete: TagsAutocompleteUseCase;
+	let tagsAutocomplete: AutocompleteTagsUseCase;
 
 	let users: User[];
 	let userRepository: MemoryUserRepository;
@@ -57,7 +57,7 @@ describe("tags autocomplete", () => {
 		itemRepository = new MemoryItemRepository(items, collectionRepository);
 		tagsRepository = new MemoryTagsRepository(itemRepository);
 
-		tagsAutocomplete = new TagsAutocompleteUseCase(tagsRepository);
+		tagsAutocomplete = new AutocompleteTagsUseCase(tagsRepository);
 	});
 
 	it("returns all tags", async () => {

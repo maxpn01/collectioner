@@ -124,7 +124,6 @@ describe("view item use case", () => {
 		viewItem = new ViewItemUseCase(
 			collectionFieldRepository,
 			itemRepository,
-			itemFieldRepositories,
 			commentRepository,
 		);
 	});
@@ -134,7 +133,7 @@ describe("view item use case", () => {
 		const item = itemResult.unwrap();
 
 		expect(item.id).toBe("hungergames");
-		expect(item.textFields).toEqual(textFields);
+		expect(item.fields.textFields).toEqual(textFields);
 		expect(item.comments[0].id).toBe("comment1");
 		expect(item.comments[0].author).toEqual(users[0]);
 	});

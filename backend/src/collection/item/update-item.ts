@@ -49,7 +49,7 @@ export class UpdateItemUseCase {
 	): Promise<Result<None, Failure>> {
 		const itemResult = await this.itemRepository.get(request.id);
 		if (itemResult.err) return itemResult;
-		const item = itemResult.val;
+		const { item } = itemResult.val;
 		const collection = item.collection;
 
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
@@ -62,13 +62,6 @@ export class UpdateItemUseCase {
 			await this.collectionFieldRepository.getByCollection(collection.id);
 		if (collectionFieldsResult.err) throw Error();
 		const collectionFields = collectionFieldsResult.val;
-
-		const checkAllFieldsSpecified = new CheckAllFieldsSpecified(
-			request,
-			collectionFields,
-		);
-		const allFieldsSpecified = await checkAllFieldsSpecified.execute();
-		if (!allFieldsSpecified) return Err(new BadRequestFailure());
 
 		const updatedItem = structuredClone(item);
 		updatedItem.name = request.name;
@@ -83,7 +76,6 @@ export class UpdateItemUseCase {
 		const setFields = new SetFieldsUseCase(
 			request,
 			item,
-			collectionFields,
 			this.itemFieldRepositories,
 		);
 		const setFieldsResult = await setFields.execute();

@@ -6,6 +6,11 @@ import {
 	KeyValueRepository,
 	MemoryKeyValueRepository,
 } from "../../utils/key-value";
+import {
+	RepoGetIncludedProperties,
+	RepoGetOptions,
+} from "../../utils/repository";
+import { Comment } from "./comments";
 
 export type Item = {
 	collection: Collection;
@@ -13,6 +18,14 @@ export type Item = {
 	name: string;
 	tags: Set<string>;
 	createdAt: Date;
+};
+
+type ItemFields = {
+	numberFields: Map<string, number>;
+	textFields: Map<string, string>;
+	multilineTextFields: Map<string, string>;
+	checkboxFields: Map<string, boolean>;
+	dateFields: Map<string, Date>;
 };
 
 type ItemLike = {
@@ -24,10 +37,27 @@ export function generateItemFieldId(itemId: string, collectionFieldId: string) {
 	return `${itemId}->${collectionFieldId}`;
 }
 
+type GetItemIncludables = {
+	fields: ItemFields;
+	comments: Comment[];
+};
+type GetItemOptions = RepoGetOptions<GetItemIncludables>;
+type GetItemResult<O extends GetItemOptions> = {
+	item: Item;
+} & RepoGetIncludedProperties<GetItemIncludables, O>;
+
 export interface ItemRepository {
-	get(id: string): Promise<Result<Item, Failure>>;
-	getAll(): Promise<Result<Item[], Failure>>;
-	getByCollection(collectionId: string): Promise<Result<Item[], Failure>>;
+	get<O extends GetItemOptions>(
+		id: string,
+		options?: O,
+	): Promise<Result<GetItemResult<O>, Failure>>;
+	getAll<O extends GetItemOptions>(
+		options?: O,
+	): Promise<Result<GetItemResult<O>[], Failure>>;
+	getByCollection<O extends GetItemOptions>(
+		id: string,
+		options?: O,
+	): Promise<Result<GetItemResult<O>[], Failure>>;
 	create(item: Item): Promise<Result<None, Failure>>;
 	update(id: string, item: Item): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
@@ -41,19 +71,22 @@ export class MemoryItemRepository implements ItemRepository {
 		this.items = items;
 		this.collectionRepository = collectionRepository;
 	}
-
-	async get(id: string): Promise<Result<Item, Failure>> {
-		throw new Error("Not implemented");
+	async get<O extends GetItemOptions>(
+		id: string,
+		options?: O | undefined,
+	): Promise<Result<GetItemResult<O>, Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async getAll(): Promise<Result<Item[], Failure>> {
-		throw new Error("Not implemented");
+	async getAll<O extends GetItemOptions>(
+		options?: O | undefined,
+	): Promise<Result<GetItemResult<O>[], Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async getByCollection(
-		collectionId: string,
-	): Promise<Result<Item[], Failure>> {
-		throw new Error("Not implemented");
+	async getByCollection<O extends GetItemOptions>(
+		id: string,
+		options?: O | undefined,
+	): Promise<Result<GetItemResult<O>[], Failure>> {
+		throw new Error("Method not implemented.");
 	}
 
 	async create(item: Item): Promise<Result<None, Failure>> {
@@ -70,11 +103,7 @@ export class MemoryItemRepository implements ItemRepository {
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
-		const index = this.items.findIndex((i) => i.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-
-		this.items.splice(index, 1);
-		return Ok(None);
+		throw new Error("Method not implemented");
 	}
 }
 

@@ -145,11 +145,7 @@ describe("delete item use case", () => {
 	});
 
 	it("deletes the item", async () => {
-		const deleteResult = await deleteItem.execute(
-			"hungergames",
-			"alice",
-			checkRequesterIsAuthenticated,
-		);
+		const deleteResult = await deleteItem.execute("hungergames", "alice");
 		if (deleteResult.err) throw deleteResult;
 
 		expect(items.length).toBe(1);
