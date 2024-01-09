@@ -12,7 +12,7 @@ import { createTestTopic, createTestCollection } from "../index.test";
 import { MemoryTagsRepository, AutocompleteTagsUseCase } from "./tags";
 
 describe("tags autocomplete", () => {
-	let tagsAutocomplete: AutocompleteTagsUseCase;
+	let autocompleteTags: AutocompleteTagsUseCase;
 
 	let users: User[];
 	let userRepository: MemoryUserRepository;
@@ -57,22 +57,14 @@ describe("tags autocomplete", () => {
 		itemRepository = new MemoryItemRepository(items, collectionRepository);
 		tagsRepository = new MemoryTagsRepository(itemRepository);
 
-		tagsAutocomplete = new AutocompleteTagsUseCase(tagsRepository);
-	});
-
-	it("returns all tags", async () => {
-		const tagsResult = await tagsAutocomplete.getAllTags();
-		if (tagsResult.err) throw tagsResult;
-		const tags = tagsResult.val;
-
-		expect(tags).toEqual(items[0].tags);
+		autocompleteTags = new AutocompleteTagsUseCase(tagsRepository);
 	});
 
 	it("returns all tags that start with a string", async () => {
-		const filteredTagsResult = await tagsAutocomplete.getTagsThatStartWith("d");
-		if (filteredTagsResult.err) throw filteredTagsResult;
-		const filteredTags = filteredTagsResult.val;
+		const autocompleteResult = await autocompleteTags.execute("d");
+		if (autocompleteResult.err) throw autocompleteResult;
+		const autocomplete = autocompleteResult.val;
 
-		expect(filteredTags).toEqual(new Set(["dystopia"]));
+		expect(autocomplete).toEqual(new Set(["dystopia"]));
 	});
 });

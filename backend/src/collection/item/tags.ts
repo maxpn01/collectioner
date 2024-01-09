@@ -44,15 +44,7 @@ export class AutocompleteTagsUseCase {
 		this.tagsRepository = tagsRepository;
 	}
 
-	async getAllTags(): Promise<Result<Set<string>, Failure>> {
-		const tagsResult = await this.tagsRepository.getAll();
-		if (tagsResult.err) return tagsResult;
-		const tags = tagsResult.val;
-
-		return Ok(tags);
-	}
-
-	async getTagsThatStartWith(s: string): Promise<Result<Set<string>, Failure>> {
+	async execute(s: string): Promise<Result<Set<string>, Failure>> {
 		const tagsResult = await this.tagsRepository.getTagsThatStartWith(s);
 		if (tagsResult.err) return tagsResult;
 		const tags = tagsResult.val;
