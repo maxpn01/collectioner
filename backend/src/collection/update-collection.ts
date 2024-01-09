@@ -6,10 +6,11 @@ import {
 	Collection,
 	CollectionRepository,
 	CollectionFieldRepository,
+	UpdatedField,
 } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
-import { AuthorizeUserUpdateUseCase, UserRepository } from "../user";
+import { UserRepository, authorizeUserUpdate } from "../user";
 import { Failure, NotFoundFailure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../user/view-user";
 
@@ -31,10 +32,9 @@ function updateCollection(
 	return collection;
 }
 
-export class AuthorizeCollectionUpdateUseCase {
+export class AuthorizeCollectionUpdate {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
-	authorizeUserUpdate: AuthorizeUserUpdateUseCase;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -42,24 +42,22 @@ export class AuthorizeCollectionUpdateUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
-		this.authorizeUserUpdate = new AuthorizeUserUpdateUseCase(userRepository);
 	}
 
 	async execute(
-		id: string,
+		collection: Collection,
 		requesterId: string,
-	): Promise<Result<Collection, Failure>> {
-		const collectionResult = await this.collectionRepository.get(id);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
+	): Promise<Result<None, Failure>> {
+		const ownerId = collection.owner.id;
+		if (requesterId !== ownerId) {
+			const requesterResult = await this.userRepository.get(requesterId);
+			if (requesterResult.err) throw new Error();
+			const { user: requester } = requesterResult.val;
+			const authorized = authorizeUserUpdate(ownerId, requester);
+			if (!authorized) return Err(new NotAuthorizedFailure());
+		}
 
-		const authorized = await this.authorizeUserUpdate.execute(
-			collection.owner.id,
-			requesterId,
-		);
-		if (!authorized) return Err(new NotAuthorizedFailure());
-
-		return Ok(collection);
+		return Ok(None);
 	}
 }
 
@@ -89,7 +87,7 @@ class UpdateCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 	itemFieldRepository: CollectionFieldRepository;
 
 	constructor(
@@ -101,7 +99,7 @@ class UpdateCollectionUseCase {
 		this.collectionRepository = collectionRepository;
 		this.topicRepository = topicRepository;
 		this.userRepository = userRepository;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
@@ -113,20 +111,30 @@ class UpdateCollectionUseCase {
 		request: UpdateCollectionRequest,
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
-		const collectionResult = await this.authorizeCollectionUpdate.execute(
-			id,
+		const collectionResult = await this.collectionRepository.get(id, {
+			include: { fields: true },
+		});
+		if (collectionResult.err) return collectionResult;
+		const { collection, fields } = collectionResult.val;
+
+		const authorizeResult = await this.authorizeCollectionUpdate.execute(
+			collection,
 			requesterId,
 		);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
+		if (authorizeResult.err) return authorizeResult;
 
-		const topicResult = await this.topicRepository.get(request.topicId);
-		if (topicResult.err) return topicResult;
-		const topic = topicResult.val;
+		let topic = collection.topic;
+		const shouldUpdateTopic = request.topicId !== topic.id;
+		if (shouldUpdateTopic) {
+			const topicResult = await this.topicRepository.get(request.topicId);
+			if (topicResult.err) return topicResult;
+			topic = topicResult.val;
+		}
 
 		const updateItemFieldsResult = await this.updateItemFields(
 			request,
 			collection,
+			fields,
 		);
 		if (updateItemFieldsResult.err) return updateItemFieldsResult;
 
@@ -147,15 +155,30 @@ class UpdateCollectionUseCase {
 	async updateItemFields(
 		request: UpdateCollectionRequest,
 		collection: Collection,
+		fields: CollectionField[],
 	): Promise<Result<None, Failure>> {
+		const updatedFields: UpdatedField[] = [];
+
 		for (let i = 0; i < request.fields.length; i++) {
 			const field = request.fields[i];
-			const fieldExists = await this.itemFieldRepository.has(field.id);
+			const index = fields.findIndex((f) => f.id === field.id);
+			const fieldExists = index > -1;
 			if (!fieldExists) return Err(new NotFoundFailure());
 
 			const updatedField: CollectionField = { collection, ...field };
-			await this.itemFieldRepository.update(field.id, updatedField);
+
+			updatedFields.push({
+				id: field.id,
+				field: updatedField,
+			});
 		}
+
+		const updateResult = await this.itemFieldRepository.updateMany(
+			updatedFields,
+		);
+		if (updateResult.err) return updateResult;
+
+		const createdFields: CollectionField[] = [];
 
 		for (let i = 0; i < request.newFields.length; i++) {
 			const field = request.newFields[i];
@@ -164,8 +187,14 @@ class UpdateCollectionUseCase {
 				collection,
 				...field,
 			};
-			await this.itemFieldRepository.create(createdField);
+
+			createdFields.push(createdField);
 		}
+
+		const createResult = await this.itemFieldRepository.createMany(
+			createdFields,
+		);
+		if (createResult.err) return createResult;
 
 		return Ok(None);
 	}
@@ -183,7 +212,7 @@ function setCollectionImage(
 export class SetCollectionImageUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -191,7 +220,7 @@ export class SetCollectionImageUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
@@ -202,17 +231,20 @@ export class SetCollectionImageUseCase {
 		collectionId: string,
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
-		const collectionResult = await this.authorizeCollectionUpdate.execute(
-			collectionId,
+		const collectionResult = await this.collectionRepository.get(collectionId);
+		if (collectionResult.err) return collectionResult;
+		const { collection } = collectionResult.val;
+
+		const authorizeResult = await this.authorizeCollectionUpdate.execute(
+			collection,
 			requesterId,
 		);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
+		if (authorizeResult.err) return authorizeResult;
 
 		const updatedCollection = setCollectionImage(imageOption, collection);
 
 		const updateResult = await this.collectionRepository.update(
-			collectionId,
+			collection.id,
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;

@@ -9,7 +9,7 @@ import {
 } from "..";
 import { UserRepository } from "../../user";
 import { BadRequestFailure, Failure } from "../../utils/failure";
-import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
+import { AuthorizeCollectionUpdate } from "../update-collection";
 import { nanoid } from "nanoid";
 import {
 	Item,
@@ -57,9 +57,10 @@ type CollectionFieldId = string;
 
 export class CreateItemUseCase {
 	userRepository: UserRepository;
+	collectionRepository: CollectionRepository;
 	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 	itemFieldRepositories: ItemFieldRepositories;
 
 	constructor(
@@ -70,9 +71,10 @@ export class CreateItemUseCase {
 		itemFieldRepositories: ItemFieldRepositories,
 	) {
 		this.userRepository = userRepository;
+		this.collectionRepository = collectionRepository;
 		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
@@ -82,14 +84,18 @@ export class CreateItemUseCase {
 	async execute(
 		request: CreateItemRequest,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<string, Failure>> {
-		const collectionResult = await this.authorizeCollectionUpdate.execute(
+		const collectionResult = await this.collectionRepository.get(
 			request.collectionId,
-			requesterId,
 		);
 		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
+		const { collection } = collectionResult.val;
+
+		const authorizeResult = await this.authorizeCollectionUpdate.execute(
+			collection,
+			requesterId,
+		);
+		if (authorizeResult.err) return authorizeResult;
 
 		const collectionFieldsResult =
 			await this.collectionFieldRepository.getByCollection(collection.id);

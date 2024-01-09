@@ -7,14 +7,14 @@ import {
 } from "..";
 import { UserRepository } from "../../user";
 import { Failure } from "../../utils/failure";
-import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
+import { AuthorizeCollectionUpdate } from "../update-collection";
 import { CommentRepository } from "./comments";
 
 export class DeleteItemUseCase {
 	userRepository: UserRepository;
 	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 	itemFieldRepositories: ItemFieldRepositories;
 	commentRepository: CommentRepository;
 
@@ -30,7 +30,7 @@ export class DeleteItemUseCase {
 		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
 		this.itemFieldRepositories = itemFieldRepositories;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
@@ -48,7 +48,7 @@ export class DeleteItemUseCase {
 		const collection = item.collection;
 
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
-			collection.id,
+			collection,
 			requesterId,
 		);
 		if (authorizeResult.err) return authorizeResult;

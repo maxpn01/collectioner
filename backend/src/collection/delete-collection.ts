@@ -1,13 +1,13 @@
 import { None, Ok, Result } from "ts-results";
 import { Failure } from "../utils/failure";
-import { AuthorizeCollectionUpdateUseCase } from "./update-collection";
+import { AuthorizeCollectionUpdate } from "./update-collection";
 import { UserRepository } from "../user";
 import { CollectionRepository } from ".";
 
 class DeleteCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -15,7 +15,7 @@ class DeleteCollectionUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
@@ -25,8 +25,12 @@ class DeleteCollectionUseCase {
 		id: string,
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
+		const collectionResult = await this.collectionRepository.get(id);
+		if (collectionResult.err) return collectionResult;
+		const { collection } = collectionResult.val;
+
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
-			id,
+			collection,
 			requesterId,
 		);
 		if (authorizeResult.err) return authorizeResult;

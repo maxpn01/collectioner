@@ -3,7 +3,7 @@ import { ItemRepository, ItemFieldRepositories } from ".";
 import { CollectionFieldRepository, CollectionRepository } from "..";
 import { UserRepository } from "../../user";
 import { Failure, BadRequestFailure } from "../../utils/failure";
-import { AuthorizeCollectionUpdateUseCase } from "../update-collection";
+import { AuthorizeCollectionUpdate } from "../update-collection";
 import { CheckAllFieldsSpecified, SetFieldsUseCase } from "./create-item";
 
 type UpdateItemRequest = {
@@ -23,7 +23,7 @@ export class UpdateItemUseCase {
 	userRepository: UserRepository;
 	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdateUseCase;
+	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 	itemFieldRepositories: ItemFieldRepositories;
 
 	constructor(
@@ -37,7 +37,7 @@ export class UpdateItemUseCase {
 		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
 		this.itemFieldRepositories = itemFieldRepositories;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdateUseCase(
+		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
@@ -46,7 +46,6 @@ export class UpdateItemUseCase {
 	async execute(
 		request: UpdateItemRequest,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const itemResult = await this.itemRepository.get(request.id);
 		if (itemResult.err) return itemResult;
@@ -54,7 +53,7 @@ export class UpdateItemUseCase {
 		const collection = item.collection;
 
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
-			collection.id,
+			collection,
 			requesterId,
 		);
 		if (authorizeResult.err) return authorizeResult;
