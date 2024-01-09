@@ -1,6 +1,5 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { Failure, NotFoundFailure } from "../utils/failure";
-import { NotAuthorizedFailure } from "./view-user";
 
 export type User = {
 	id: string;
@@ -11,6 +10,9 @@ export type User = {
 	isAdmin: boolean;
 	passwordHash: string;
 };
+
+class UsernameIsTakenFailure extends Failure {}
+class EmailIsTakenFailure extends Failure {}
 
 export interface UserRepository {
 	get(id: string): Promise<Result<User, Failure>>;
@@ -40,6 +42,11 @@ export class MemoryUserRepository implements UserRepository {
 	}
 
 	async create(user: User): Promise<Result<None, Failure>> {
+		if (this.users.find((u) => u.username === user.username))
+			return Err(new UsernameIsTakenFailure());
+		if (this.users.find((u) => u.email === user.email))
+			return Err(new EmailIsTakenFailure());
+
 		this.users.push(user);
 		return Ok(None);
 	}
