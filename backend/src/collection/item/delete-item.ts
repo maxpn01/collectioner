@@ -40,7 +40,6 @@ export class DeleteItemUseCase {
 	async execute(
 		id: string,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const itemResult = await this.itemRepository.get(id);
 		if (itemResult.err) return itemResult;
