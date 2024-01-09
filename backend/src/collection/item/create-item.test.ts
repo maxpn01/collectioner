@@ -173,7 +173,6 @@ But if she is to win, she will have to start making choices that weight survival
 				dateFields: new Map([["published", new Date("September 14, 2008")]]),
 			},
 			"alice",
-			checkRequesterIsAuthenticated,
 		);
 		if (result.err) throw result;
 

@@ -56,7 +56,7 @@ describe("set collection image use case", () => {
 			.then((result) => result.unwrap());
 
 		const collectionResult = await collectionRepository.get("collection1");
-		const collection = collectionResult.unwrap();
+		const { collection } = collectionResult.unwrap();
 		const updatedImage = unwrapOption(collection.imageOption);
 		expect(updatedImage).toBe("image");
 	});
@@ -93,7 +93,7 @@ describe("set collection image use case", () => {
 			.then((result) => result.unwrap());
 
 		const collectionResult = await collectionRepository.get("collection1");
-		const collection = collectionResult.unwrap();
+		const { collection } = collectionResult.unwrap();
 		const updatedImage = unwrapOption(collection.imageOption);
 		expect(updatedImage).toBe("image");
 	});
@@ -121,7 +121,7 @@ describe("set collection image use case", () => {
 			.then((result) => result.unwrap());
 
 		const collectionResult = await collectionRepository.get("collection1");
-		const collection = collectionResult.unwrap();
+		const { collection } = collectionResult.unwrap();
 		expect(collection.imageOption.none).toBe(true);
 	});
 });

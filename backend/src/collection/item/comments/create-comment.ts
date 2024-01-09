@@ -1,12 +1,9 @@
-import { Result, None, Ok, Err } from "ts-results";
+import { Result, None, Ok } from "ts-results";
 import { Comment, CommentRepository } from ".";
 import { Item, ItemRepository } from "..";
-import { CollectionRepository } from "../..";
 import { User, UserRepository } from "../../../user";
 import { Failure } from "../../../utils/failure";
-import { AuthorizeCollectionUpdateUseCase } from "../../update-collection";
 import { nanoid } from "nanoid";
-import { NotAuthorizedFailure } from "../../../user/view-user";
 
 function generateItemId(): string {
 	return nanoid();

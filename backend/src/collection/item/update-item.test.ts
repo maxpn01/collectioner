@@ -184,7 +184,6 @@ But if she is to win, she will have to start making choices that weight survival
 				dateFields: new Map([["published", new Date("September 14, 2008")]]),
 			},
 			"alice",
-			checkRequesterIsAuthenticated,
 		);
 		if (createItemResult.err) throw createItemResult;
 		const itemId = createItemResult.val;
@@ -209,7 +208,6 @@ Trouble was, the androids all looked exactly like humans, and they didn't want t
 				dateFields: new Map([["published", new Date("January 1, 1968")]]),
 			},
 			"alice",
-			checkRequesterIsAuthenticated,
 		);
 		if (updateItemResult.err) throw updateItemResult;
 

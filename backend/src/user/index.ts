@@ -1,6 +1,7 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { Failure, NotFoundFailure } from "../utils/failure";
 import { Collection } from "../collection";
+import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
 
 export type User = {
 	id: string;
@@ -15,30 +16,13 @@ export type User = {
 class UsernameIsTakenFailure extends Failure {}
 class EmailIsTakenFailure extends Failure {}
 
-type GetUserResultProperties = {
+type GetUserIncludables = {
 	collections: Collection[];
 };
-
-type GetUserInclude = {
-	[K in keyof GetUserResultProperties]?: true;
-};
-type GetUserOptions = {
-	include?: GetUserInclude;
-};
-
-type GetUserResultIncludedProperties<O extends GetUserOptions> =
-	O["include"] extends GetUserInclude
-		? {
-				[K in keyof O["include"]]: K extends keyof GetUserResultProperties
-					? GetUserResultProperties[K]
-					: never;
-		  }
-		: {};
-
-type GetUserResult<O extends GetUserOptions> =
-	GetUserResultIncludedProperties<O> & {
-		user: User;
-	};
+type GetUserOptions = RepoGetOptions<GetUserIncludables>;
+type GetUserResult<O extends GetUserOptions> = {
+	user: User;
+} & RepoGetIncludedProperties<GetUserIncludables, O>;
 
 export interface UserRepository {
 	get<O extends GetUserOptions>(
