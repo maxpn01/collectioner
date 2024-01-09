@@ -37,13 +37,11 @@ export class ViewCollectionUseCase {
 	}
 
 	async execute(id: string): Promise<Result<ViewCollectionResponse, Failure>> {
-		const collectionResult = await this.collectionRepository.get(id);
+		const collectionResult = await this.collectionRepository.get(id, {
+			include: { items: true },
+		});
 		if (collectionResult.err) return collectionResult;
-		const { collection } = collectionResult.val;
-
-		const itemsResult = await this.itemRepository.getByCollection(id);
-		if (itemsResult.err) return itemsResult;
-		const items = itemsResult.val;
+		const { collection, items } = collectionResult.val;
 
 		const itemsResponse = items.map((item) => ({
 			id: item.id,
