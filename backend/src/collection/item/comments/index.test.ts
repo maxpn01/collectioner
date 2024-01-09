@@ -12,6 +12,7 @@ export function createTestComment(
 		author: {
 			id: authorId,
 			email: "",
+			username: "",
 			fullname: "",
 			blocked: false,
 			isAdmin: false,
