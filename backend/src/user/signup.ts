@@ -8,16 +8,21 @@ function generateUserId(): string {
 	return nanoid();
 }
 
-class PasswordTooShortFailure extends Failure {}
+class ValidatePasswordFailure extends Failure {
+	passwordTooShort: boolean = false;
 
-function validatePassword(password: string): Failure[] {
-	const failures: Failure[] = [];
-
-	if (password.length < 8) {
-		failures.push(new PasswordTooShortFailure());
+	isInvalid(): boolean {
+		return this.passwordTooShort;
 	}
+}
 
-	return failures;
+function validatePassword(
+	password: string,
+): Result<None, ValidatePasswordFailure> {
+	const failure = new ValidatePasswordFailure();
+	failure.passwordTooShort = password.length < 8;
+
+	return failure.isInvalid() ? Err(failure) : Ok(None);
 }
 
 async function generatePasswordHash(password: string): Promise<string> {
@@ -35,9 +40,9 @@ async function createNewUser({
 	username: string;
 	fullname: string;
 	password: string;
-}): Promise<Result<User, Failure[]>> {
-	const failures = validatePassword(password);
-	if (failures.length > 0) return Err(failures);
+}): Promise<Result<User, Failure>> {
+	const validatePasswordResult = validatePassword(password);
+	if (validatePasswordResult.err) return validatePasswordResult;
 
 	const id = generateUserId();
 	const passwordHash = await generatePasswordHash(password);
@@ -69,12 +74,13 @@ class SignUpWithEmailUseCase {
 
 	async execute(
 		request: SignUpWithEmailRequest,
-	): Promise<Result<None, Failure[]>> {
+	): Promise<Result<None, Failure>> {
 		const userResult = await createNewUser(request);
 		if (userResult.err) return userResult;
+		const user = userResult.val;
 
-		const noneResult = await this.userRepository.create(userResult.val);
-		if (noneResult.err) return Err([noneResult.val]);
+		const createResult = await this.userRepository.create(user);
+		if (createResult.err) return createResult;
 
 		return Ok(None);
 	}
