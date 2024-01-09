@@ -34,7 +34,7 @@ function updateCollection(
 export class AuthorizeCollectionUpdateUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
-	authorizeUserUpdateUseCase: AuthorizeUserUpdateUseCase;
+	authorizeUserUpdate: AuthorizeUserUpdateUseCase;
 
 	constructor(
 		collectionRepository: CollectionRepository,
@@ -42,24 +42,20 @@ export class AuthorizeCollectionUpdateUseCase {
 	) {
 		this.collectionRepository = collectionRepository;
 		this.userRepository = userRepository;
-		this.authorizeUserUpdateUseCase = new AuthorizeUserUpdateUseCase(
-			userRepository,
-		);
+		this.authorizeUserUpdate = new AuthorizeUserUpdateUseCase(userRepository);
 	}
 
 	async execute(
 		id: string,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<Collection, Failure>> {
 		const collectionResult = await this.collectionRepository.get(id);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
 
-		const authorized = await this.authorizeUserUpdateUseCase.execute(
+		const authorized = await this.authorizeUserUpdate.execute(
 			collection.owner.id,
 			requesterId,
-			checkRequesterIsAuthenticated,
 		);
 		if (!authorized) return Err(new NotAuthorizedFailure());
 
@@ -116,12 +112,10 @@ class UpdateCollectionUseCase {
 		id: string,
 		request: UpdateCollectionRequest,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const collectionResult = await this.authorizeCollectionUpdate.execute(
 			id,
 			requesterId,
-			checkRequesterIsAuthenticated,
 		);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
@@ -205,14 +199,12 @@ export class SetCollectionImageUseCase {
 
 	async execute(
 		imageOption: Option<string>,
-		id: string,
+		collectionId: string,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const collectionResult = await this.authorizeCollectionUpdate.execute(
-			id,
+			collectionId,
 			requesterId,
-			checkRequesterIsAuthenticated,
 		);
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
@@ -220,7 +212,7 @@ export class SetCollectionImageUseCase {
 		const updatedCollection = setCollectionImage(imageOption, collection);
 
 		const updateResult = await this.collectionRepository.update(
-			id,
+			collectionId,
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;

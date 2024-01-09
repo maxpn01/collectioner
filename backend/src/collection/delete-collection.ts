@@ -24,12 +24,10 @@ class DeleteCollectionUseCase {
 	async execute(
 		id: string,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
 		const authorizeResult = await this.authorizeCollectionUpdate.execute(
 			id,
 			requesterId,
-			checkRequesterIsAuthenticated,
 		);
 		if (authorizeResult.err) return authorizeResult;
 

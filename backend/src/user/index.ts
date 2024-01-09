@@ -78,12 +78,8 @@ export class AuthorizeUserUpdateUseCase {
 		this.userRepository = userRepository;
 	}
 
-	async execute(
-		id: string,
-		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
-	): Promise<boolean> {
-		if (!checkRequesterIsAuthenticated()) return false;
+	async execute(id: string, requesterId: string): Promise<boolean> {
+		if (id === requesterId) return true;
 
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) throw new Error();

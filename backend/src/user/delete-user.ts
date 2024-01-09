@@ -5,25 +5,18 @@ import { NotAuthorizedFailure } from "./view-user";
 
 class DeleteUserUseCase {
 	userRepository: UserRepository;
-	authorizeUserUpdateUseCase: AuthorizeUserUpdateUseCase;
+	authorizeUserUpdate: AuthorizeUserUpdateUseCase;
 
 	constructor(userRepository: UserRepository) {
 		this.userRepository = userRepository;
-		this.authorizeUserUpdateUseCase = new AuthorizeUserUpdateUseCase(
-			userRepository,
-		);
+		this.authorizeUserUpdate = new AuthorizeUserUpdateUseCase(userRepository);
 	}
 
 	async execute(
 		id: string,
 		requesterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
 	): Promise<Result<None, Failure>> {
-		const authorized = await this.authorizeUserUpdateUseCase.execute(
-			id,
-			requesterId,
-			checkRequesterIsAuthenticated,
-		);
+		const authorized = await this.authorizeUserUpdate.execute(id, requesterId);
 		if (!authorized) return Err(new NotAuthorizedFailure());
 
 		const deleteResult = await this.userRepository.delete(id);
