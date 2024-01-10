@@ -1,7 +1,12 @@
 import { Err, None, Ok, Result } from "ts-results";
-import { Failure, NotFoundFailure } from "../utils/failure";
-import { Collection } from "../collection";
+import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
+import { Collection, PrismaCollection, PrismaTopic } from "../collection";
 import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
+import { PrismaClient, Prisma, User as PrismaUser } from "@prisma/client";
+import { nullableToOption } from "../utils/ts-results";
+import { PrismaErrors } from "../utils/prisma";
+
+export { User as PrismaUser } from "@prisma/client";
 
 export type User = {
 	id: string;
@@ -19,6 +24,8 @@ class EmailIsTakenFailure extends Failure {}
 type GetUserIncludables = {
 	collections: Collection[];
 };
+type GetUserIncludedProperties<O extends GetUserOptions> =
+	RepoGetIncludedProperties<GetUserIncludables, O>;
 type GetUserOptions = RepoGetOptions<GetUserIncludables>;
 type GetUserResult<O extends GetUserOptions> = {
 	user: User;
@@ -38,72 +45,141 @@ export interface UserRepository {
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-export class MemoryUserRepository implements UserRepository {
-	users: User[];
+class PrismaUserRepository implements UserRepository {
+	private prisma: PrismaClient;
 
-	constructor(users: User[]) {
-		this.users = users;
+	constructor() {
+		this.prisma = new PrismaClient();
 	}
 
 	async get<O extends GetUserOptions>(
 		id: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>> {
-		throw new Error("Not implemented");
+		const prismaCollectionsInclude = (options?.include?.collections && {
+			include: {
+				topic: options?.include?.collections,
+			},
+		})!;
 
-		// const user = structuredClone(this.users.find((u) => u.id === id));
-		// if (!user) return Err(new NotFoundFailure());
+		const prismaUser = await this.prisma.user.findUnique({
+			where: { id },
+			include: {
+				collections: prismaCollectionsInclude,
+			},
+		});
+		if (!prismaUser) return Err(new NotFoundFailure());
 
-		// const includedProperties: Partial<GetUserResultProperties> = {};
+		const user: User = prismaUserToEntity(prismaUser);
+		const includables: Partial<GetUserIncludables> = {};
 
-		// if (options?.include?.collections) {
-		// 	const collections = 1 as any as Omit<Collection, "owner">[];
-		// 	includedProperties.collections = collections.map((collection) => {
-		// 		return {
-		// 			...collection,
-		// 			owner: user,
-		// 		};
-		// 	});
-		// }
+		if (options?.include?.collections) {
+			const prismaCollections = prismaUser.collections;
+			includables.collections = prismaCollections.map((pc) =>
+				prismaCollectionToEntity(pc, pc.topic, user),
+			);
+		}
 
-		// const result: GetUserResult<O> = {
-		// 	user,
-		// 	...(includedProperties as GetUserResultIncludedProperties<O>),
-		// };
-
-		// return Ok(result);
+		return Ok({
+			user,
+			...(includables as GetUserIncludedProperties<O>),
+		});
 	}
 
 	async getByEmail<O extends GetUserOptions>(
 		email: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>> {
-		throw new Error("Not implemented");
+		const prismaCollectionsInclude = (options?.include?.collections && {
+			include: {
+				topic: options?.include?.collections,
+			},
+		})!;
+
+		const prismaUser = await this.prisma.user.findUnique({
+			where: { email },
+			include: {
+				collections: prismaCollectionsInclude,
+			},
+		});
+		if (!prismaUser) return Err(new NotFoundFailure());
+
+		const user: User = prismaUserToEntity(prismaUser);
+		const includables: Partial<GetUserIncludables> = {};
+
+		if (options?.include?.collections) {
+			const prismaCollections = prismaUser.collections;
+			includables.collections = prismaCollections.map((pc) =>
+				prismaCollectionToEntity(pc, pc.topic, user),
+			);
+		}
+
+		return Ok({
+			user,
+			...(includables as GetUserIncludedProperties<O>),
+		});
 	}
 
 	async create(user: User): Promise<Result<None, Failure>> {
-		if (this.users.find((u) => u.username === user.username))
-			return Err(new UsernameIsTakenFailure());
-		if (this.users.find((u) => u.email === user.email))
-			return Err(new EmailIsTakenFailure());
+		try {
+			await this.prisma.user.create({ data: user });
+		} catch (e) {
+			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
+			if (!isPrismaError) throw e;
 
-		this.users.push(user);
+			if (e.code === PrismaErrors.UniqueConstraintFailed) {
+				const target = e.meta?.target as string[];
+
+				if (target.includes("email")) return Err(new EmailIsTakenFailure());
+				if (target.includes("username"))
+					return Err(new UsernameIsTakenFailure());
+			} else throw e;
+		}
+
 		return Ok(None);
 	}
 
 	async update(id: string, user: User): Promise<Result<None, Failure>> {
-		const index = this.users.findIndex((u) => u.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.users[index] = user;
+		try {
+			await this.prisma.user.update({ where: { id }, data: user });
+		} catch (e) {
+			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
+			if (!isPrismaError) throw e;
+
+			if (e.code === PrismaErrors.UniqueConstraintFailed) {
+				const target = e.meta?.target as string[];
+
+				if (target.includes("email")) return Err(new EmailIsTakenFailure());
+				if (target.includes("username"))
+					return Err(new UsernameIsTakenFailure());
+			} else throw e;
+		}
+
 		return Ok(None);
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
-		const index = this.users.findIndex((u) => u.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.users.splice(index, 1);
+		await this.prisma.user.delete({ where: { id } });
 		return Ok(None);
 	}
+}
+
+function prismaCollectionToEntity(
+	pc: PrismaCollection,
+	pcTopic: PrismaTopic,
+	owner: User,
+) {
+	return {
+		owner,
+		id: pc.id,
+		name: pc.name,
+		topic: pcTopic,
+		imageOption: nullableToOption(pc.image),
+	};
+}
+
+function prismaUserToEntity(prismaUser: PrismaUser): User {
+	return prismaUser;
 }
 
 export function authorizeUserUpdate(userId: string, requester: User) {

@@ -15,30 +15,34 @@ model User {
     blocked      Boolean
     isAdmin      Boolean
     passwordHash String
-    Collection   Collection[]
-    Comment      Comment[]
+    collections  Collection[]
+    comments     Comment[]
+    createdAt    DateTime     @default(now())
+    updatedAt    DateTime     @updatedAt
 
     @@map("user")
 }
 
 model Topic {
-    id         String       @id
-    name       String
-    Collection Collection[]
+    id          String       @id
+    name        String
+    collections Collection[]
 
     @@map("topic")
 }
 
 model Collection {
-    owner           User              @relation(fields: [userId], references: [id])
-    id              String            @id
-    name            String
-    topic           Topic             @relation(fields: [topicId], references: [id])
-    image           String?
-    userId          String
-    topicId         String
-    CollectionField CollectionField[]
-    Item            Item[]
+    owner            User              @relation(fields: [userId], references: [id])
+    id               String            @id
+    name             String
+    topic            Topic             @relation(fields: [topicId], references: [id])
+    image            String?
+    userId           String
+    topicId          String
+    collectionFields CollectionField[]
+    items            Item[]
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
 
     @@map("collection")
 }
@@ -66,9 +70,10 @@ model Item {
     id           String     @id
     name         String
     tags         String[]
-    createdAt    DateTime   @default(now())
     collectionId String
-    Comment      Comment[]
+    comments     Comment[]
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
 
     @@map("item")
 }
@@ -78,9 +83,10 @@ model Comment {
     id        String   @id
     author    User     @relation(fields: [userId], references: [id])
     text      String
-    createdAt DateTime
     itemId    String
     userId    String
+    createdAt DateTime
+    updatedAt DateTime @updatedAt
 
     @@map("comment")
 }

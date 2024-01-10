@@ -1,8 +1,14 @@
 import { Err, None, Ok, Option, Result } from "ts-results";
 import { User, UserRepository } from "../user";
-import { Failure, NotFoundFailure } from "../utils/failure";
+import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
 import { Item } from "./item";
 import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
+import { PrismaClient } from "@prisma/client";
+
+export {
+	Collection as PrismaCollection,
+	Topic as PrismaTopic,
+} from "@prisma/client";
 
 export type Topic = {
 	id: string;
@@ -63,58 +69,51 @@ export interface CollectionRepository {
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-export class MemoryCollectionRepository implements CollectionRepository {
-	collections: Collection[];
-	userRepository: UserRepository;
-	topicRepository: TopicRepository;
+class PrismaCollectionRepository implements CollectionRepository {
+	constructor(private prisma: PrismaClient) {}
 
-	constructor(
-		collections: Collection[],
-		userRepository: UserRepository,
-		topicRepository: TopicRepository,
-	) {
-		this.collections = collections;
-		this.userRepository = userRepository;
-		this.topicRepository = topicRepository;
-	}
-	get<O extends GetCollectionOptions>(
+	async get<O extends GetCollectionOptions>(
 		id: string,
-		options?: O | undefined,
+		options?: O,
 	): Promise<Result<GetCollectionResult<O>, Failure>> {
-		throw new Error("Method not implemented.");
+		throw new Error("Not implemented");
 	}
-	getByUser<O extends GetCollectionOptions>(
+
+	async getByUser<O extends GetCollectionOptions>(
 		email: string,
-		options?: O | undefined,
+		options?: O,
 	): Promise<Result<GetCollectionResult<O>[], Failure>> {
-		throw new Error("Method not implemented.");
+		throw new Error("Not implemented");
 	}
 
 	async create(collection: Collection): Promise<Result<None, Failure>> {
-		this.collections.push(collection);
-		return Ok(None);
+		throw new Error("Not implemented");
 	}
 
 	async update(
 		id: string,
 		collection: Collection,
 	): Promise<Result<None, Failure>> {
-		const index = this.collections.findIndex((c) => c.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.collections[index] = collection;
-		return Ok(None);
+		throw new Error("Not implemented");
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
-		const index = this.collections.findIndex((c) => c.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.collections.splice(index, 1);
-		return Ok(None);
+		throw new Error("Not implemented");
 	}
 }
 
 export interface TopicRepository {
 	get(id: string): Promise<Result<Topic, Failure>>;
+}
+
+class PrismaTopicRepository implements TopicRepository {
+	constructor(private prisma: PrismaClient) {}
+
+	async get(id: string): Promise<Result<Topic, Failure>> {
+		const topic = await this.prisma.topic.findUnique({ where: { id } });
+		if (!topic) return Err(new NotFoundFailure());
+		return Ok(topic);
+	}
 }
 
 export class MemoryTopicRepository implements TopicRepository {
@@ -134,8 +133,8 @@ export class MemoryTopicRepository implements TopicRepository {
 export type UpdatedField = { id: string; field: CollectionField };
 
 export interface CollectionFieldRepository {
-	getByCollection(id: string): Promise<Result<CollectionField[], Failure>>;
 	get(id: string): Promise<Result<CollectionField, Failure>>;
+	getByCollection(id: string): Promise<Result<CollectionField[], Failure>>;
 	has(id: string): Promise<boolean>;
 	create(field: CollectionField): Promise<Result<None, Failure>>;
 	createMany(fields: CollectionField[]): Promise<Result<None, Failure>>;
@@ -144,86 +143,45 @@ export interface CollectionFieldRepository {
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-export class MemoryCollectionFieldRepository
-	implements CollectionFieldRepository
-{
-	collectionFields: CollectionField[];
-	collectionRepository: CollectionRepository;
+class PrismaCollectionFieldRepository implements CollectionFieldRepository {
+	constructor(private prisma: PrismaClient) {}
 
-	constructor(
-		collectionFields: CollectionField[],
-		collectionRepository: CollectionRepository,
-	) {
-		this.collectionFields = collectionFields;
-		this.collectionRepository = collectionRepository;
+	async get(id: string): Promise<Result<CollectionField, Failure>> {
+		throw new Error("Not implemented");
 	}
 
 	async getByCollection(
 		collectionId: string,
 	): Promise<Result<CollectionField[], Failure>> {
-		const fields = structuredClone(
-			this.collectionFields.filter((f) => f.collection.id === collectionId),
-		);
-		if (!fields) return Err(new NotFoundFailure());
-
-		const collectionResult = await this.collectionRepository.get(collectionId);
-		if (collectionResult.err) return collectionResult;
-		const { collection } = collectionResult.val;
-
-		for (const field of fields) {
-			field.collection = collection;
-		}
-
-		return Ok(fields);
+		throw new Error("Not implemented");
 	}
 
 	async has(id: string): Promise<boolean> {
-		return this.collectionFields.some((f) => f.id === id);
-	}
-
-	async get(id: string): Promise<Result<CollectionField, Failure>> {
-		const field = structuredClone(
-			this.collectionFields.find((f) => f.id === id),
-		);
-		if (!field) return Err(new NotFoundFailure());
-
-		const collectionResult = await this.collectionRepository.get(
-			field.collection.id,
-		);
-		if (collectionResult.err) return collectionResult;
-		const { collection } = collectionResult.val;
-
-		field.collection = collection;
-		return Ok(field);
+		throw new Error("Not implemented");
 	}
 
 	async create(field: CollectionField): Promise<Result<None, Failure>> {
-		this.collectionFields.push(field);
-		return Ok(None);
+		throw new Error("Not implemented");
 	}
 
-	createMany(fields: CollectionField[]): Promise<Result<None, Failure>> {
-		throw new Error("Method not implemented.");
+	async createMany(fields: CollectionField[]): Promise<Result<None, Failure>> {
+		throw new Error("Not implemented");
 	}
 
 	async update(
 		id: string,
 		field: CollectionField,
 	): Promise<Result<None, Failure>> {
-		const index = this.collectionFields.findIndex((f) => f.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.collectionFields[index] = field;
-		return Ok(None);
+		throw new Error("Not implemented");
 	}
 
-	updateMany(updatedFields: UpdatedField[]): Promise<Result<None, Failure>> {
-		throw new Error("Method not implemented.");
+	async updateMany(
+		updatedFields: UpdatedField[],
+	): Promise<Result<None, Failure>> {
+		throw new Error("Not implemented");
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
-		const index = this.collectionFields.findIndex((f) => f.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.collectionFields.splice(index, 1);
-		return Ok(None);
+		throw new Error("Not implemented");
 	}
 }
