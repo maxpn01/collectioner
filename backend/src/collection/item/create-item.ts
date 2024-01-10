@@ -15,10 +15,10 @@ import {
 	Item,
 	ItemRepository,
 	generateItemFieldId,
-	ItemFieldRepositories,
+	ItemFields,
+	ItemField,
 } from ".";
 import { areArraysEqual } from "../../utils/array";
-import { KeyValueRepository } from "../../utils/key-value";
 
 function generateItemId(): string {
 	return nanoid();
@@ -56,29 +56,21 @@ type CreateItemRequest = {
 type CollectionFieldId = string;
 
 export class CreateItemUseCase {
-	userRepository: UserRepository;
 	collectionRepository: CollectionRepository;
-	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
-	itemFieldRepositories: ItemFieldRepositories;
 
 	constructor(
-		userRepository: UserRepository,
 		collectionRepository: CollectionRepository,
-		collectionFieldRepository: CollectionFieldRepository,
 		itemRepository: ItemRepository,
-		itemFieldRepositories: ItemFieldRepositories,
+		userRepository: UserRepository,
 	) {
-		this.userRepository = userRepository;
 		this.collectionRepository = collectionRepository;
-		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
-		this.itemFieldRepositories = itemFieldRepositories;
 	}
 
 	async execute(
@@ -111,95 +103,78 @@ export class CreateItemUseCase {
 			tags: request.tags,
 		});
 
-		const createItemResult = await this.itemRepository.create(item);
+		const numberFields: ItemField<number>[] = [];
+		for (const [collectionFieldId, value] of request.numberFields) {
+			const fieldId = generateItemFieldId(item.id, collectionFieldId);
+			numberFields.push({
+				item,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const textFields: ItemField<string>[] = [];
+		for (const [collectionFieldId, value] of request.textFields) {
+			const fieldId = generateItemFieldId(item.id, collectionFieldId);
+			textFields.push({
+				item,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const multilineTextFields: ItemField<string>[] = [];
+		for (const [collectionFieldId, value] of request.multilineTextFields) {
+			const fieldId = generateItemFieldId(item.id, collectionFieldId);
+			multilineTextFields.push({
+				item,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const checkboxFields: ItemField<boolean>[] = [];
+		for (const [collectionFieldId, value] of request.checkboxFields) {
+			const fieldId = generateItemFieldId(item.id, collectionFieldId);
+			checkboxFields.push({
+				item,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const dateFields: ItemField<Date>[] = [];
+		for (const [collectionFieldId, value] of request.dateFields) {
+			const fieldId = generateItemFieldId(item.id, collectionFieldId);
+			dateFields.push({
+				item,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const fields: ItemFields = {
+			numberFields,
+			textFields,
+			multilineTextFields,
+			checkboxFields,
+			dateFields,
+		};
+
+		const createItemResult = await this.itemRepository.create(item, fields);
 		if (createItemResult.err) return createItemResult;
 
-		const setFields = new SetFieldsUseCase(
-			request,
-			item,
-			this.itemFieldRepositories,
-		);
-		const setFieldsResult = await setFields.execute();
-		if (setFieldsResult.err) return setFieldsResult;
-
 		return Ok(item.id);
-	}
-}
-
-type SetFieldsRequest = {
-	numberFields: Map<CollectionFieldId, number>;
-	textFields: Map<CollectionFieldId, string>;
-	multilineTextFields: Map<CollectionFieldId, string>;
-	checkboxFields: Map<CollectionFieldId, boolean>;
-	dateFields: Map<CollectionFieldId, Date>;
-};
-
-export class SetFieldsUseCase {
-	request: SetFieldsRequest;
-	item: Item;
-	itemFieldRepositories: ItemFieldRepositories;
-
-	constructor(
-		request: SetFieldsRequest,
-		item: Item,
-		itemFieldRepositories: ItemFieldRepositories,
-	) {
-		this.request = request;
-		this.item = item;
-		this.itemFieldRepositories = itemFieldRepositories;
-	}
-
-	async execute(): Promise<Result<None, Failure>> {
-		const setFieldsFns = [
-			() =>
-				this.setFieldsOfType(
-					this.request.numberFields,
-					this.itemFieldRepositories.number,
-				),
-			() =>
-				this.setFieldsOfType(
-					this.request.textFields,
-					this.itemFieldRepositories.text,
-				),
-			() =>
-				this.setFieldsOfType(
-					this.request.multilineTextFields,
-					this.itemFieldRepositories.multilineText,
-				),
-			() =>
-				this.setFieldsOfType(
-					this.request.checkboxFields,
-					this.itemFieldRepositories.checkbox,
-				),
-			() =>
-				this.setFieldsOfType(
-					this.request.dateFields,
-					this.itemFieldRepositories.date,
-				),
-		];
-
-		for (const setFields of setFieldsFns) {
-			const result = await setFields();
-			if (result.err) return result;
-		}
-
-		return Ok(None);
-	}
-
-	async setFieldsOfType<T>(
-		requestFields: Map<string, T>,
-		itemFieldRepository: KeyValueRepository<T>,
-	): Promise<Result<None, Failure>> {
-		const fields = new Map<string, T>();
-
-		for (const [collectionFieldId, value] of requestFields) {
-			const fieldId = generateItemFieldId(this.item.id, collectionFieldId);
-			fields.set(fieldId, value);
-		}
-		const setManyResult = await itemFieldRepository.setMany(fields);
-		if (setManyResult.err) return setManyResult;
-
-		return Ok(None);
 	}
 }
 
@@ -234,15 +209,15 @@ export class CheckAllFieldsSpecified {
 	}
 
 	checkCollectionFieldsSpecified(type: CollectionFieldType): boolean {
+		const requestFields = this.getRequestFieldsOfType(type);
+		const requestFieldIds = [...requestFields.keys()];
+
 		const collectionFields = this.allCollectionFields.filter(
 			(f) => f.type === type,
 		);
 		const collectionFieldIds = collectionFields.map((f) => f.id);
 
-		const requestFields = this.getRequestFieldsOfType(type);
-		const requestFieldIds = [...requestFields.keys()];
-
-		return areArraysEqual(collectionFieldIds, requestFieldIds);
+		return areArraysEqual(requestFieldIds, collectionFieldIds);
 	}
 
 	getRequestFieldsOfType(type: CollectionFieldType): Map<string, any> {

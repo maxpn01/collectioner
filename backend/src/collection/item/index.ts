@@ -1,16 +1,17 @@
 import { Err, None, Ok, Result } from "ts-results";
-import { Collection, CollectionRepository } from "..";
+import { Collection, CollectionField, CollectionRepository } from "..";
 import { User } from "../../user";
-import { Failure, NotFoundFailure } from "../../utils/failure";
 import {
-	KeyValueRepository,
-	MemoryKeyValueRepository,
-} from "../../utils/key-value";
+	BadRequestFailure,
+	Failure,
+	NotFoundFailure,
+} from "../../utils/failure";
 import {
 	RepoGetIncludedProperties,
 	RepoGetOptions,
 } from "../../utils/repository";
 import { Comment } from "./comments";
+import { PrismaClient } from "@prisma/client";
 
 export type Item = {
 	collection: Collection;
@@ -20,12 +21,18 @@ export type Item = {
 	createdAt: Date;
 };
 
-type ItemFields = {
-	numberFields: Map<string, number>;
-	textFields: Map<string, string>;
-	multilineTextFields: Map<string, string>;
-	checkboxFields: Map<string, boolean>;
-	dateFields: Map<string, Date>;
+export type ItemField<T> = {
+	item: Item;
+	collectionField: CollectionField;
+	value: T;
+};
+
+export type ItemFields = {
+	numberFields: ItemField<number>[];
+	textFields: ItemField<string>[];
+	multilineTextFields: ItemField<string>[];
+	checkboxFields: ItemField<boolean>[];
+	dateFields: ItemField<Date>[];
 };
 
 type ItemLike = {
@@ -58,87 +65,66 @@ export interface ItemRepository {
 		id: string,
 		options?: O,
 	): Promise<Result<GetItemResult<O>[], Failure>>;
-	create(item: Item): Promise<Result<None, Failure>>;
+	create(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
 	update(id: string, item: Item): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-export class MemoryItemRepository implements ItemRepository {
-	private items: Item[] = [];
-	collectionRepository: CollectionRepository;
+// class PrismaItemRepository implements ItemRepository {
+// 	constructor(private prisma: PrismaClient) {}
 
-	constructor(items: Item[], collectionRepository: CollectionRepository) {
-		this.items = items;
-		this.collectionRepository = collectionRepository;
-	}
-	async get<O extends GetItemOptions>(
-		id: string,
-		options?: O | undefined,
-	): Promise<Result<GetItemResult<O>, Failure>> {
-		throw new Error("Method not implemented.");
-	}
-	async getAll<O extends GetItemOptions>(
-		options?: O | undefined,
-	): Promise<Result<GetItemResult<O>[], Failure>> {
-		throw new Error("Method not implemented.");
-	}
-	async getByCollection<O extends GetItemOptions>(
-		id: string,
-		options?: O | undefined,
-	): Promise<Result<GetItemResult<O>[], Failure>> {
-		throw new Error("Method not implemented.");
-	}
+// 	async get<O extends GetItemOptions>(
+// 		id: string,
+// 		options?: O,
+// 	): Promise<Result<GetItemResult<O>, Failure>> {
+// 		const item = await this.prisma.item.findUnique({
+// 			where: { id },
+// 			include: options?.include,
+// 		});
+// 		if (!item) return Err(new NotFoundFailure());
+// 		return Ok({ item });
+// 	}
 
-	async create(item: Item): Promise<Result<None, Failure>> {
-		this.items.push(item);
-		return Ok(None);
-	}
+// 	async getAll<O extends GetItemOptions>(
+// 		options?: O,
+// 	): Promise<Result<GetItemResult<O>[], Failure>> {
+// 		const items = await this.prisma.item.findMany({
+// 			include: options?.include,
+// 		});
+// 		if (!items) return Err(new NotFoundFailure());
+// 		return Ok({ items });
+// 	}
 
-	async update(id: string, item: Item): Promise<Result<None, Failure>> {
-		const index = this.items.findIndex((i) => i.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
+// 	async getByCollection<O extends GetItemOptions>(
+// 		id: string,
+// 		options?: O,
+// 	): Promise<Result<GetItemResult<O>[], Failure>> {
+// 		const items = await this.prisma.item.findMany({
+// 			where: { collectionId: id },
+// 			include: options?.include,
+// 		});
+// 		if (!items) return Err(new NotFoundFailure());
+// 		return Ok({ items });
+// 	}
 
-		this.items[index] = item;
-		return Ok(None);
-	}
+// 	async create(item: Item): Promise<Result<None, Failure>> {
+// 		const created = await this.prisma.item.create({ data: item });
+// 		if (!created) return Err(new BadRequestFailure());
+// 		return Ok(None);
+// 	}
 
-	async delete(id: string): Promise<Result<None, Failure>> {
-		throw new Error("Method not implemented");
-	}
-}
+// 	async update(id: string, item: Item): Promise<Result<None, Failure>> {
+// 		const updated = await this.prisma.item.update({
+// 			where: { id },
+// 			data: item,
+// 		});
+// 		if (!updated) return Err(new BadRequestFailure());
+// 		return Ok(None);
+// 	}
 
-export type ItemFieldRepositories = {
-	number: ItemFieldRepository<number>;
-	text: ItemFieldRepository<string>;
-	multilineText: ItemFieldRepository<string>;
-	checkbox: ItemFieldRepository<boolean>;
-	date: ItemFieldRepository<Date>;
-};
-
-export interface ItemFieldRepository<T> extends KeyValueRepository<T> {
-	deleteByItem(
-		itemId: string,
-		collectionFieldIds: string[],
-	): Promise<Result<None, Failure>>;
-}
-
-export class MemoryItemFieldRepository<T>
-	extends MemoryKeyValueRepository<T>
-	implements ItemFieldRepository<T>
-{
-	constructor(map: Map<string, T>) {
-		super(map);
-	}
-
-	async deleteByItem(
-		itemId: string,
-		collectionFieldIds: string[],
-	): Promise<Result<None, Failure>> {
-		for (const collectionFieldId of collectionFieldIds) {
-			const itemFieldId = generateItemFieldId(itemId, collectionFieldId);
-
-			this.map.delete(itemFieldId);
-		}
-		return Ok(None);
-	}
-}
+// 	async delete(id: string): Promise<Result<None, Failure>> {
+// 		const deleted = await this.prisma.item.delete({ where: { id } });
+// 		if (!deleted) return Err(new BadRequestFailure());
+// 		return Ok(None);
+// 	}
+// }
