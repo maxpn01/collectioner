@@ -66,6 +66,10 @@ export interface CollectionRepository {
 	): Promise<Result<GetCollectionResult<O>[], Failure>>;
 	create(collection: Collection): Promise<Result<None, Failure>>;
 	update(id: string, collection: Collection): Promise<Result<None, Failure>>;
+	updateImage(
+		id: string,
+		imageOption: Option<string>,
+	): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
@@ -95,6 +99,13 @@ class PrismaCollectionRepository implements CollectionRepository {
 		collection: Collection,
 	): Promise<Result<None, Failure>> {
 		throw new Error("Not implemented");
+	}
+
+	updateImage(
+		id: string,
+		imageOption: Option<string>,
+	): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {

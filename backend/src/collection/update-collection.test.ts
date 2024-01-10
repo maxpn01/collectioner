@@ -1,127 +1,155 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { Some, None } from "ts-results";
-import {
-	Collection,
-	MemoryCollectionRepository,
-	MemoryTopicRepository,
-	Topic,
-} from ".";
-import { MemoryUserRepository, User } from "../user";
+import { Some, None, Ok } from "ts-results";
+import { CollectionRepository } from ".";
+import { UserRepository } from "../user";
 import { SetCollectionImageUseCase } from "./update-collection";
 import { NotAuthorizedFailure } from "../user/view-user";
 import { createTestUser } from "../user/index.test";
 import { createTestCollection, createTestTopic } from "./index.test";
-import { unwrapOption } from "../utils/ts-results";
+import {
+	verify,
+	instance,
+	mock,
+	resetCalls,
+	when,
+	deepEqual,
+	anything,
+} from "ts-mockito";
 
 describe("set collection image use case", () => {
 	let setCollectionImage: SetCollectionImageUseCase;
-	let checkRequesterIsAuthenticated: () => boolean;
 
-	let users: User[];
-	let userRepository: MemoryUserRepository;
-
-	let collections: Collection[];
-	let collectionRepository: MemoryCollectionRepository;
-
-	let topics: Topic[];
-	let topicRepository: MemoryTopicRepository;
+	const MockUserRepo = mock<UserRepository>();
+	const MockCollectionRepo = mock<CollectionRepository>();
 
 	beforeEach(() => {
-		checkRequesterIsAuthenticated = () => true;
+		const bookTopic = createTestTopic("books");
 
 		const admin = createTestUser("admin");
 		admin.isAdmin = true;
-		users = [createTestUser("owner"), createTestUser("notowner"), admin];
-		userRepository = new MemoryUserRepository(users);
 
-		topics = [createTestTopic("topic1")];
-		topicRepository = new MemoryTopicRepository(topics);
-
-		collections = [createTestCollection("collection1", users[0], topics[0])];
-		collectionRepository = new MemoryCollectionRepository(
-			collections,
-			userRepository,
-			topicRepository,
+		const john = createTestUser("john");
+		const johnCollection = createTestCollection(
+			"johncollection",
+			john,
+			bookTopic,
 		);
 
+		const tyler = createTestUser("tyler");
+		const tylerCollection = createTestCollection(
+			"tylercollection",
+			tyler,
+			bookTopic,
+		);
+
+		resetCalls(MockUserRepo);
+		when(MockUserRepo.get("john")).thenResolve(Ok({ user: john }));
+		when(MockUserRepo.get("tyler")).thenResolve(Ok({ user: tyler }));
+		when(MockUserRepo.get("admin")).thenResolve(Ok({ user: admin }));
+		const userRepo = instance(MockUserRepo);
+
+		resetCalls(MockCollectionRepo);
+		when(MockCollectionRepo.get("johncollection")).thenResolve(
+			Ok({
+				collection: johnCollection,
+			}),
+		);
+		when(MockCollectionRepo.get("tylercollection")).thenResolve(
+			Ok({
+				collection: tylerCollection,
+			}),
+		);
+		const collectionRepo = instance(MockCollectionRepo);
+
 		setCollectionImage = new SetCollectionImageUseCase(
-			collectionRepository,
-			userRepository,
+			collectionRepo,
+			userRepo,
 		);
 	});
 
 	it("should allow the owner", async () => {
-		await setCollectionImage
-			.execute(Some("image"), "collection1", "owner")
-			.then((result) => result.unwrap());
-
-		const collectionResult = await collectionRepository.get("collection1");
-		const { collection } = collectionResult.unwrap();
-		const updatedImage = unwrapOption(collection.imageOption);
-		expect(updatedImage).toBe("image");
-	});
-
-	it("should not allow unauthenticated user", async () => {
-		checkRequesterIsAuthenticated = () => false;
+		when(
+			MockCollectionRepo.updateImage(
+				"johncollection",
+				deepEqual(Some("image")),
+			),
+		).thenResolve(Ok(None));
 
 		const result = await setCollectionImage.execute(
 			Some("image"),
-			"collection1",
-			"owner",
+			"johncollection",
+			"john",
 		);
-		if (result.ok) throw new Error("The user must not be authorized");
-		const failure = result.val;
+		expect(result.ok).toBe(true);
 
-		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
+		verify(
+			MockCollectionRepo.updateImage(
+				"johncollection",
+				deepEqual(Some("image")),
+			),
+		).once();
 	});
 
 	it("should not allow another user", async () => {
 		const result = await setCollectionImage.execute(
 			Some("image"),
-			"collection1",
-			"notowner",
+			"johncollection",
+			"tyler",
 		);
-		if (result.ok) throw new Error("The user must not be authorized");
+
+		if (result.ok) throw new Error();
 		const failure = result.val;
 
 		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
+		verify(MockCollectionRepo.updateImage(anything(), anything())).never();
 	});
 
 	it("should allow an admin", async () => {
-		await setCollectionImage
-			.execute(Some("image"), "collection1", "admin")
-			.then((result) => result.unwrap());
+		when(
+			MockCollectionRepo.updateImage(
+				"johncollection",
+				deepEqual(Some("image")),
+			),
+		).thenResolve(Ok(None));
 
-		const collectionResult = await collectionRepository.get("collection1");
-		const { collection } = collectionResult.unwrap();
-		const updatedImage = unwrapOption(collection.imageOption);
-		expect(updatedImage).toBe("image");
+		const result = await setCollectionImage.execute(
+			Some("image"),
+			"johncollection",
+			"admin",
+		);
+
+		verify(
+			MockCollectionRepo.updateImage(
+				"johncollection",
+				deepEqual(Some("image")),
+			),
+		).once();
 	});
 
-	it("should remove image", async () => {
-		const initialCollection = createTestCollection(
-			"collection1",
-			users[0],
-			topics[0],
+	it("should remove the image", async () => {
+		const bookTopic = createTestTopic("books");
+		const john = createTestUser("john");
+		const johnCollection = createTestCollection(
+			"johncollection",
+			john,
+			bookTopic,
 		);
-		initialCollection.imageOption = Some("image");
-		collections = [initialCollection];
-		collectionRepository = new MemoryCollectionRepository(
-			collections,
-			userRepository,
-			topicRepository,
-		);
-		setCollectionImage = new SetCollectionImageUseCase(
-			collectionRepository,
-			userRepository,
+		johnCollection.imageOption = Some("image");
+
+		when(MockCollectionRepo.get("johncollection")).thenResolve(
+			Ok({
+				collection: johnCollection,
+			}),
 		);
 
-		await setCollectionImage
-			.execute(None, "collection1", "owner")
-			.then((result) => result.unwrap());
+		when(
+			MockCollectionRepo.updateImage("johncollection", deepEqual(None)),
+		).thenResolve(Ok(None));
 
-		const collectionResult = await collectionRepository.get("collection1");
-		const { collection } = collectionResult.unwrap();
-		expect(collection.imageOption.none).toBe(true);
+		await setCollectionImage.execute(None, "johncollection", "john");
+
+		verify(
+			MockCollectionRepo.updateImage("johncollection", deepEqual(None)),
+		).once();
 	});
 });

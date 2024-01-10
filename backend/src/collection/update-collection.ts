@@ -200,15 +200,6 @@ class UpdateCollectionUseCase {
 	}
 }
 
-function setCollectionImage(
-	imageOption: Option<string>,
-	collection: Collection,
-): Collection {
-	collection = structuredClone(collection);
-	collection.imageOption = imageOption;
-	return collection;
-}
-
 export class SetCollectionImageUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
@@ -241,11 +232,9 @@ export class SetCollectionImageUseCase {
 		);
 		if (authorizeResult.err) return authorizeResult;
 
-		const updatedCollection = setCollectionImage(imageOption, collection);
-
-		const updateResult = await this.collectionRepository.update(
+		const updateResult = await this.collectionRepository.updateImage(
 			collection.id,
-			updatedCollection,
+			imageOption,
 		);
 		if (updateResult.err) return updateResult;
 
