@@ -1,6 +1,6 @@
 import { Err, None, Ok, Option, Result } from "ts-results";
-import { User, UserRepository } from "../user";
-import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
+import { User } from "../user";
+import { Failure, NotFoundFailure } from "../utils/failure";
 import { Item } from "./item";
 import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
 import { PrismaClient } from "@prisma/client";
@@ -122,20 +122,6 @@ class PrismaTopicRepository implements TopicRepository {
 
 	async get(id: string): Promise<Result<Topic, Failure>> {
 		const topic = await this.prisma.topic.findUnique({ where: { id } });
-		if (!topic) return Err(new NotFoundFailure());
-		return Ok(topic);
-	}
-}
-
-export class MemoryTopicRepository implements TopicRepository {
-	topics: Topic[];
-
-	constructor(topics: Topic[]) {
-		this.topics = topics;
-	}
-
-	async get(id: string): Promise<Result<Topic, Failure>> {
-		const topic = this.topics.find((t) => t.id === id);
 		if (!topic) return Err(new NotFoundFailure());
 		return Ok(topic);
 	}

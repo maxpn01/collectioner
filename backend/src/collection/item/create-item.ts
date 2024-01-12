@@ -1,23 +1,16 @@
-import { Result, None, Ok, Err } from "ts-results";
+import { Result, Ok, Err } from "ts-results";
 import {
 	Collection,
 	CollectionRepository,
 	CollectionFieldType,
 	CollectionField,
-	CollectionFieldRepository,
 	collectionFieldTypes,
 } from "..";
 import { UserRepository } from "../../user";
 import { BadRequestFailure, Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
 import { nanoid } from "nanoid";
-import {
-	Item,
-	ItemRepository,
-	generateItemFieldId,
-	ItemFields,
-	ItemField,
-} from ".";
+import { Item, ItemRepository, ItemFields, ItemField } from ".";
 import { areArraysEqual } from "../../utils/array";
 
 function generateItemId(): string {
@@ -105,7 +98,6 @@ export class CreateItemUseCase {
 
 		const numberFields: ItemField<number>[] = [];
 		for (const [collectionFieldId, value] of request.numberFields) {
-			const fieldId = generateItemFieldId(item.id, collectionFieldId);
 			numberFields.push({
 				item,
 				value,
@@ -117,7 +109,6 @@ export class CreateItemUseCase {
 
 		const textFields: ItemField<string>[] = [];
 		for (const [collectionFieldId, value] of request.textFields) {
-			const fieldId = generateItemFieldId(item.id, collectionFieldId);
 			textFields.push({
 				item,
 				value,
@@ -129,7 +120,6 @@ export class CreateItemUseCase {
 
 		const multilineTextFields: ItemField<string>[] = [];
 		for (const [collectionFieldId, value] of request.multilineTextFields) {
-			const fieldId = generateItemFieldId(item.id, collectionFieldId);
 			multilineTextFields.push({
 				item,
 				value,
@@ -141,7 +131,6 @@ export class CreateItemUseCase {
 
 		const checkboxFields: ItemField<boolean>[] = [];
 		for (const [collectionFieldId, value] of request.checkboxFields) {
-			const fieldId = generateItemFieldId(item.id, collectionFieldId);
 			checkboxFields.push({
 				item,
 				value,
@@ -153,7 +142,6 @@ export class CreateItemUseCase {
 
 		const dateFields: ItemField<Date>[] = [];
 		for (const [collectionFieldId, value] of request.dateFields) {
-			const fieldId = generateItemFieldId(item.id, collectionFieldId);
 			dateFields.push({
 				item,
 				value,

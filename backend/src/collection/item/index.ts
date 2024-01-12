@@ -1,11 +1,7 @@
-import { Err, None, Ok, Result } from "ts-results";
-import { Collection, CollectionField, CollectionRepository } from "..";
+import { None, Result } from "ts-results";
+import { Collection, CollectionField } from "..";
 import { User } from "../../user";
-import {
-	BadRequestFailure,
-	Failure,
-	NotFoundFailure,
-} from "../../utils/failure";
+import { Failure } from "../../utils/failure";
 import {
 	RepoGetIncludedProperties,
 	RepoGetOptions,
@@ -66,65 +62,37 @@ export interface ItemRepository {
 		options?: O,
 	): Promise<Result<GetItemResult<O>[], Failure>>;
 	create(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
-	update(id: string, item: Item): Promise<Result<None, Failure>>;
+	update(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-// class PrismaItemRepository implements ItemRepository {
-// 	constructor(private prisma: PrismaClient) {}
+class PrismaItemRepository implements ItemRepository {
+	constructor(private prisma: PrismaClient) {}
 
-// 	async get<O extends GetItemOptions>(
-// 		id: string,
-// 		options?: O,
-// 	): Promise<Result<GetItemResult<O>, Failure>> {
-// 		const item = await this.prisma.item.findUnique({
-// 			where: { id },
-// 			include: options?.include,
-// 		});
-// 		if (!item) return Err(new NotFoundFailure());
-// 		return Ok({ item });
-// 	}
-
-// 	async getAll<O extends GetItemOptions>(
-// 		options?: O,
-// 	): Promise<Result<GetItemResult<O>[], Failure>> {
-// 		const items = await this.prisma.item.findMany({
-// 			include: options?.include,
-// 		});
-// 		if (!items) return Err(new NotFoundFailure());
-// 		return Ok({ items });
-// 	}
-
-// 	async getByCollection<O extends GetItemOptions>(
-// 		id: string,
-// 		options?: O,
-// 	): Promise<Result<GetItemResult<O>[], Failure>> {
-// 		const items = await this.prisma.item.findMany({
-// 			where: { collectionId: id },
-// 			include: options?.include,
-// 		});
-// 		if (!items) return Err(new NotFoundFailure());
-// 		return Ok({ items });
-// 	}
-
-// 	async create(item: Item): Promise<Result<None, Failure>> {
-// 		const created = await this.prisma.item.create({ data: item });
-// 		if (!created) return Err(new BadRequestFailure());
-// 		return Ok(None);
-// 	}
-
-// 	async update(id: string, item: Item): Promise<Result<None, Failure>> {
-// 		const updated = await this.prisma.item.update({
-// 			where: { id },
-// 			data: item,
-// 		});
-// 		if (!updated) return Err(new BadRequestFailure());
-// 		return Ok(None);
-// 	}
-
-// 	async delete(id: string): Promise<Result<None, Failure>> {
-// 		const deleted = await this.prisma.item.delete({ where: { id } });
-// 		if (!deleted) return Err(new BadRequestFailure());
-// 		return Ok(None);
-// 	}
-// }
+	get<O extends GetItemOptions>(
+		id: string,
+		options?: O | undefined,
+	): Promise<Result<GetItemResult<O>, Failure>> {
+		throw new Error("Method not implemented.");
+	}
+	getAll<O extends GetItemOptions>(
+		options?: O | undefined,
+	): Promise<Result<GetItemResult<O>[], Failure>> {
+		throw new Error("Method not implemented.");
+	}
+	getByCollection<O extends GetItemOptions>(
+		id: string,
+		options?: O | undefined,
+	): Promise<Result<GetItemResult<O>[], Failure>> {
+		throw new Error("Method not implemented.");
+	}
+	create(item: Item, fields: ItemFields): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
+	}
+	update(item: Item, fields: ItemFields): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
+	}
+	delete(id: string): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
+	}
+}

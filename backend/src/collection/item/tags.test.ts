@@ -7,7 +7,6 @@ describe("tags autocomplete", () => {
 	let autocompleteTags: AutocompleteTagsUseCase;
 
 	const MockTagsRepo = mock<TagsRepository>();
-	const tags = new Set(["book", "fantasy", "dystopia", "young adult"]);
 
 	beforeEach(() => {
 		const tagsRepo = instance(MockTagsRepo);
@@ -18,7 +17,6 @@ describe("tags autocomplete", () => {
 	it("returns all tags that start with a string", async () => {
 		const getStub = MockTagsRepo.getTagsThatStartWith("d");
 
-		when(MockTagsRepo.getAll()).thenResolve(Ok(tags));
 		when(getStub).thenResolve(Ok(new Set("dystopia")));
 
 		const result = await autocompleteTags.execute("d");

@@ -53,6 +53,7 @@ export class AuthorizeCollectionUpdate {
 			const requesterResult = await this.userRepository.get(requesterId);
 			if (requesterResult.err) throw new Error();
 			const { user: requester } = requesterResult.val;
+
 			const authorized = authorizeUserUpdate(ownerId, requester);
 			if (!authorized) return Err(new NotAuthorizedFailure());
 		}
