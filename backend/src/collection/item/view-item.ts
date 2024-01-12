@@ -1,9 +1,7 @@
 import { Result, Ok } from "ts-results";
 import { ItemRepository } from ".";
-import { CollectionFieldRepository } from "..";
 import { Failure } from "../../utils/failure";
 import { User } from "../../user";
-import { CommentRepository } from "./comments";
 
 type ViewItemResponse = {
 	id: string;
@@ -27,18 +25,10 @@ type ViewItemResponse = {
 type CollectionFieldId = string;
 
 export class ViewItemUseCase {
-	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
-	commentRepository: CommentRepository;
 
-	constructor(
-		collectionFieldRepository: CollectionFieldRepository,
-		itemRepository: ItemRepository,
-		commentRepository: CommentRepository,
-	) {
-		this.collectionFieldRepository = collectionFieldRepository;
+	constructor(itemRepository: ItemRepository) {
 		this.itemRepository = itemRepository;
-		this.commentRepository = commentRepository;
 	}
 
 	async execute(id: string): Promise<Result<ViewItemResponse, Failure>> {
@@ -48,11 +38,47 @@ export class ViewItemUseCase {
 		if (itemResult.err) return itemResult;
 		const { item, fields, comments } = itemResult.val;
 
+		const numberFieldsMap = new Map<CollectionFieldId, number>();
+		const textFieldsMap = new Map<CollectionFieldId, string>();
+		const multilineTextFieldsMap = new Map<CollectionFieldId, string>();
+		const checkboxFieldsMap = new Map<CollectionFieldId, boolean>();
+		const dateFieldsMap = new Map<CollectionFieldId, Date>();
+
+		fields.numberFields.forEach((numberField) => {
+			numberFieldsMap.set(numberField.collectionField.id, numberField.value);
+		});
+		fields.textFields.forEach((textField) => {
+			textFieldsMap.set(textField.collectionField.id, textField.value);
+		});
+		fields.multilineTextFields.forEach((multilineTextField) => {
+			multilineTextFieldsMap.set(
+				multilineTextField.collectionField.id,
+				multilineTextField.value,
+			);
+		});
+		fields.checkboxFields.forEach((checkboxField) => {
+			checkboxFieldsMap.set(
+				checkboxField.collectionField.id,
+				checkboxField.value,
+			);
+		});
+		fields.dateFields.forEach((dateField) => {
+			dateFieldsMap.set(dateField.collectionField.id, dateField.value);
+		});
+
+		const responseFields = {
+			numberFields: numberFieldsMap,
+			textFields: textFieldsMap,
+			multilineTextFields: multilineTextFieldsMap,
+			checkboxFields: checkboxFieldsMap,
+			dateFields: dateFieldsMap,
+		};
+
 		return Ok({
 			id,
 			name: item.name,
 			tags: item.tags,
-			fields,
+			fields: responseFields,
 			comments,
 		});
 	}
