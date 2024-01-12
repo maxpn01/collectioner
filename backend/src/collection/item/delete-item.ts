@@ -1,40 +1,26 @@
 import { Result, None, Ok } from "ts-results";
-import { ItemRepository, ItemFieldRepositories, Item } from ".";
-import {
-	CollectionField,
-	CollectionFieldRepository,
-	CollectionRepository,
-} from "..";
+import { ItemRepository } from ".";
+import { CollectionRepository } from "..";
 import { UserRepository } from "../../user";
 import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
-import { CommentRepository } from "./comments";
 
 export class DeleteItemUseCase {
 	userRepository: UserRepository;
-	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
-	itemFieldRepositories: ItemFieldRepositories;
-	commentRepository: CommentRepository;
 
 	constructor(
 		userRepository: UserRepository,
-		collectionRepository: CollectionRepository,
-		collectionFieldRepository: CollectionFieldRepository,
 		itemRepository: ItemRepository,
-		itemFieldRepositories: ItemFieldRepositories,
-		commentRepository: CommentRepository,
+		collectionRepository: CollectionRepository,
 	) {
 		this.userRepository = userRepository;
-		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
-		this.itemFieldRepositories = itemFieldRepositories;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
 		);
-		this.commentRepository = commentRepository;
 	}
 
 	async execute(
