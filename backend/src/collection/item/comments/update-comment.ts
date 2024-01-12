@@ -2,6 +2,7 @@ import { Result, None, Ok, Err } from "ts-results";
 import { CommentRepository } from ".";
 import { Failure } from "../../../utils/failure";
 import { NotAuthorizedFailure } from "../../../user/view-user";
+import { UserRepository } from "../../../user";
 
 type UpdateCommentRequest = {
 	id: string;
@@ -9,23 +10,31 @@ type UpdateCommentRequest = {
 };
 
 export class UpdateCommentUseCase {
+	userRepository: UserRepository;
 	commentRepository: CommentRepository;
 
-	constructor(commentRepository: CommentRepository) {
+	constructor(
+		userRepository: UserRepository,
+		commentRepository: CommentRepository,
+	) {
+		this.userRepository = userRepository;
 		this.commentRepository = commentRepository;
 	}
 
 	async execute(
 		request: UpdateCommentRequest,
-		commenterId: string,
-		checkRequesterIsAuthenticated: () => boolean,
+		requesterId: string,
 	): Promise<Result<None, Failure>> {
 		const commentResult = await this.commentRepository.get(request.id);
 		if (commentResult.err) return commentResult;
 		const comment = commentResult.val;
 
-		if (!checkRequesterIsAuthenticated() || commenterId !== comment.author.id)
-			return Err(new NotAuthorizedFailure());
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) return requesterResult;
+		const { user: requester } = requesterResult.val;
+
+		const canUpdateComment = requester.id === comment.author.id;
+		if (!canUpdateComment) return Err(new NotAuthorizedFailure());
 
 		const updatedComment = structuredClone(comment);
 		updatedComment.text = request.text;
