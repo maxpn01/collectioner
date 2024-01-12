@@ -1,173 +1,98 @@
 import { beforeEach, describe, it, expect } from "vitest";
-import { MemoryUserRepository, User } from "../../../user";
-import {
-	Collection,
-	CollectionField,
-	CollectionFieldType,
-	MemoryCollectionFieldRepository,
-	MemoryCollectionRepository,
-	MemoryTopicRepository,
-	Topic,
-} from "../..";
-import {
-	Item,
-	ItemFieldRepositories,
-	MemoryItemFieldRepository,
-	MemoryItemRepository,
-} from "..";
-import { MemoryCommentRepository } from ".";
+import { UserRepository } from "../../../user";
+import { CollectionRepository } from "../..";
+import { ItemRepository } from "..";
+import { CommentRepository } from ".";
 import { createTestUser } from "../../../user/index.test";
-import {
-	createTestCollection,
-	createTestCollectionField,
-	createTestTopic,
-} from "../../index.test";
+import { createTestCollection, createTestTopic } from "../../index.test";
 import { createTestItem } from "../index.test";
-import { Comment } from ".";
 import { createTestComment } from "./index.test";
 import { UpdateCommentUseCase } from "./update-comment";
+import {
+	deepEqual,
+	instance,
+	mock,
+	resetCalls,
+	verify,
+	when,
+} from "ts-mockito";
+import { Err, None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../../../user/view-user";
 
 describe("update comment use case", () => {
 	let updateComment: UpdateCommentUseCase;
 
-	let checkRequesterIsAuthenticated: () => boolean;
+	const MockUserRepo = mock<UserRepository>();
+	const MockCollectionRepo = mock<CollectionRepository>();
+	const MockItemRepo = mock<ItemRepository>();
+	const MockCommentRepo = mock<CommentRepository>();
 
-	let users: User[];
-	let userRepository: MemoryUserRepository;
+	const john = createTestUser("john");
+	const johnCollection = createTestCollection(
+		"johncollection",
+		john,
+		createTestTopic("books"),
+	);
+	const johnItem = createTestItem("johnitem", johnCollection);
 
-	let topics: Topic[];
-	let topicRepository: MemoryTopicRepository;
+	const tyler = createTestUser("tyler");
+	const tylerComment = createTestComment("tylercomment", tyler.id, johnItem);
+	tylerComment.item = johnItem;
+	tylerComment.text = "i love it!";
 
-	let collections: Collection[];
-	let collectionRepository: MemoryCollectionRepository;
+	const alice = createTestUser("tyler");
 
-	let collectionFields: CollectionField[];
-	let collectionFieldRepository: MemoryCollectionFieldRepository;
-
-	let items: Item[];
-	let itemRepository: MemoryItemRepository;
-
-	let numberFields: Map<string, number>;
-	let numberFieldRepository: MemoryItemFieldRepository<number>;
-
-	let textFields: Map<string, string>;
-	let textFieldRepository: MemoryItemFieldRepository<string>;
-
-	let multilineTextFields: Map<string, string>;
-	let multilineTextFieldRepository: MemoryItemFieldRepository<string>;
-
-	let checkboxFields: Map<string, boolean>;
-	let checkboxFieldRepository: MemoryItemFieldRepository<boolean>;
-
-	let dateFields: Map<string, Date>;
-	let dateFieldRepository: MemoryItemFieldRepository<Date>;
-
-	let comments: Comment[];
-	let commentRepository: MemoryCommentRepository;
+	const admin = createTestUser("tyler");
+	admin.isAdmin = true;
 
 	beforeEach(() => {
-		checkRequesterIsAuthenticated = () => true;
+		resetCalls(MockUserRepo);
+		const userRepo = instance(MockUserRepo);
 
-		const admin = createTestUser("tyler admin");
-		admin.isAdmin = true;
-		users = [createTestUser("alice"), createTestUser("john"), admin];
-		userRepository = new MemoryUserRepository(users);
+		resetCalls(MockCommentRepo);
+		const commentRepo = instance(MockCommentRepo);
 
-		topics = [createTestTopic("book")];
-		topicRepository = new MemoryTopicRepository(topics);
-
-		collections = [createTestCollection("top50fantasy", users[0], topics[0])];
-		collectionRepository = new MemoryCollectionRepository(
-			collections,
-			userRepository,
-			topicRepository,
-		);
-
-		collectionFields = [
-			createTestCollectionField(
-				"name",
-				CollectionFieldType.Text,
-				collections[0],
-			),
-		];
-		collectionFieldRepository = new MemoryCollectionFieldRepository(
-			collectionFields,
-			collectionRepository,
-		);
-
-		items = [
-			createTestItem("hungergames", collections[0]),
-			createTestItem("harrypotter", collections[0]),
-		];
-		itemRepository = new MemoryItemRepository(items, collectionRepository);
-
-		numberFields = new Map();
-		numberFieldRepository = new MemoryItemFieldRepository<number>(numberFields);
-
-		textFields = new Map([
-			["hungergames->name", "Hunger Games"],
-			["harrypotter->name", "Harry Potter"],
-		]);
-		textFieldRepository = new MemoryItemFieldRepository<string>(textFields);
-
-		multilineTextFields = new Map();
-		multilineTextFieldRepository = new MemoryItemFieldRepository<string>(
-			multilineTextFields,
-		);
-
-		checkboxFields = new Map();
-		checkboxFieldRepository = new MemoryItemFieldRepository<boolean>(
-			checkboxFields,
-		);
-
-		dateFields = new Map();
-		dateFieldRepository = new MemoryItemFieldRepository<Date>(dateFields);
-
-		const itemFieldRepositories: ItemFieldRepositories = {
-			number: numberFieldRepository,
-			text: textFieldRepository,
-			multilineText: multilineTextFieldRepository,
-			checkbox: checkboxFieldRepository,
-			date: dateFieldRepository,
-		};
-
-		comments = [createTestComment("comment1", "alice", items[0])];
-		commentRepository = new MemoryCommentRepository(comments, itemRepository);
-
-		updateComment = new UpdateCommentUseCase(commentRepository);
+		updateComment = new UpdateCommentUseCase(userRepo, commentRepo);
 	});
 
 	it("update a comment", async () => {
-		const updateCommentResult = await updateComment.execute(
-			{
-				id: "comment1",
-				text: "nice book",
-			},
-			"alice",
-			checkRequesterIsAuthenticated,
-		);
-		if (updateCommentResult.err) throw updateCommentResult;
+		const updateCommentRequest = {
+			id: tylerComment.id,
+			text: "nice book",
+		};
+		const updatedComment = structuredClone(tylerComment);
+		updatedComment.text = updateCommentRequest.text;
 
-		const commentResult = await commentRepository.getByItem("hungergames");
-		if (commentResult.err) throw commentResult;
-		const comment = commentResult.val;
+		const updateStub = MockCommentRepo.update(deepEqual(updatedComment));
 
-		expect(comment[0].text).toBe("nice book");
+		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
+		when(MockUserRepo.get(tyler.id)).thenResolve(Ok({ user: tyler }));
+		when(updateStub).thenResolve(Ok(None));
+
+		const result = await updateComment.execute(updateCommentRequest, tyler.id);
+		if (result.err) throw result;
+
+		verify(updateStub).once();
 	});
 
-	it("should not allow other users to update a comment", async () => {
-		const result = await updateComment.execute(
-			{
-				id: "comment1",
-				text: "nice book",
-			},
-			"john",
-			checkRequesterIsAuthenticated,
+	it("doesn't allow other users update comments", async () => {
+		const updateStub = MockCommentRepo.update(tylerComment);
+
+		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
+		when(MockUserRepo.get(alice.id)).thenResolve(
+			Err(new NotAuthorizedFailure()),
 		);
+		when(updateStub).thenResolve(Ok(None));
+
+		const updateCommentRequest = {
+			id: tylerComment.id,
+			text: "nice book",
+		};
+
+		const result = await updateComment.execute(updateCommentRequest, alice.id);
 		if (result.ok)
 			throw new Error(
-				"This user is not allowed to edit another user's comment",
+				"This user is not allowed to update another user's comment",
 			);
 		const failure = result.val;
 
