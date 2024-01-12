@@ -1,7 +1,5 @@
 import { beforeEach, describe, it, expect } from "vitest";
 import { UserRepository } from "../../../user";
-import { CollectionRepository } from "../..";
-import { ItemRepository } from "..";
 import { CommentRepository } from ".";
 import { createTestUser } from "../../../user/index.test";
 import { createTestCollection, createTestTopic } from "../../index.test";
@@ -23,8 +21,6 @@ describe("update comment use case", () => {
 	let updateComment: UpdateCommentUseCase;
 
 	const MockUserRepo = mock<UserRepository>();
-	const MockCollectionRepo = mock<CollectionRepository>();
-	const MockItemRepo = mock<ItemRepository>();
 	const MockCommentRepo = mock<CommentRepository>();
 
 	const john = createTestUser("john");

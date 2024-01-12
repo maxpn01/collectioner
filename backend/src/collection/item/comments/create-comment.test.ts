@@ -1,13 +1,11 @@
 import { beforeEach, describe, it } from "vitest";
 import { CreateCommentUseCase } from "./create-comment";
 import { UserRepository } from "../../../user";
-import { CollectionRepository } from "../..";
 import { ItemRepository } from "..";
 import { Comment, CommentRepository } from ".";
 import { createTestUser } from "../../../user/index.test";
 import { createTestCollection, createTestTopic } from "../../index.test";
 import { createTestItem } from "../index.test";
-import { createTestComment } from "./index.test";
 import {
 	anyString,
 	anything,
@@ -23,7 +21,6 @@ describe("create comment use case", () => {
 	let createComment: CreateCommentUseCase;
 
 	const MockUserRepo = mock<UserRepository>();
-	const MockCollectionRepo = mock<CollectionRepository>();
 	const MockItemRepo = mock<ItemRepository>();
 	const MockCommentRepo = mock<CommentRepository>();
 

@@ -16,8 +16,6 @@ describe("delete comment use case", () => {
 	let deleteComment: DeleteCommentUseCase;
 
 	const MockUserRepo = mock<UserRepository>();
-	const MockCollectionRepo = mock<CollectionRepository>();
-	const MockItemRepo = mock<ItemRepository>();
 	const MockCommentRepo = mock<CommentRepository>();
 
 	const john = createTestUser("john");
