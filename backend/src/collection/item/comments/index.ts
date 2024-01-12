@@ -1,7 +1,8 @@
-import { Result, None, Err, Ok } from "ts-results";
-import { Item, ItemRepository } from "..";
+import { Result, None } from "ts-results";
+import { Item } from "..";
 import { User } from "../../../user";
-import { Failure, NotFoundFailure } from "../../../utils/failure";
+import { Failure } from "../../../utils/failure";
+import { PrismaClient } from "@prisma/client";
 
 export type Comment = {
 	item: Item;
@@ -20,45 +21,25 @@ export interface CommentRepository {
 	deleteByItem(itemId: string): Promise<Result<None, Failure>>;
 }
 
-export class MemoryCommentRepository implements CommentRepository {
-	comments: Comment[];
-	itemRepository: ItemRepository;
+class PrismaCommentRepository implements CommentRepository {
+	constructor(private prisma: PrismaClient) {}
 
-	constructor(comments: Comment[], itemRepository: ItemRepository) {
-		this.comments = comments;
-		this.itemRepository = itemRepository;
+	get(id: string): Promise<Result<Comment, Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async get(id: string): Promise<Result<Comment, Failure>> {
-		throw new Error("Not implemented");
+	getByItem(itemId: string): Promise<Result<Comment[], Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async getByItem(itemId: string): Promise<Result<Comment[], Failure>> {
-		throw new Error("Not implemented");
+	create(comment: Comment): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async create(comment: Comment): Promise<Result<None, Failure>> {
-		this.comments.push(comment);
-		return Ok(None);
+	update(comment: Comment): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async update(comment: Comment): Promise<Result<None, Failure>> {
-		const index = this.comments.findIndex((c) => c.id === comment.id);
-		if (index === -1) return Err(new NotFoundFailure());
-		this.comments[index] = comment;
-		return Ok(None);
+	delete(id: string): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
 	}
-
-	async delete(id: string): Promise<Result<None, Failure>> {
-		const index = this.comments.findIndex((c) => c.id === id);
-		if (index === -1) return Err(new NotFoundFailure());
-
-		this.comments.splice(index, 1);
-		return Ok(None);
-	}
-
-	async deleteByItem(itemId: string): Promise<Result<None, Failure>> {
-		this.comments = this.comments.filter((c) => c.item.id !== itemId);
-		return Ok(None);
+	deleteByItem(itemId: string): Promise<Result<None, Failure>> {
+		throw new Error("Method not implemented.");
 	}
 }

@@ -1,5 +1,5 @@
 import { Err, None, Ok, Result } from "ts-results";
-import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
+import { Failure, NotFoundFailure } from "../utils/failure";
 import { Collection, PrismaCollection, PrismaTopic } from "../collection";
 import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
 import { PrismaClient, Prisma, User as PrismaUser } from "@prisma/client";

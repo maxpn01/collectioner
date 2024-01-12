@@ -1,70 +1,29 @@
-import { describe, beforeEach, it, expect } from "vitest";
-import { Item, MemoryItemRepository } from ".";
-import {
-	Topic,
-	MemoryTopicRepository,
-	Collection,
-	MemoryCollectionRepository,
-} from "..";
-import { User, MemoryUserRepository } from "../../user";
-import { createTestUser } from "../../user/index.test";
-import { createTestTopic, createTestCollection } from "../index.test";
-import { MemoryTagsRepository, AutocompleteTagsUseCase } from "./tags";
+import { describe, beforeEach, it } from "vitest";
+import { AutocompleteTagsUseCase, TagsRepository } from "./tags";
+import { instance, mock, verify, when } from "ts-mockito";
+import { Ok } from "ts-results";
 
 describe("tags autocomplete", () => {
 	let autocompleteTags: AutocompleteTagsUseCase;
 
-	let users: User[];
-	let userRepository: MemoryUserRepository;
-
-	let topics: Topic[];
-	let topicRepository: MemoryTopicRepository;
-
-	let collections: Collection[];
-	let collectionRepository: MemoryCollectionRepository;
-
-	let items: Item[];
-	let itemRepository: MemoryItemRepository;
-
-	let tags: Set<string>;
-	let tagsRepository: MemoryTagsRepository;
+	const MockTagsRepo = mock<TagsRepository>();
+	const tags = new Set(["book", "fantasy", "dystopia", "young adult"]);
 
 	beforeEach(() => {
-		users = [createTestUser("alice")];
-		userRepository = new MemoryUserRepository(users);
+		const tagsRepo = instance(MockTagsRepo);
 
-		topics = [createTestTopic("book")];
-		topicRepository = new MemoryTopicRepository(topics);
-
-		collections = [createTestCollection("top50fantasy", users[0], topics[0])];
-		collectionRepository = new MemoryCollectionRepository(
-			collections,
-			userRepository,
-			topicRepository,
-		);
-
-		tags = new Set(["book", "fantasy", "dystopia", "young adult"]);
-
-		items = [
-			{
-				collection: collections[0],
-				id: "hungergames",
-				name: "Hunger Games",
-				tags,
-				createdAt: new Date(),
-			},
-		];
-		itemRepository = new MemoryItemRepository(items, collectionRepository);
-		tagsRepository = new MemoryTagsRepository(itemRepository);
-
-		autocompleteTags = new AutocompleteTagsUseCase(tagsRepository);
+		autocompleteTags = new AutocompleteTagsUseCase(tagsRepo);
 	});
 
 	it("returns all tags that start with a string", async () => {
-		const autocompleteResult = await autocompleteTags.execute("d");
-		if (autocompleteResult.err) throw autocompleteResult;
-		const autocomplete = autocompleteResult.val;
+		const getStub = MockTagsRepo.getTagsThatStartWith("d");
 
-		expect(autocomplete).toEqual(new Set(["dystopia"]));
+		when(MockTagsRepo.getAll()).thenResolve(Ok(tags));
+		when(getStub).thenResolve(Ok(new Set("dystopia")));
+
+		const result = await autocompleteTags.execute("d");
+		if (result.err) throw result;
+
+		verify(getStub).once();
 	});
 });
