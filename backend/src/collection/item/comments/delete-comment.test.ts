@@ -1,165 +1,101 @@
-import { beforeEach, describe, it, expect } from "vitest";
-import { MemoryUserRepository, User } from "../../../user";
-import {
-	Collection,
-	CollectionField,
-	CollectionFieldType,
-	MemoryCollectionFieldRepository,
-	MemoryCollectionRepository,
-	MemoryTopicRepository,
-	Topic,
-} from "../..";
-import {
-	Item,
-	ItemFieldRepositories,
-	MemoryItemFieldRepository,
-	MemoryItemRepository,
-} from "..";
-import { MemoryCommentRepository } from ".";
+import { beforeEach, describe, expect, it } from "vitest";
+import { UserRepository } from "../../../user";
+import { CollectionRepository } from "../..";
+import { ItemRepository } from "..";
+import { CommentRepository } from ".";
 import { createTestUser } from "../../../user/index.test";
-import {
-	createTestCollection,
-	createTestCollectionField,
-	createTestTopic,
-} from "../../index.test";
+import { createTestCollection, createTestTopic } from "../../index.test";
 import { createTestItem } from "../index.test";
-import { Comment } from ".";
 import { createTestComment } from "./index.test";
 import { DeleteCommentUseCase } from "./delete-comment";
-import { NotFoundFailure } from "../../../utils/failure";
+import { instance, mock, when, verify, resetCalls } from "ts-mockito";
+import { Err, None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../../../user/view-user";
 
 describe("delete comment use case", () => {
 	let deleteComment: DeleteCommentUseCase;
 
-	let checkRequesterIsAuthenticated: () => boolean;
+	const MockUserRepo = mock<UserRepository>();
+	const MockCollectionRepo = mock<CollectionRepository>();
+	const MockItemRepo = mock<ItemRepository>();
+	const MockCommentRepo = mock<CommentRepository>();
 
-	let users: User[];
-	let userRepository: MemoryUserRepository;
+	const john = createTestUser("john");
+	const johnCollection = createTestCollection(
+		"johncollection",
+		john,
+		createTestTopic("books"),
+	);
+	const johnItem = createTestItem("johnitem", johnCollection);
 
-	let topics: Topic[];
-	let topicRepository: MemoryTopicRepository;
+	const tyler = createTestUser("tyler");
+	const tylerComment = createTestComment("tylercomment", tyler.id, johnItem);
+	tylerComment.item = johnItem;
+	tylerComment.text = "i love it!";
 
-	let collections: Collection[];
-	let collectionRepository: MemoryCollectionRepository;
+	const alice = createTestUser("tyler");
 
-	let collectionFields: CollectionField[];
-	let collectionFieldRepository: MemoryCollectionFieldRepository;
-
-	let items: Item[];
-	let itemRepository: MemoryItemRepository;
-
-	let numberFields: Map<string, number>;
-	let numberFieldRepository: MemoryItemFieldRepository<number>;
-
-	let textFields: Map<string, string>;
-	let textFieldRepository: MemoryItemFieldRepository<string>;
-
-	let multilineTextFields: Map<string, string>;
-	let multilineTextFieldRepository: MemoryItemFieldRepository<string>;
-
-	let checkboxFields: Map<string, boolean>;
-	let checkboxFieldRepository: MemoryItemFieldRepository<boolean>;
-
-	let dateFields: Map<string, Date>;
-	let dateFieldRepository: MemoryItemFieldRepository<Date>;
-
-	let comments: Comment[];
-	let commentRepository: MemoryCommentRepository;
+	const admin = createTestUser("tyler");
+	admin.isAdmin = true;
 
 	beforeEach(() => {
-		checkRequesterIsAuthenticated = () => true;
+		resetCalls(MockUserRepo);
+		const userRepo = instance(MockUserRepo);
 
-		const admin = createTestUser("tyler admin");
-		admin.isAdmin = true;
-		users = [createTestUser("alice"), createTestUser("john"), admin];
-		userRepository = new MemoryUserRepository(users);
+		resetCalls(MockCommentRepo);
+		const commentRepo = instance(MockCommentRepo);
 
-		topics = [createTestTopic("book")];
-		topicRepository = new MemoryTopicRepository(topics);
-
-		collections = [createTestCollection("top50fantasy", users[0], topics[0])];
-		collectionRepository = new MemoryCollectionRepository(
-			collections,
-			userRepository,
-			topicRepository,
-		);
-
-		collectionFields = [
-			createTestCollectionField(
-				"name",
-				CollectionFieldType.Text,
-				collections[0],
-			),
-		];
-		collectionFieldRepository = new MemoryCollectionFieldRepository(
-			collectionFields,
-			collectionRepository,
-		);
-
-		items = [
-			createTestItem("hungergames", collections[0]),
-			createTestItem("harrypotter", collections[0]),
-		];
-		itemRepository = new MemoryItemRepository(items, collectionRepository);
-
-		numberFields = new Map();
-		numberFieldRepository = new MemoryItemFieldRepository<number>(numberFields);
-
-		textFields = new Map([
-			["hungergames->name", "Hunger Games"],
-			["harrypotter->name", "Harry Potter"],
-		]);
-		textFieldRepository = new MemoryItemFieldRepository<string>(textFields);
-
-		multilineTextFields = new Map();
-		multilineTextFieldRepository = new MemoryItemFieldRepository<string>(
-			multilineTextFields,
-		);
-
-		checkboxFields = new Map();
-		checkboxFieldRepository = new MemoryItemFieldRepository<boolean>(
-			checkboxFields,
-		);
-
-		dateFields = new Map();
-		dateFieldRepository = new MemoryItemFieldRepository<Date>(dateFields);
-
-		const itemFieldRepositories: ItemFieldRepositories = {
-			number: numberFieldRepository,
-			text: textFieldRepository,
-			multilineText: multilineTextFieldRepository,
-			checkbox: checkboxFieldRepository,
-			date: dateFieldRepository,
-		};
-
-		comments = [createTestComment("comment1", "alice", items[0])];
-		commentRepository = new MemoryCommentRepository(comments, itemRepository);
-
-		deleteComment = new DeleteCommentUseCase(commentRepository);
+		deleteComment = new DeleteCommentUseCase(userRepo, commentRepo);
 	});
 
-	it("delete a comment", async () => {
-		const deleteCommentResult = await deleteComment.execute(
-			"comment1",
-			"alice",
-			checkRequesterIsAuthenticated,
-		);
-		if (deleteCommentResult.err) throw deleteCommentResult;
+	it("deletes a comment", async () => {
+		const deleteStub = MockCommentRepo.delete(tylerComment.id);
 
-		const commentResult = await commentRepository.get("comment1");
-		if (commentResult.ok) throw new Error("Comment not found");
-		const failure = commentResult.val;
+		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
+		when(MockUserRepo.get(tyler.id)).thenResolve(Ok({ user: tyler }));
+		when(deleteStub).thenResolve(Ok(None));
 
-		expect(failure).toBeInstanceOf(NotFoundFailure);
+		const result = await deleteComment.execute(tylerComment.id, tyler.id);
+		if (result.err) throw result;
+
+		verify(deleteStub).once();
 	});
 
-	it("should not allow other users to delete a comment", async () => {
-		const result = await deleteComment.execute(
-			"comment1",
-			"john",
-			checkRequesterIsAuthenticated,
+	it("allows item owner delete comments", async () => {
+		const deleteStub = MockCommentRepo.delete(tylerComment.id);
+
+		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
+		when(MockUserRepo.get(john.id)).thenResolve(Ok({ user: john }));
+		when(deleteStub).thenResolve(Ok(None));
+
+		const result = await deleteComment.execute(tylerComment.id, john.id);
+		if (result.err) throw result;
+
+		verify(deleteStub).once();
+	});
+
+	it("allows admins delete comments", async () => {
+		const deleteStub = MockCommentRepo.delete(tylerComment.id);
+
+		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
+		when(MockUserRepo.get(admin.id)).thenResolve(Ok({ user: admin }));
+		when(deleteStub).thenResolve(Ok(None));
+
+		const result = await deleteComment.execute(tylerComment.id, admin.id);
+		if (result.err) throw result;
+
+		verify(deleteStub).once();
+	});
+
+	it("doesn't allow other users delete comments", async () => {
+		const deleteStub = MockCommentRepo.delete(tylerComment.id);
+
+		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
+		when(MockUserRepo.get(alice.id)).thenResolve(
+			Err(new NotAuthorizedFailure()),
 		);
+
+		const result = await deleteComment.execute(tylerComment.id, alice.id);
 		if (result.ok)
 			throw new Error(
 				"This user is not allowed to delete another user's comment",
