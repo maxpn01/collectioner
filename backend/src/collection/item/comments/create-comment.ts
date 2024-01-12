@@ -49,19 +49,19 @@ export class CreateCommentUseCase {
 
 	async execute(
 		request: CreateCommentRequest,
-		commenterId: string,
+		requesterId: string,
 	): Promise<Result<None, Failure>> {
 		const itemResult = await this.itemRepository.get(request.itemId);
 		if (itemResult.err) return itemResult;
 		const { item } = itemResult.val;
 
-		const commenterResult = await this.userRepository.get(commenterId);
+		const commenterResult = await this.userRepository.get(requesterId);
 		if (commenterResult.err) return commenterResult;
-		const { user: commenter } = commenterResult.val;
+		const { user: requester } = commenterResult.val;
 
 		const comment: Comment = createNewComment({
 			item,
-			author: commenter,
+			author: requester,
 			text: request.text,
 		});
 
