@@ -7,6 +7,7 @@ import { createTestItem } from "../index.test";
 import { createTestComment } from "./index.test";
 import { UpdateCommentUseCase } from "./update-comment";
 import {
+	anything,
 	deepEqual,
 	instance,
 	mock,
@@ -14,7 +15,7 @@ import {
 	verify,
 	when,
 } from "ts-mockito";
-import { Err, None, Ok } from "ts-results";
+import { None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../../../user/view-user";
 
 describe("update comment use case", () => {
@@ -36,10 +37,14 @@ describe("update comment use case", () => {
 	tylerComment.item = johnItem;
 	tylerComment.text = "i love it!";
 
-	const alice = createTestUser("tyler");
-
+	const alice = createTestUser("alice");
 	const admin = createTestUser("tyler");
 	admin.isAdmin = true;
+
+	const updateCommentRequest = {
+		id: tylerComment.id,
+		text: "nice book",
+	};
 
 	beforeEach(() => {
 		resetCalls(MockUserRepo);
@@ -52,10 +57,6 @@ describe("update comment use case", () => {
 	});
 
 	it("update a comment", async () => {
-		const updateCommentRequest = {
-			id: tylerComment.id,
-			text: "nice book",
-		};
 		const updatedComment = structuredClone(tylerComment);
 		updatedComment.text = updateCommentRequest.text;
 
@@ -72,26 +73,14 @@ describe("update comment use case", () => {
 	});
 
 	it("doesn't allow other users update comments", async () => {
-		const updateStub = MockCommentRepo.update(tylerComment);
-
 		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
-		when(MockUserRepo.get(alice.id)).thenResolve(
-			Err(new NotAuthorizedFailure()),
-		);
-		when(updateStub).thenResolve(Ok(None));
-
-		const updateCommentRequest = {
-			id: tylerComment.id,
-			text: "nice book",
-		};
+		when(MockUserRepo.get(alice.id)).thenResolve(Ok({ user: alice }));
 
 		const result = await updateComment.execute(updateCommentRequest, alice.id);
-		if (result.ok)
-			throw new Error(
-				"This user is not allowed to update another user's comment",
-			);
+		if (result.ok) throw result;
 		const failure = result.val;
 
+		verify(MockCommentRepo.update(anything())).never();
 		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 });

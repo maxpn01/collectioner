@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { UserRepository } from "../../../user";
-import { CollectionRepository } from "../..";
-import { ItemRepository } from "..";
 import { CommentRepository } from ".";
 import { createTestUser } from "../../../user/index.test";
 import { createTestCollection, createTestTopic } from "../../index.test";
 import { createTestItem } from "../index.test";
 import { createTestComment } from "./index.test";
 import { DeleteCommentUseCase } from "./delete-comment";
-import { instance, mock, when, verify, resetCalls } from "ts-mockito";
-import { Err, None, Ok } from "ts-results";
+import { instance, mock, when, verify, resetCalls, anything } from "ts-mockito";
+import { None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../../../user/view-user";
 
 describe("delete comment use case", () => {
@@ -31,7 +29,7 @@ describe("delete comment use case", () => {
 	tylerComment.item = johnItem;
 	tylerComment.text = "i love it!";
 
-	const alice = createTestUser("tyler");
+	const alice = createTestUser("alice");
 
 	const admin = createTestUser("tyler");
 	admin.isAdmin = true;
@@ -86,20 +84,14 @@ describe("delete comment use case", () => {
 	});
 
 	it("doesn't allow other users delete comments", async () => {
-		const deleteStub = MockCommentRepo.delete(tylerComment.id);
-
 		when(MockCommentRepo.get(tylerComment.id)).thenResolve(Ok(tylerComment));
-		when(MockUserRepo.get(alice.id)).thenResolve(
-			Err(new NotAuthorizedFailure()),
-		);
+		when(MockUserRepo.get(alice.id)).thenResolve(Ok({ user: alice }));
 
 		const result = await deleteComment.execute(tylerComment.id, alice.id);
-		if (result.ok)
-			throw new Error(
-				"This user is not allowed to delete another user's comment",
-			);
+		if (result.ok) throw result;
 		const failure = result.val;
 
+		verify(MockCommentRepo.delete(anything())).never();
 		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 });
