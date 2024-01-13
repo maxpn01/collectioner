@@ -1,4 +1,4 @@
-import { describe, beforeEach, it } from "vitest";
+import { describe, beforeEach, it, expect } from "vitest";
 import { Item, ItemFields, ItemRepository } from ".";
 import { CollectionField, CollectionFieldType, CollectionRepository } from "..";
 import { UserRepository } from "../../user";
@@ -14,8 +14,10 @@ import {
 	anyOfClass,
 	verify,
 	resetCalls,
+	anything,
 } from "ts-mockito";
 import { None, Ok } from "ts-results";
+import { NotAuthorizedFailure } from "../../user/view-user";
 
 describe("create item use case", () => {
 	let createItem: CreateItemUseCase;
@@ -30,6 +32,8 @@ describe("create item use case", () => {
 		john,
 		createTestTopic("books"),
 	);
+
+	const tyler = createTestUser("tyler");
 
 	const admin = createTestUser("admin");
 	admin.isAdmin = true;
@@ -146,7 +150,7 @@ But if she is to win, she will have to start making choices that weight survival
 		createItem = new CreateItemUseCase(collectionRepo, itemRepo, userRepo);
 	});
 
-	it("creates the item", async () => {
+	it("creates an item", async () => {
 		const createStub = MockItemRepo.create(expectedItem, itemFields);
 
 		when(createStub).thenResolve(Ok(None));
@@ -178,7 +182,7 @@ But if she is to win, she will have to start making choices that weight survival
 		verify(createStub).once();
 	});
 
-	it("allow admin creates items", async () => {
+	it("allow admin create items", async () => {
 		const createStub = MockItemRepo.create(expectedItem, itemFields);
 
 		when(MockUserRepo.get(admin.id)).thenResolve(Ok({ user: admin }));
@@ -209,5 +213,37 @@ But if she is to win, she will have to start making choices that weight survival
 		if (result.err) throw result;
 
 		verify(createStub).once();
+	});
+
+	it("doesn't allow other users create items", async () => {
+		when(MockUserRepo.get(tyler.id)).thenResolve(Ok({ user: tyler }));
+
+		const result = await createItem.execute(
+			{
+				collectionId: "johncollection",
+				name: "The Hunger Games",
+				tags: new Set(["book", "kids_book", "fantasy"]),
+				numberFields: new Map([["pages", 374]]),
+				textFields: new Map([["author", "Suzanne Collins"]]),
+				multilineTextFields: new Map([
+					[
+						"description",
+						`Sixteen-year-old Katniss Everdeen,
+who lives alone with her mother and younger sister,
+regards it as a death sentence when she steps forward to take her sister's place in the Games.
+But Katniss has been close to dead before—and survival, for her, is second nature. Without really meaning to, she becomes a contender.
+But if she is to win, she will have to start making choices that weight survival against humanity and life against love.`,
+					],
+				]),
+				checkboxFields: new Map([["read", false]]),
+				dateFields: new Map([["published", new Date("September 14, 2008")]]),
+			},
+			tyler.id,
+		);
+		if (result.ok) throw result;
+		const failure = result.val;
+
+		verify(MockItemRepo.create(anything(), anything())).never();
+		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 });
