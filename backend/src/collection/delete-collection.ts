@@ -4,7 +4,7 @@ import { AuthorizeCollectionUpdate } from "./update-collection";
 import { UserRepository } from "../user";
 import { CollectionRepository } from ".";
 
-class DeleteCollectionUseCase {
+export class DeleteCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	userRepository: UserRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
