@@ -50,14 +50,10 @@ describe("set collection image use case", () => {
 
 		resetCalls(MockCollectionRepo);
 		when(MockCollectionRepo.get("johncollection")).thenResolve(
-			Ok({
-				collection: johnCollection,
-			}),
+			Ok({ collection: johnCollection }),
 		);
 		when(MockCollectionRepo.get("tylercollection")).thenResolve(
-			Ok({
-				collection: tylerCollection,
-			}),
+			Ok({ collection: tylerCollection }),
 		);
 		const collectionRepo = instance(MockCollectionRepo);
 
@@ -90,20 +86,6 @@ describe("set collection image use case", () => {
 		).once();
 	});
 
-	it("should not allow another user", async () => {
-		const result = await setCollectionImage.execute(
-			Some("image"),
-			"johncollection",
-			"tyler",
-		);
-
-		if (result.ok) throw new Error();
-		const failure = result.val;
-
-		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
-		verify(MockCollectionRepo.updateImage(anything(), anything())).never();
-	});
-
 	it("should allow an admin", async () => {
 		when(
 			MockCollectionRepo.updateImage(
@@ -117,6 +99,7 @@ describe("set collection image use case", () => {
 			"johncollection",
 			"admin",
 		);
+		expect(result.ok).toBe(true);
 
 		verify(
 			MockCollectionRepo.updateImage(
@@ -124,6 +107,20 @@ describe("set collection image use case", () => {
 				deepEqual(Some("image")),
 			),
 		).once();
+	});
+
+	it("should not allow another user", async () => {
+		const result = await setCollectionImage.execute(
+			Some("image"),
+			"johncollection",
+			"tyler",
+		);
+
+		if (result.ok) throw new Error();
+		const failure = result.val;
+
+		verify(MockCollectionRepo.updateImage(anything(), anything())).never();
+		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 
 	it("should remove the image", async () => {
@@ -137,9 +134,7 @@ describe("set collection image use case", () => {
 		johnCollection.imageOption = Some("image");
 
 		when(MockCollectionRepo.get("johncollection")).thenResolve(
-			Ok({
-				collection: johnCollection,
-			}),
+			Ok({ collection: johnCollection }),
 		);
 
 		when(
