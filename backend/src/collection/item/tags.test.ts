@@ -1,6 +1,6 @@
 import { describe, beforeEach, it } from "vitest";
 import { AutocompleteTagsUseCase, TagsRepository } from "./tags";
-import { instance, mock, verify, when } from "ts-mockito";
+import { instance, mock, verify, when, resetCalls } from "ts-mockito";
 import { Ok } from "ts-results";
 
 describe("tags autocomplete", () => {
@@ -9,6 +9,7 @@ describe("tags autocomplete", () => {
 	const MockTagsRepo = mock<TagsRepository>();
 
 	beforeEach(() => {
+		resetCalls(MockTagsRepo);
 		const tagsRepo = instance(MockTagsRepo);
 
 		autocompleteTags = new AutocompleteTagsUseCase(tagsRepo);
