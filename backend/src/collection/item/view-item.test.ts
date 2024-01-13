@@ -6,7 +6,7 @@ import { ViewItemUseCase } from "./view-item";
 import { createTestUser } from "../../user/index.test";
 import { createTestCollection, createTestTopic } from "../index.test";
 import { createTestItem } from "./index.test";
-import { instance, mock, when, deepEqual } from "ts-mockito";
+import { instance, mock, when, deepEqual, resetCalls } from "ts-mockito";
 import { Ok } from "ts-results";
 
 describe("view item use case", () => {
@@ -22,10 +22,12 @@ describe("view item use case", () => {
 	);
 	const johnItem = createTestItem("johnitem", johnCollection);
 	johnItem.name = "Harry Potter";
+
 	const johnComment = createTestComment("johncomment", john.id, johnItem);
 	johnComment.text = "I love it!";
 
 	beforeEach(() => {
+		resetCalls(MockItemRepo);
 		const itemRepo = instance(MockItemRepo);
 
 		viewItem = new ViewItemUseCase(itemRepo);
