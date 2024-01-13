@@ -1,222 +1,204 @@
-import { describe, beforeEach, expect, it } from "vitest";
+import { describe, beforeEach, it, expect } from "vitest";
+import { Item, ItemFields, ItemRepository } from ".";
 import {
-	Item,
-	ItemFieldRepositories,
-	MemoryItemFieldRepository,
-	MemoryItemRepository,
-} from ".";
-import {
-	Collection,
 	CollectionField,
+	CollectionFieldRepository,
 	CollectionFieldType,
-	MemoryCollectionFieldRepository,
-	MemoryCollectionRepository,
-	MemoryTopicRepository,
-	Topic,
+	CollectionRepository,
 } from "..";
-import { User, MemoryUserRepository } from "../../user";
+import { UserRepository } from "../../user";
 import { createTestUser } from "../../user/index.test";
-import {
-	createTestTopic,
-	createTestCollection,
-	createTestCollectionField,
-} from "../index.test";
-import { CreateItemUseCase } from "./create-item";
-import { ViewCollectionUseCase } from "../view-collection";
+import { createTestTopic, createTestCollection } from "../index.test";
 import { UpdateItemUseCase } from "./update-item";
+import { instance, mock, when, verify, resetCalls, anything } from "ts-mockito";
+import { createTestItem } from "./index.test";
+import { None, Ok } from "ts-results";
+import { betterDeepEqual } from "../../utils/ts-mockito";
+import { NotAuthorizedFailure } from "../../user/view-user";
 
 describe("update item use case", () => {
 	let updateItem: UpdateItemUseCase;
-	let createItem: CreateItemUseCase;
-	let viewCollection: ViewCollectionUseCase;
 
-	let checkRequesterIsAuthenticated: () => boolean;
+	const MockUserRepo = mock<UserRepository>();
+	const MockCollectionRepo = mock<CollectionRepository>();
+	const MockCollectionFieldRepo = mock<CollectionFieldRepository>();
+	const MockItemRepo = mock<ItemRepository>();
 
-	let users: User[];
-	let userRepository: MemoryUserRepository;
+	const john = createTestUser("john");
+	const johnCollection = createTestCollection(
+		"johncollection",
+		john,
+		createTestTopic("books"),
+	);
+	const johnItem = createTestItem("johnitem", johnCollection);
 
-	let topics: Topic[];
-	let topicRepository: MemoryTopicRepository;
+	const tyler = createTestUser("tyler");
+	const admin = createTestUser("admin");
+	admin.isAdmin = true;
 
-	let collections: Collection[];
-	let collectionRepository: MemoryCollectionRepository;
+	const pagesCollectionField = {
+		id: "pages",
+		name: "Pages",
+		type: CollectionFieldType.Number,
+		collection: johnCollection,
+	};
+	const authorCollectionField = {
+		id: "author",
+		name: "Author",
+		type: CollectionFieldType.Text,
+		collection: johnCollection,
+	};
+	const descriptionCollectionField = {
+		id: "description",
+		name: "Description",
+		type: CollectionFieldType.MultilineText,
+		collection: johnCollection,
+	};
+	const readCollectionField = {
+		id: "read",
+		name: "Read",
+		type: CollectionFieldType.Checkbox,
+		collection: johnCollection,
+	};
+	const publishedCollectionField = {
+		id: "published",
+		name: "Published",
+		type: CollectionFieldType.Date,
+		collection: johnCollection,
+	};
 
-	let collectionFields: CollectionField[];
-	let collectionFieldRepository: MemoryCollectionFieldRepository;
+	const collectionFields: CollectionField[] = [
+		pagesCollectionField,
+		authorCollectionField,
+		descriptionCollectionField,
+		readCollectionField,
+		publishedCollectionField,
+	];
 
-	let items: Item[];
-	let itemRepository: MemoryItemRepository;
+	const updatedItem: Item = {
+		collection: johnCollection,
+		id: johnItem.id,
+		name: "Harry Potter and the Sorcerer's Stone",
+		tags: new Set(["book", "fiction", "fantasy"]),
+		createdAt: johnItem.createdAt,
+	};
 
-	let numberFields: Map<string, number>;
-	let numberFieldRepository: MemoryItemFieldRepository<number>;
+	const updatedItemFields: ItemFields = {
+		numberFields: [
+			{
+				item: updatedItem,
+				collectionField: pagesCollectionField,
+				value: 333,
+			},
+		],
+		textFields: [
+			{
+				item: updatedItem,
+				collectionField: authorCollectionField,
+				value: "JK Rowling",
+			},
+		],
+		multilineTextFields: [
+			{
+				item: updatedItem,
+				collectionField: descriptionCollectionField,
+				value: `Turning the envelope over, his hand trembling, Harry saw a purple wax seal bearing a coat of arms; a lion, an eagle, a badger and a snake surrounding a large letter 'H'.`,
+			},
+		],
+		checkboxFields: [
+			{
+				item: updatedItem,
+				collectionField: readCollectionField,
+				value: true,
+			},
+		],
+		dateFields: [
+			{
+				item: updatedItem,
+				collectionField: publishedCollectionField,
+				value: new Date("June 26, 1997"),
+			},
+		],
+	};
 
-	let textFields: Map<string, string>;
-	let textFieldRepository: MemoryItemFieldRepository<string>;
-
-	let multilineTextFields: Map<string, string>;
-	let multilineTextFieldRepository: MemoryItemFieldRepository<string>;
-
-	let checkboxFields: Map<string, boolean>;
-	let checkboxFieldRepository: MemoryItemFieldRepository<boolean>;
-
-	let dateFields: Map<string, Date>;
-	let dateFieldRepository: MemoryItemFieldRepository<Date>;
+	const updatedItemRequest = {
+		id: updatedItem.id,
+		name: updatedItem.name,
+		tags: updatedItem.tags,
+		numberFields: new Map([["pages", updatedItemFields.numberFields[0].value]]),
+		textFields: new Map([["author", updatedItemFields.textFields[0].value]]),
+		multilineTextFields: new Map([
+			["description", updatedItemFields.multilineTextFields[0].value],
+		]),
+		checkboxFields: new Map([
+			["read", updatedItemFields.checkboxFields[0].value],
+		]),
+		dateFields: new Map([["published", updatedItemFields.dateFields[0].value]]),
+	};
 
 	beforeEach(() => {
-		checkRequesterIsAuthenticated = () => true;
+		resetCalls(MockUserRepo);
+		const userRepo = instance(MockUserRepo);
 
-		const admin = createTestUser("tyler admin");
-		admin.isAdmin = true;
-		users = [createTestUser("alice"), createTestUser("john"), admin];
-		userRepository = new MemoryUserRepository(users);
+		resetCalls(MockCollectionRepo);
+		const collectionRepo = instance(MockCollectionRepo);
 
-		topics = [createTestTopic("book")];
-		topicRepository = new MemoryTopicRepository(topics);
+		resetCalls(MockCollectionFieldRepo);
+		const collectionFieldRepo = instance(MockCollectionFieldRepo);
 
-		collections = [createTestCollection("top50fantasy", users[0], topics[0])];
-		collectionRepository = new MemoryCollectionRepository(
-			collections,
-			userRepository,
-			topicRepository,
-		);
+		resetCalls(MockItemRepo);
+		const itemRepo = instance(MockItemRepo);
 
-		collectionFields = [
-			createTestCollectionField(
-				"author",
-				CollectionFieldType.Text,
-				collections[0],
-			),
-			createTestCollectionField(
-				"description",
-				CollectionFieldType.MultilineText,
-				collections[0],
-			),
-			createTestCollectionField(
-				"pages",
-				CollectionFieldType.Number,
-				collections[0],
-			),
-			createTestCollectionField(
-				"read",
-				CollectionFieldType.Checkbox,
-				collections[0],
-			),
-			createTestCollectionField(
-				"published",
-				CollectionFieldType.Date,
-				collections[0],
-			),
-		];
-		collectionFieldRepository = new MemoryCollectionFieldRepository(
-			collectionFields,
-			collectionRepository,
-		);
+		when(MockItemRepo.get(johnItem.id)).thenResolve(Ok({ item: johnItem }));
+		when(
+			MockCollectionFieldRepo.getByCollection(johnCollection.id),
+		).thenResolve(Ok(collectionFields));
 
-		items = [];
-		itemRepository = new MemoryItemRepository(items, collectionRepository);
-
-		numberFields = new Map();
-		numberFieldRepository = new MemoryItemFieldRepository<number>(numberFields);
-
-		textFields = new Map();
-		textFieldRepository = new MemoryItemFieldRepository<string>(textFields);
-
-		multilineTextFields = new Map();
-		multilineTextFieldRepository = new MemoryItemFieldRepository<string>(
-			multilineTextFields,
-		);
-
-		checkboxFields = new Map();
-		checkboxFieldRepository = new MemoryItemFieldRepository<boolean>(
-			checkboxFields,
-		);
-
-		dateFields = new Map();
-		dateFieldRepository = new MemoryItemFieldRepository<Date>(dateFields);
-
-		const itemFieldRepositories: ItemFieldRepositories = {
-			number: numberFieldRepository,
-			text: textFieldRepository,
-			multilineText: multilineTextFieldRepository,
-			checkbox: checkboxFieldRepository,
-			date: dateFieldRepository,
-		};
-
-		createItem = new CreateItemUseCase(
-			userRepository,
-			collectionRepository,
-			collectionFieldRepository,
-			itemRepository,
-			itemFieldRepositories,
-		);
-		viewCollection = new ViewCollectionUseCase(
-			collectionRepository,
-			itemRepository,
-		);
 		updateItem = new UpdateItemUseCase(
-			userRepository,
-			collectionRepository,
-			collectionFieldRepository,
-			itemRepository,
-			itemFieldRepositories,
+			userRepo,
+			collectionFieldRepo,
+			itemRepo,
+			collectionRepo,
 		);
 	});
 
 	it("updates the item", async () => {
-		const createItemResult = await createItem.execute(
-			{
-				collectionId: "top50fantasy",
-				name: "The Hunger Games",
-				tags: new Set(["book", "kids_book", "fantasy"]),
-				textFields: new Map([["author", "Suzanne Collins"]]),
-				multilineTextFields: new Map([
-					[
-						"description",
-						`Sixteen-year-old Katniss Everdeen,
-who lives alone with her mother and younger sister,
-regards it as a death sentence when she steps forward to take her sister's place in the Games.
-But Katniss has been close to dead before—and survival, for her, is second nature. Without really meaning to, she becomes a contender.
-But if she is to win, she will have to start making choices that weight survival against humanity and life against love.`,
-					],
-				]),
-				numberFields: new Map([["pages", 374]]),
-				checkboxFields: new Map([["read", false]]),
-				dateFields: new Map([["published", new Date("September 14, 2008")]]),
-			},
-			"alice",
+		const updateStub = MockItemRepo.update(
+			betterDeepEqual(updatedItem),
+			betterDeepEqual(updatedItemFields),
 		);
-		if (createItemResult.err) throw createItemResult;
-		const itemId = createItemResult.val;
 
-		const updateItemResult = await updateItem.execute(
-			{
-				id: itemId,
-				name: "Do Androids Dream of Electric Sheep?",
-				tags: new Set(["book", "science-fiction", "fantasy", "cyberpunk"]),
-				textFields: new Map([["author", "Philip K. Dick"]]),
-				multilineTextFields: new Map([
-					[
-						"description",
-						`It was January 2021, and Rick Deckard had a license to kill. 
-Somewhere among the hordes of humans out there, lurked several rogue androids. 
-Deckard's assignment--find them and then..."retire" them. 
-Trouble was, the androids all looked exactly like humans, and they didn't want to be found!`,
-					],
-				]),
-				numberFields: new Map([["pages", 258]]),
-				checkboxFields: new Map([["read", true]]),
-				dateFields: new Map([["published", new Date("January 1, 1968")]]),
-			},
-			"alice",
+		when(updateStub).thenResolve(Ok(None));
+
+		const result = await updateItem.execute(updatedItemRequest, john.id);
+		if (result.err) throw result;
+
+		verify(updateStub).once();
+	});
+
+	it("allow admin update items", async () => {
+		const updateStub = MockItemRepo.update(
+			betterDeepEqual(updatedItem),
+			betterDeepEqual(updatedItemFields),
 		);
-		if (updateItemResult.err) throw updateItemResult;
 
-		const collectionResult = await viewCollection.execute("top50fantasy");
-		const collection = collectionResult.unwrap();
+		when(MockUserRepo.get(admin.id)).thenResolve(Ok({ user: admin }));
+		when(updateStub).thenResolve(Ok(None));
 
-		expect(collection.items.length).toBe(1);
-		expect(collection.items[0].name).toBe(
-			"Do Androids Dream of Electric Sheep?",
-		);
+		const result = await updateItem.execute(updatedItemRequest, admin.id);
+		if (result.err) throw result;
+
+		verify(updateStub).once();
+	});
+
+	it("doesn't allow other users update items", async () => {
+		when(MockUserRepo.get(tyler.id)).thenResolve(Ok({ user: tyler }));
+
+		const result = await updateItem.execute(updatedItemRequest, tyler.id);
+		if (result.ok) throw result;
+		const failure = result.val;
+
+		verify(MockItemRepo.update(anything(), anything())).never();
+		expect(failure).toBeInstanceOf(NotAuthorizedFailure);
 	});
 });
