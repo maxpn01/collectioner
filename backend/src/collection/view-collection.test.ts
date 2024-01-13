@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { CollectionRepository } from ".";
 import { ItemRepository } from "./item";
-import { UserRepository } from "../user";
 import { createTestItem } from "./item/index.test";
 import { createTestUser } from "../user/index.test";
 import { createTestCollection, createTestTopic } from "./index.test";
@@ -37,9 +36,6 @@ describe("view collection use case", () => {
 			createTestItem("cppfordummies", johnCollection),
 			createTestItem("perfume", johnCollection),
 		];
-
-		const MockUserRepo = mock<UserRepository>();
-		const userRepo = instance(MockUserRepo);
 
 		const MockCollectionRepo = mock<CollectionRepository>();
 		when(

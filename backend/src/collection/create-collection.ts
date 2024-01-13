@@ -37,7 +37,7 @@ type CreateCollectionRequest = {
 	topicId: string;
 };
 
-class CreateCollectionUseCase {
+export class CreateCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
