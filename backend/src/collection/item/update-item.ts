@@ -1,10 +1,9 @@
-import { Result, None, Err, Ok } from "ts-results";
-import { ItemRepository, ItemFieldRepositories } from ".";
+import { Result, None, Ok } from "ts-results";
+import { ItemField, ItemFields, ItemRepository } from ".";
 import { CollectionFieldRepository, CollectionRepository } from "..";
 import { UserRepository } from "../../user";
-import { Failure, BadRequestFailure } from "../../utils/failure";
+import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
-import { CheckAllFieldsSpecified, SetFieldsUseCase } from "./create-item";
 
 type UpdateItemRequest = {
 	id: string;
@@ -24,19 +23,16 @@ export class UpdateItemUseCase {
 	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
-	itemFieldRepositories: ItemFieldRepositories;
 
 	constructor(
 		userRepository: UserRepository,
-		collectionRepository: CollectionRepository,
 		collectionFieldRepository: CollectionFieldRepository,
 		itemRepository: ItemRepository,
-		itemFieldRepositories: ItemFieldRepositories,
+		collectionRepository: CollectionRepository,
 	) {
 		this.userRepository = userRepository;
 		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
-		this.itemFieldRepositories = itemFieldRepositories;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
@@ -67,19 +63,74 @@ export class UpdateItemUseCase {
 		updatedItem.name = request.name;
 		updatedItem.tags = request.tags;
 
+		const numberFields: ItemField<number>[] = [];
+		for (const [collectionFieldId, value] of request.numberFields) {
+			numberFields.push({
+				item: updatedItem,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const textFields: ItemField<string>[] = [];
+		for (const [collectionFieldId, value] of request.textFields) {
+			textFields.push({
+				item: updatedItem,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const multilineTextFields: ItemField<string>[] = [];
+		for (const [collectionFieldId, value] of request.multilineTextFields) {
+			multilineTextFields.push({
+				item: updatedItem,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const checkboxFields: ItemField<boolean>[] = [];
+		for (const [collectionFieldId, value] of request.checkboxFields) {
+			checkboxFields.push({
+				item: updatedItem,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const dateFields: ItemField<Date>[] = [];
+		for (const [collectionFieldId, value] of request.dateFields) {
+			dateFields.push({
+				item: updatedItem,
+				value,
+				collectionField: collectionFields.find(
+					(f) => f.id === collectionFieldId,
+				)!,
+			});
+		}
+
+		const fields: ItemFields = {
+			numberFields,
+			textFields,
+			multilineTextFields,
+			checkboxFields,
+			dateFields,
+		};
+
 		const updateItemResult = await this.itemRepository.update(
-			item.id,
 			updatedItem,
+			fields,
 		);
 		if (updateItemResult.err) return updateItemResult;
-
-		const setFields = new SetFieldsUseCase(
-			request,
-			item,
-			this.itemFieldRepositories,
-		);
-		const setFieldsResult = await setFields.execute();
-		if (setFieldsResult.err) return setFieldsResult;
 
 		return Ok(None);
 	}
