@@ -1,6 +1,5 @@
 import { describe, beforeEach, it, expect } from "vitest";
 import { ItemRepository } from ".";
-import { CollectionRepository } from "..";
 import { createTestUser } from "../../user/index.test";
 import { createTestTopic, createTestCollection } from "../index.test";
 import { DeleteItemUseCase } from "./delete-item";
@@ -9,6 +8,7 @@ import { instance, mock, when, verify, resetCalls, anything } from "ts-mockito";
 import { createTestItem } from "./index.test";
 import { None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../../user/view-user";
+import { CollectionRepository } from "../repositories/collection";
 
 describe("delete item use case", () => {
 	let deleteItem: DeleteItemUseCase;

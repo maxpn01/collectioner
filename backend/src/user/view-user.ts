@@ -1,7 +1,8 @@
 import { Result, Err, Option, Ok } from "ts-results";
 import { UserRepository } from ".";
 import { Failure } from "../utils/failure";
-import { Collection, CollectionRepository } from "../collection";
+import { Collection } from "../collection";
+import { CollectionRepository } from "../collection/repositories/collection";
 
 type ViewUserResponse = {
 	id: string;

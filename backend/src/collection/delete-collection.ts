@@ -2,7 +2,7 @@ import { None, Ok, Result } from "ts-results";
 import { Failure } from "../utils/failure";
 import { AuthorizeCollectionUpdate } from "./update-collection";
 import { UserRepository } from "../user";
-import { CollectionRepository } from ".";
+import { CollectionRepository } from "./repositories/collection";
 
 export class DeleteCollectionUseCase {
 	collectionRepository: CollectionRepository;

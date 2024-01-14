@@ -1,9 +1,10 @@
 import { Result, None, Ok } from "ts-results";
 import { ItemField, ItemFields, ItemRepository } from ".";
-import { CollectionFieldRepository, CollectionRepository } from "..";
 import { UserRepository } from "../../user";
 import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
+import { CollectionFieldRepository } from "../repositories/collection-field";
+import { CollectionRepository } from "../repositories/collection";
 
 type UpdateItemRequest = {
 	id: string;

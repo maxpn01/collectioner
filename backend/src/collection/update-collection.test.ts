@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { Some, None, Ok } from "ts-results";
-import { CollectionRepository } from ".";
 import { UserRepository } from "../user";
 import { SetCollectionImageUseCase } from "./update-collection";
 import { NotAuthorizedFailure } from "../user/view-user";
@@ -15,6 +14,7 @@ import {
 	deepEqual,
 	anything,
 } from "ts-mockito";
+import { CollectionRepository } from "./repositories/collection";
 
 describe("set collection image use case", () => {
 	let setCollectionImage: SetCollectionImageUseCase;

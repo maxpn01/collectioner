@@ -1,18 +1,15 @@
-import {
-	CollectionFieldType,
-	Topic,
-	TopicRepository,
-	CollectionField,
-	Collection,
-	CollectionRepository,
-	CollectionFieldRepository,
-	UpdatedField,
-} from ".";
+import { CollectionFieldType, Topic, CollectionField, Collection } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
 import { UserRepository, authorizeUserUpdate } from "../user";
 import { Failure, NotFoundFailure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../user/view-user";
+import { CollectionRepository } from "./repositories/collection";
+import { TopicRepository } from "./repositories/topic";
+import {
+	CollectionFieldRepository,
+	UpdatedField,
+} from "./repositories/collection-field";
 
 function updateCollection(
 	collection: Collection,

@@ -1,9 +1,9 @@
 import { Result, None, Ok } from "ts-results";
 import { ItemRepository } from ".";
-import { CollectionRepository } from "..";
 import { UserRepository } from "../../user";
 import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
+import { CollectionRepository } from "../repositories/collection";
 
 export class DeleteItemUseCase {
 	userRepository: UserRepository;

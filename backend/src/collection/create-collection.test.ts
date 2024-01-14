@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { CreateCollectionUseCase } from "./create-collection";
-import { Collection, CollectionRepository, TopicRepository } from ".";
+import { Collection } from ".";
 import {
 	instance,
 	mock,
@@ -15,6 +15,8 @@ import { createTestTopic } from "./index.test";
 import { createTestUser } from "../user/index.test";
 import { None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../user/view-user";
+import { TopicRepository } from "./repositories/topic";
+import { CollectionRepository } from "./repositories/collection";
 
 describe("create collection use case", () => {
 	let createCollection: CreateCollectionUseCase;

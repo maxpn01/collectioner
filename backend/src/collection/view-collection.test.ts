@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { CollectionRepository } from ".";
 import { ItemRepository } from "./item";
 import { createTestItem } from "./item/index.test";
 import { createTestUser } from "../user/index.test";
@@ -7,6 +6,7 @@ import { createTestCollection, createTestTopic } from "./index.test";
 import { ViewCollectionUseCase } from "./view-collection";
 import { mock, instance, when, deepEqual } from "ts-mockito";
 import { Ok } from "ts-results";
+import { CollectionRepository } from "./repositories/collection";
 
 describe("view collection use case", () => {
 	let viewCollection: ViewCollectionUseCase;

@@ -1,7 +1,7 @@
 import { Ok, Option, Result } from "ts-results";
-import { CollectionRepository } from ".";
 import { ItemRepository } from "./item";
 import { Failure } from "../utils/failure";
+import { CollectionRepository } from "./repositories/collection";
 
 type ViewCollectionResponse = {
 	id: string;

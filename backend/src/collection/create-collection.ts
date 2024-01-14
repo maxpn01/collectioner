@@ -1,9 +1,11 @@
-import { Collection, CollectionRepository, Topic, TopicRepository } from ".";
+import { Collection, Topic } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Result } from "ts-results";
 import { User, UserRepository } from "../user";
 import { Failure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../user/view-user";
+import { CollectionRepository } from "./repositories/collection";
+import { TopicRepository } from "./repositories/topic";
 
 function generateCollectionId(): string {
 	return nanoid();

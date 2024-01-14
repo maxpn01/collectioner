@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from "vitest";
 import { Item, ItemFields, ItemRepository } from ".";
-import { CollectionField, CollectionFieldType, CollectionRepository } from "..";
+import { CollectionField, CollectionFieldType } from "..";
 import { UserRepository } from "../../user";
 import { createTestUser } from "../../user/index.test";
 import { createTestTopic, createTestCollection } from "../index.test";
@@ -18,6 +18,7 @@ import {
 } from "ts-mockito";
 import { None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../../user/view-user";
+import { CollectionRepository } from "../repositories/collection";
 
 describe("create item use case", () => {
 	let createItem: CreateItemUseCase;

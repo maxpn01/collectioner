@@ -4,9 +4,9 @@ import { createTestCollection, createTestTopic } from "./index.test";
 import { createTestUser } from "../user/index.test";
 import { anything, instance, mock, resetCalls, verify, when } from "ts-mockito";
 import { UserRepository } from "../user";
-import { CollectionRepository } from ".";
 import { None, Ok } from "ts-results";
 import { NotAuthorizedFailure } from "../user/view-user";
+import { CollectionRepository } from "./repositories/collection";
 
 describe("delete collection use case", () => {
 	let deleteCollection: DeleteCollectionUseCase;

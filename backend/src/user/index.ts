@@ -1,10 +1,11 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { Failure, NotFoundFailure } from "../utils/failure";
-import { Collection, PrismaCollection, PrismaTopic } from "../collection";
+import { Collection, PrismaCollection } from "../collection";
 import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
 import { PrismaClient, Prisma, User as PrismaUser } from "@prisma/client";
 import { nullableToOption } from "../utils/ts-results";
 import { PrismaErrors } from "../utils/prisma";
+import { PrismaTopic } from "../collection/repositories/topic";
 
 export { User as PrismaUser } from "@prisma/client";
 

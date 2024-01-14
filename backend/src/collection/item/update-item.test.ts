@@ -1,11 +1,6 @@
 import { describe, beforeEach, it, expect } from "vitest";
 import { Item, ItemFields, ItemRepository } from ".";
-import {
-	CollectionField,
-	CollectionFieldRepository,
-	CollectionFieldType,
-	CollectionRepository,
-} from "..";
+import { CollectionField, CollectionFieldType } from "..";
 import { UserRepository } from "../../user";
 import { createTestUser } from "../../user/index.test";
 import { createTestTopic, createTestCollection } from "../index.test";
@@ -15,6 +10,8 @@ import { createTestItem } from "./index.test";
 import { None, Ok } from "ts-results";
 import { betterDeepEqual } from "../../utils/ts-mockito";
 import { NotAuthorizedFailure } from "../../user/view-user";
+import { CollectionRepository } from "../repositories/collection";
+import { CollectionFieldRepository } from "../repositories/collection-field";
 
 describe("update item use case", () => {
 	let updateItem: UpdateItemUseCase;
