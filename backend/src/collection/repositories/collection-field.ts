@@ -129,16 +129,18 @@ class PrismaCollectionFieldRepository implements CollectionFieldRepository {
 	async updateMany(
 		updatedFields: UpdatedField[],
 	): Promise<Result<None, Failure>> {
-		await this.prisma.$transaction(async () => {
-			updatedFields.forEach(async (uf) => {
-				await this.prisma.collectionField.update({
-					where: { id: uf.id },
-					data: {
-						name: uf.field.name,
-						type: uf.field.type,
-					},
-				});
-			});
+		await this.prisma.$transaction(() => {
+			return Promise.all(
+				updatedFields.map((uf) => {
+					this.prisma.collectionField.update({
+						where: { id: uf.id },
+						data: {
+							name: uf.field.name,
+							type: uf.field.type,
+						},
+					});
+				}),
+			);
 		});
 
 		return Ok(None);
