@@ -16,15 +16,18 @@ function updateCollection(
 	{
 		name,
 		topic,
+		imageOption,
 	}: {
 		name: string;
 		topic: Topic;
+		imageOption: Option<string>;
 	},
 ): Collection {
 	collection = structuredClone(collection);
 
 	collection.name = name;
 	collection.topic = topic;
+	collection.imageOption = imageOption;
 
 	return collection;
 }
@@ -66,6 +69,7 @@ function generateItemFieldId(): string {
 type UpdateCollectionRequest = {
 	name: string;
 	topicId: string;
+	imageOption: Option<string>;
 	fields: UpdateCollectionRequestItemField[];
 	newFields: UpdateCollectionRequestNewItemField[];
 };
@@ -81,7 +85,7 @@ type UpdateCollectionRequestNewItemField = {
 	type: CollectionFieldType;
 };
 
-class UpdateCollectionUseCase {
+export class UpdateCollectionUseCase {
 	collectionRepository: CollectionRepository;
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
@@ -139,6 +143,7 @@ class UpdateCollectionUseCase {
 		const updatedCollection = updateCollection(collection, {
 			name: request.name,
 			topic,
+			imageOption: request.imageOption,
 		});
 
 		const updateResult = await this.collectionRepository.update(
@@ -193,48 +198,6 @@ class UpdateCollectionUseCase {
 			createdFields,
 		);
 		if (createResult.err) return createResult;
-
-		return Ok(None);
-	}
-}
-
-export class SetCollectionImageUseCase {
-	collectionRepository: CollectionRepository;
-	userRepository: UserRepository;
-	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
-
-	constructor(
-		collectionRepository: CollectionRepository,
-		userRepository: UserRepository,
-	) {
-		this.collectionRepository = collectionRepository;
-		this.userRepository = userRepository;
-		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
-			collectionRepository,
-			userRepository,
-		);
-	}
-
-	async execute(
-		imageOption: Option<string>,
-		collectionId: string,
-		requesterId: string,
-	): Promise<Result<None, Failure>> {
-		const collectionResult = await this.collectionRepository.get(collectionId);
-		if (collectionResult.err) return collectionResult;
-		const { collection } = collectionResult.val;
-
-		const authorizeResult = await this.authorizeCollectionUpdate.execute(
-			collection,
-			requesterId,
-		);
-		if (authorizeResult.err) return authorizeResult;
-
-		const updateResult = await this.collectionRepository.updateImage(
-			collection.id,
-			imageOption,
-		);
-		if (updateResult.err) return updateResult;
 
 		return Ok(None);
 	}
