@@ -164,7 +164,7 @@ class PrismaUserRepository implements UserRepository {
 	}
 }
 
-function prismaCollectionToEntity(
+export function prismaCollectionToEntity(
 	pc: PrismaCollection,
 	pcTopic: PrismaTopic,
 	owner: User,
@@ -178,7 +178,7 @@ function prismaCollectionToEntity(
 	};
 }
 
-function prismaUserToEntity(prismaUser: PrismaUser): User {
+export function prismaUserToEntity(prismaUser: PrismaUser): User {
 	return prismaUser;
 }
 

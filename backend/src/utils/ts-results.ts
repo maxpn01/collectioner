@@ -8,3 +8,7 @@ export function unwrapOption<T>(option: Option<T>): T {
 export function nullableToOption<T>(x: T | null | undefined): Option<T> {
 	return x === null || x === undefined ? None : Some(x);
 }
+
+export function optionToNullable<T>(option: Option<T>): T | null | undefined {
+	return option.none ? null : option.val;
+}

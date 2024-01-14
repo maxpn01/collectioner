@@ -1,7 +1,6 @@
 import { Result, Ok, Err } from "ts-results";
 import {
 	Collection,
-	CollectionRepository,
 	CollectionFieldType,
 	CollectionField,
 	collectionFieldTypes,
@@ -12,6 +11,7 @@ import { AuthorizeCollectionUpdate } from "../update-collection";
 import { nanoid } from "nanoid";
 import { Item, ItemRepository, ItemFields, ItemField } from ".";
 import { areArraysEqual } from "../../utils/array";
+import { CollectionRepository } from "../repositories/collection";
 
 function generateItemId(): string {
 	return nanoid();
