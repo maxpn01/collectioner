@@ -48,11 +48,16 @@ model Collection {
 }
 
 model CollectionField {
-    id           String              @id
-    name         String
-    collection   Collection          @relation(fields: [collectionId], references: [id])
-    type         CollectionFieldType
-    collectionId String
+    id                  String               @id
+    name                String
+    collection          Collection           @relation(fields: [collectionId], references: [id])
+    type                CollectionFieldType
+    collectionId        String
+    numberFields        NumberField[]
+    textFields          TextField[]
+    multilineTextFields MultilineTextField[]
+    checkboxFields      CheckboxField[]
+    dateFields          DateField[]
 
     @@map("collection_field")
 }
@@ -66,16 +71,79 @@ enum CollectionFieldType {
 }
 
 model Item {
-    collection   Collection @relation(fields: [collectionId], references: [id])
-    id           String     @id
-    name         String
-    tags         String[]
-    collectionId String
-    comments     Comment[]
-    createdAt    DateTime   @default(now())
-    updatedAt    DateTime   @updatedAt
+    collection          Collection           @relation(fields: [collectionId], references: [id])
+    id                  String               @id
+    name                String
+    collectionId        String
+    comments            Comment[]
+    createdAt           DateTime             @default(now())
+    updatedAt           DateTime             @updatedAt
+    numberFields        NumberField[]
+    textFields          TextField[]
+    multilineTextFields MultilineTextField[]
+    checkboxFields      CheckboxField[]
+    dateFields          DateField[]
+    tags                ItemTag[]
 
     @@map("item")
+}
+
+model ItemTag {
+    item   Item   @relation(fields: [itemId], references: [id])
+    tag    String
+    itemId String
+
+    @@unique([itemId, tag])
+}
+
+model NumberField {
+    item              Item            @relation(fields: [itemId], references: [id])
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    value             Int
+    itemId            String
+    collectionFieldId String
+
+    @@unique([itemId, collectionFieldId])
+}
+
+model TextField {
+    item              Item            @relation(fields: [itemId], references: [id])
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    value             String
+    itemId            String
+    collectionFieldId String
+
+    @@unique([itemId, collectionFieldId])
+}
+
+model MultilineTextField {
+    item              Item            @relation(fields: [itemId], references: [id])
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    value             String
+    itemId            String
+    collectionFieldId String
+
+    @@unique([itemId, collectionFieldId])
+}
+
+model CheckboxField {
+    item              Item            @relation(fields: [itemId], references: [id])
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    value             Boolean
+    itemId            String
+    collectionFieldId String
+
+    @@unique([itemId, collectionFieldId])
+}
+
+model DateField {
+    item              Item            @relation(fields: [itemId], references: [id])
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    value             DateTime
+    itemId            String
+    collectionFieldId String
+
+    @@unique([itemId, collectionFieldId])
 }
 
 model Comment {
