@@ -66,21 +66,21 @@ function generateItemFieldId(): string {
 	return nanoid();
 }
 
-type UpdateCollectionRequest = {
+export type UpdateCollectionRequest = {
 	name: string;
 	topicId: string;
 	imageOption: Option<string>;
-	fields: UpdateCollectionRequestItemField[];
-	newFields: UpdateCollectionRequestNewItemField[];
+	fields: UpdateCollectionRequestField[];
+	newFields: UpdateCollectionRequestNewField[];
 };
 
-type UpdateCollectionRequestItemField = {
+export type UpdateCollectionRequestField = {
 	id: string;
 	name: string;
 	type: CollectionFieldType;
 };
 
-type UpdateCollectionRequestNewItemField = {
+export type UpdateCollectionRequestNewField = {
 	name: string;
 	type: CollectionFieldType;
 };
@@ -90,13 +90,13 @@ export class UpdateCollectionUseCase {
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
-	itemFieldRepository: CollectionFieldRepository;
+	collectionFieldRepository: CollectionFieldRepository;
 
 	constructor(
 		collectionRepository: CollectionRepository,
 		topicRepository: TopicRepository,
 		userRepository: UserRepository,
-		itemFieldRepository: CollectionFieldRepository,
+		collectionFieldRepository: CollectionFieldRepository,
 	) {
 		this.collectionRepository = collectionRepository;
 		this.topicRepository = topicRepository;
@@ -105,7 +105,7 @@ export class UpdateCollectionUseCase {
 			collectionRepository,
 			userRepository,
 		);
-		this.itemFieldRepository = itemFieldRepository;
+		this.collectionFieldRepository = collectionFieldRepository;
 	}
 
 	async execute(
@@ -133,12 +133,12 @@ export class UpdateCollectionUseCase {
 			topic = topicResult.val;
 		}
 
-		const updateItemFieldsResult = await this.updateItemFields(
+		const updateCollectionFieldsResult = await this.updateCollectionFields(
 			request,
 			collection,
 			fields,
 		);
-		if (updateItemFieldsResult.err) return updateItemFieldsResult;
+		if (updateCollectionFieldsResult.err) return updateCollectionFieldsResult;
 
 		const updatedCollection = updateCollection(collection, {
 			name: request.name,
@@ -155,7 +155,7 @@ export class UpdateCollectionUseCase {
 		return Ok(None);
 	}
 
-	async updateItemFields(
+	async updateCollectionFields(
 		request: UpdateCollectionRequest,
 		collection: Collection,
 		fields: CollectionField[],
@@ -176,9 +176,10 @@ export class UpdateCollectionUseCase {
 			});
 		}
 
-		const updateResult = await this.itemFieldRepository.updateMany(
+		const updateResult = await this.collectionFieldRepository.updateMany(
 			updatedFields,
 		);
+
 		if (updateResult.err) return updateResult;
 
 		const createdFields: CollectionField[] = [];
@@ -194,7 +195,7 @@ export class UpdateCollectionUseCase {
 			createdFields.push(createdField);
 		}
 
-		const createResult = await this.itemFieldRepository.createMany(
+		const createResult = await this.collectionFieldRepository.createMany(
 			createdFields,
 		);
 		if (createResult.err) return createResult;
