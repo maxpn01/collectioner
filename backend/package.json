@@ -8,11 +8,13 @@
     "scripts": {
         "start": "cross-env NODE_PATH=dist node dist/index.js",
         "dev": "cross-env NODE_PATH=src ts-node-dev -P tsconfig.json --transpile-only src/index.ts",
-        "test": "vitest --passWithNoTests"
+        "test": "vitest --passWithNoTests",
+        "meili": "node meili"
     },
     "dependencies": {
         "@prisma/client": "^5.7.1",
         "bcryptjs": "^2.4.3",
+        "meilisearch": "^0.36.0",
         "nanoid": "^5.0.4",
         "ts-results": "^3.3.0"
     },
