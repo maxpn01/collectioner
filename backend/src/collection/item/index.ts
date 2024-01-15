@@ -1,6 +1,11 @@
 import { Err, None, Ok, Result } from "ts-results";
-import { Collection, CollectionField } from "..";
-import { User } from "../../user";
+import {
+	Collection,
+	CollectionField,
+	PrismaCollection,
+	prismaCollectionToEntity,
+} from "..";
+import { PrismaUser, User } from "../../user";
 import { Failure, NotFoundFailure } from "../../utils/failure";
 import {
 	RepoGetIncludedProperties,
@@ -17,8 +22,10 @@ import {
 	MultilineTextField as PrismaMultilineTextField,
 	CheckboxField as PrismaCheckboxField,
 	DateField as PrismaDateField,
+	CollectionField as PrismaCollectionField,
+	Comment as PrismaComment,
 } from "@prisma/client";
-import { nullableToOption } from "../../utils/ts-results";
+import { PrismaTopic } from "../repositories/topic";
 
 export { Item as PrismaItem, ItemTag as PrismaItemTag } from "@prisma/client";
 
@@ -127,73 +134,9 @@ class PrismaItemRepository implements ItemRepository {
 		});
 		if (!prismaItem) return Err(new NotFoundFailure());
 
-		const item: Item = prismaItemToEntity(prismaItem, {
-			owner: prismaItem.collection.owner,
-			id: prismaItem.collection.id,
-			name: prismaItem.collection.name,
-			topic: prismaItem.collection.topic,
-			imageOption: nullableToOption(prismaItem.collection.image),
-		});
-		const includables: Partial<GetItemIncludables> = {};
+		const results = prismaItemToGetItemResult(prismaItem, options);
 
-		if (options?.include?.fields) {
-			const prismaNumberFields = prismaItem.numberFields;
-			const numberFields = prismaNumberFields.map((nf) =>
-				prismaNumberFieldToEntity(nf, item, {
-					...nf.collectionField,
-					collection: item.collection,
-				}),
-			);
-			const prismaTextFields = prismaItem.textFields;
-			const textFields = prismaTextFields.map((tf) =>
-				prismaTextFieldToEntity(tf, item, {
-					...tf.collectionField,
-					collection: item.collection,
-				}),
-			);
-			const prismaMultilineTextFields = prismaItem.multilineTextFields;
-			const multilineTextFields = prismaMultilineTextFields.map((mtf) =>
-				prismaMultilineTextFieldToEntity(mtf, item, {
-					...mtf.collectionField,
-					collection: item.collection,
-				}),
-			);
-			const prismaCheckboxFields = prismaItem.checkboxFields;
-			const checkboxFields = prismaCheckboxFields.map((cf) =>
-				prismaCheckboxFieldToEntity(cf, item, {
-					...cf.collectionField,
-					collection: item.collection,
-				}),
-			);
-			const prismaDateFields = prismaItem.dateFields;
-			const dateFields = prismaDateFields.map((df) =>
-				prismaDateFieldToEntity(df, item, {
-					...df.collectionField,
-					collection: item.collection,
-				}),
-			);
-
-			includables.fields = {
-				numberFields,
-				textFields,
-				multilineTextFields,
-				checkboxFields,
-				dateFields,
-			};
-		}
-
-		if (options?.include?.comments) {
-			const prismaComments = prismaItem.comments;
-
-			includables.comments = prismaComments.map((c) =>
-				prismaCommentToEntity(c, item),
-			);
-		}
-
-		return Ok({
-			item,
-			...(includables as GetItemIncludedProperties<O>),
-		});
+		return Ok(results);
 	}
 
 	async getAll<O extends GetItemOptions>(
@@ -232,88 +175,11 @@ class PrismaItemRepository implements ItemRepository {
 			},
 		});
 
-		const items: Item[] = prismaItems.map((i) =>
-			prismaItemToEntity(i, {
-				owner: i.collection.owner,
-				id: i.collection.id,
-				name: i.collection.name,
-				topic: i.collection.topic,
-				imageOption: nullableToOption(i.collection.image),
-			}),
+		const results = prismaItems.map((pi) =>
+			prismaItemToGetItemResult(pi, options),
 		);
-		const includables: Partial<GetItemIncludables> = {};
 
-		if (options?.include?.fields) {
-			const prismaNumberFields = prismaItems.flatMap((i) => i.numberFields);
-			const numberFields = prismaNumberFields.map((nf) =>
-				prismaNumberFieldToEntity(nf, items.find((i) => i.id === nf.itemId)!, {
-					...nf.collectionField,
-					collection: items.find((i) => i.id === nf.itemId)!.collection,
-				}),
-			);
-			const prismaTextFields = prismaItems.flatMap((i) => i.textFields);
-			const textFields = prismaTextFields.map((tf) =>
-				prismaTextFieldToEntity(tf, items.find((i) => i.id === tf.itemId)!, {
-					...tf.collectionField,
-					collection: items.find((i) => i.id === tf.itemId)!.collection,
-				}),
-			);
-			const prismaMultilineTextFields = prismaItems.flatMap(
-				(i) => i.multilineTextFields,
-			);
-			const multilineTextFields = prismaMultilineTextFields.map((mtf) =>
-				prismaMultilineTextFieldToEntity(
-					mtf,
-					items.find((i) => i.id === mtf.itemId)!,
-					{
-						...mtf.collectionField,
-						collection: items.find((i) => i.id === mtf.itemId)!.collection,
-					},
-				),
-			);
-			const prismaCheckboxFields = prismaItems.flatMap((i) => i.checkboxFields);
-			const checkboxFields = prismaCheckboxFields.map((cf) =>
-				prismaCheckboxFieldToEntity(
-					cf,
-					items.find((i) => i.id === cf.itemId)!,
-					{
-						...cf.collectionField,
-						collection: items.find((i) => i.id === cf.itemId)!.collection,
-					},
-				),
-			);
-			const prismaDateFields = prismaItems.flatMap((i) => i.dateFields);
-			const dateFields = prismaDateFields.map((df) =>
-				prismaDateFieldToEntity(df, items.find((i) => i.id === df.itemId)!, {
-					...df.collectionField,
-					collection: items.find((i) => i.id === df.itemId)!.collection,
-				}),
-			);
-
-			includables.fields = {
-				numberFields,
-				textFields,
-				multilineTextFields,
-				checkboxFields,
-				dateFields,
-			};
-		}
-
-		if (options?.include?.comments) {
-			const prismaComments = prismaItems.flatMap((i) => i.comments);
-			const comments = prismaComments.map((c) =>
-				prismaCommentToEntity(c, items.find((i) => i.id === c.itemId)!),
-			);
-
-			includables.comments = comments;
-		}
-
-		return Ok(
-			items.map((i) => ({
-				item: i,
-				...(includables as GetItemIncludedProperties<O>),
-			})),
-		);
+		return Ok(results);
 	}
 
 	async getByCollection<O extends GetItemOptions>(
@@ -356,88 +222,11 @@ class PrismaItemRepository implements ItemRepository {
 			},
 		});
 
-		const items: Item[] = prismaItems.map((i) =>
-			prismaItemToEntity(i, {
-				owner: i.collection.owner,
-				id: i.collection.id,
-				name: i.collection.name,
-				topic: i.collection.topic,
-				imageOption: nullableToOption(i.collection.image),
-			}),
+		const results = prismaItems.map((pi) =>
+			prismaItemToGetItemResult(pi, options),
 		);
-		const includables: Partial<GetItemIncludables> = {};
 
-		if (options?.include?.fields) {
-			const prismaNumberFields = prismaItems.flatMap((i) => i.numberFields);
-			const numberFields = prismaNumberFields.map((nf) =>
-				prismaNumberFieldToEntity(nf, items.find((i) => i.id === nf.itemId)!, {
-					...nf.collectionField,
-					collection: items.find((i) => i.id === nf.itemId)!.collection,
-				}),
-			);
-			const prismaTextFields = prismaItems.flatMap((i) => i.textFields);
-			const textFields = prismaTextFields.map((tf) =>
-				prismaTextFieldToEntity(tf, items.find((i) => i.id === tf.itemId)!, {
-					...tf.collectionField,
-					collection: items.find((i) => i.id === tf.itemId)!.collection,
-				}),
-			);
-			const prismaMultilineTextFields = prismaItems.flatMap(
-				(i) => i.multilineTextFields,
-			);
-			const multilineTextFields = prismaMultilineTextFields.map((mtf) =>
-				prismaMultilineTextFieldToEntity(
-					mtf,
-					items.find((i) => i.id === mtf.itemId)!,
-					{
-						...mtf.collectionField,
-						collection: items.find((i) => i.id === mtf.itemId)!.collection,
-					},
-				),
-			);
-			const prismaCheckboxFields = prismaItems.flatMap((i) => i.checkboxFields);
-			const checkboxFields = prismaCheckboxFields.map((cf) =>
-				prismaCheckboxFieldToEntity(
-					cf,
-					items.find((i) => i.id === cf.itemId)!,
-					{
-						...cf.collectionField,
-						collection: items.find((i) => i.id === cf.itemId)!.collection,
-					},
-				),
-			);
-			const prismaDateFields = prismaItems.flatMap((i) => i.dateFields);
-			const dateFields = prismaDateFields.map((df) =>
-				prismaDateFieldToEntity(df, items.find((i) => i.id === df.itemId)!, {
-					...df.collectionField,
-					collection: items.find((i) => i.id === df.itemId)!.collection,
-				}),
-			);
-
-			includables.fields = {
-				numberFields,
-				textFields,
-				multilineTextFields,
-				checkboxFields,
-				dateFields,
-			};
-		}
-
-		if (options?.include?.comments) {
-			const prismaComments = prismaItems.flatMap((i) => i.comments);
-			const comments = prismaComments.map((c) =>
-				prismaCommentToEntity(c, items.find((i) => i.id === c.itemId)!),
-			);
-
-			includables.comments = comments;
-		}
-
-		return Ok(
-			items.map((i) => ({
-				item: i,
-				...(includables as GetItemIncludedProperties<O>),
-			})),
-		);
+		return Ok(results);
 	}
 
 	async create(item: Item, fields: ItemFields): Promise<Result<None, Failure>> {
@@ -447,41 +236,34 @@ class PrismaItemRepository implements ItemRepository {
 				name: item.name,
 				collectionId: item.collection.id,
 				tags: {
-					create: Array.from(item.tags).map((t) => ({
-						tag: t,
-					})),
+					create: Array.from(item.tags).map((tag) => ({ tag })),
 				},
 				numberFields: {
 					create: fields.numberFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
 				},
 				textFields: {
 					create: fields.textFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
 				},
 				multilineTextFields: {
 					create: fields.multilineTextFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
 				},
 				checkboxFields: {
 					create: fields.checkboxFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
 				},
 				dateFields: {
 					create: fields.dateFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
@@ -494,21 +276,16 @@ class PrismaItemRepository implements ItemRepository {
 
 	async update(item: Item, fields: ItemFields): Promise<Result<None, Failure>> {
 		await this.prisma.item.update({
-			where: {
-				id: item.id,
-			},
+			where: { id: item.id },
 			data: {
 				name: item.name,
 				tags: {
 					deleteMany: {},
-					create: Array.from(item.tags).map((t) => ({
-						tag: t,
-					})),
+					create: Array.from(item.tags).map((tag) => ({ tag })),
 				},
 				numberFields: {
 					deleteMany: {},
 					create: fields.numberFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
@@ -516,7 +293,6 @@ class PrismaItemRepository implements ItemRepository {
 				textFields: {
 					deleteMany: {},
 					create: fields.textFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
@@ -524,7 +300,6 @@ class PrismaItemRepository implements ItemRepository {
 				multilineTextFields: {
 					deleteMany: {},
 					create: fields.multilineTextFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
@@ -532,7 +307,6 @@ class PrismaItemRepository implements ItemRepository {
 				checkboxFields: {
 					deleteMany: {},
 					create: fields.checkboxFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
@@ -540,7 +314,6 @@ class PrismaItemRepository implements ItemRepository {
 				dateFields: {
 					deleteMany: {},
 					create: fields.dateFields.map((f) => ({
-						itemId: item.id,
 						collectionFieldId: f.collectionField.id,
 						value: f.value,
 					})),
@@ -552,9 +325,7 @@ class PrismaItemRepository implements ItemRepository {
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
-		await this.prisma.item.delete({
-			where: { id },
-		});
+		await this.prisma.item.delete({ where: { id } });
 
 		return Ok(None);
 	}
@@ -630,5 +401,90 @@ export function prismaDateFieldToEntity(
 		item,
 		collectionField,
 		value: model.value,
+	};
+}
+
+function prismaItemToGetItemResult<O extends GetItemOptions>(
+	pi: PrismaItem & {
+		tags: PrismaItemTag[];
+		collection: PrismaCollection & { owner: PrismaUser; topic: PrismaTopic };
+		numberFields: (PrismaNumberField & {
+			collectionField: PrismaCollectionField;
+		})[];
+		textFields: (PrismaTextField & {
+			collectionField: PrismaCollectionField;
+		})[];
+		multilineTextFields: (PrismaMultilineTextField & {
+			collectionField: PrismaCollectionField;
+		})[];
+		checkboxFields: (PrismaCheckboxField & {
+			collectionField: PrismaCollectionField;
+		})[];
+		dateFields: (PrismaDateField & {
+			collectionField: PrismaCollectionField;
+		})[];
+		comments: (PrismaComment & { author: PrismaUser })[];
+	},
+	options?: O | undefined,
+): GetItemResult<O> {
+	const item: Item = prismaItemToEntity(
+		pi,
+		prismaCollectionToEntity(pi.collection),
+	);
+
+	const includables: Partial<GetItemIncludables> = {};
+
+	if (options?.include?.fields) {
+		const numberFields = pi.numberFields.map((nf) =>
+			prismaNumberFieldToEntity(nf, item, {
+				...nf.collectionField,
+				collection: item.collection,
+			}),
+		);
+		const textFields = pi.textFields.map((tf) =>
+			prismaTextFieldToEntity(tf, item, {
+				...tf.collectionField,
+				collection: item.collection,
+			}),
+		);
+		const multilineTextFields = pi.multilineTextFields.map((mtf) =>
+			prismaMultilineTextFieldToEntity(mtf, item, {
+				...mtf.collectionField,
+				collection: item.collection,
+			}),
+		);
+		const checkboxFields = pi.checkboxFields.map((cf) =>
+			prismaCheckboxFieldToEntity(cf, item, {
+				...cf.collectionField,
+				collection: item.collection,
+			}),
+		);
+		const dateFields = pi.dateFields.map((df) =>
+			prismaDateFieldToEntity(df, item, {
+				...df.collectionField,
+				collection: item.collection,
+			}),
+		);
+
+		includables.fields = {
+			numberFields,
+			textFields,
+			multilineTextFields,
+			checkboxFields,
+			dateFields,
+		};
+	}
+
+	if (options?.include?.comments) {
+		const comments = pi.comments.map((comment) =>
+			prismaCommentToEntity(comment, item),
+		);
+
+		includables.comments = comments;
+	}
+
+	return {
+		item,
+		...(includables as GetItemIncludedProperties<O>),
 	};
 }

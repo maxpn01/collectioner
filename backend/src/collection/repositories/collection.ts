@@ -92,9 +92,7 @@ class PrismaCollectionRepository implements CollectionRepository {
 
 		const prismaCollections = await this.prisma.collection.findMany({
 			where: {
-				owner: {
-					email,
-				},
+				owner: { email },
 			},
 			include: {
 				items: prismaItemsInclude,
@@ -105,9 +103,9 @@ class PrismaCollectionRepository implements CollectionRepository {
 		});
 		if (!prismaCollections) return Err(new NotFoundFailure());
 
-		const collections: Collection[] = prismaCollections.map((pc) => {
-			return prismaCollectionToEntity(pc);
-		});
+		const collections: Collection[] = prismaCollections.map(
+			prismaCollectionToEntity,
+		);
 		const includables: Partial<GetCollectionIncludables> = {};
 
 		if (options?.include?.items) {
