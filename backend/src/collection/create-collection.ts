@@ -2,10 +2,11 @@ import { Collection, Topic } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Result } from "ts-results";
 import { User, UserRepository } from "../user";
-import { Failure } from "../utils/failure";
+import { BadRequestFailure, Failure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../user/view-user";
 import { CollectionRepository } from "./repositories/collection";
 import { TopicRepository } from "./repositories/topic";
+import { CollectionSearchEngine } from "./search-engine";
 
 function generateCollectionId(): string {
 	return nanoid();
@@ -41,15 +42,18 @@ type CreateCollectionRequest = {
 
 export class CreateCollectionUseCase {
 	collectionRepository: CollectionRepository;
+	collectionSearchEngine: CollectionSearchEngine;
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
 
 	constructor(
 		collectionRepository: CollectionRepository,
+		collectionSearchEngine: CollectionSearchEngine,
 		topicRepository: TopicRepository,
 		userRepository: UserRepository,
 	) {
 		this.collectionRepository = collectionRepository;
+		this.collectionSearchEngine = collectionSearchEngine;
 		this.topicRepository = topicRepository;
 		this.userRepository = userRepository;
 	}
@@ -88,6 +92,24 @@ export class CreateCollectionUseCase {
 		const createResult = await this.collectionRepository.create(collection);
 		if (createResult.err) return createResult;
 
+		const addDocumentResult = await this.collectionSearchEngine.add(collection);
+		if (addDocumentResult.err) return addDocumentResult;
+
 		return Ok(None);
+	}
+}
+
+export class JsonCreateCollectionController {
+	execute(json: any): Result<CreateCollectionRequest, Failure> {
+		let name = json.name as string;
+		name = name.trim();
+
+		if (name.length === 0) return Err(new BadRequestFailure());
+
+		return Ok({
+			name,
+			ownerId: json.ownerId,
+			topicId: json.topicId,
+		});
 	}
 }

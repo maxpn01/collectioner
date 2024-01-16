@@ -10,6 +10,7 @@ import {
 	CollectionFieldRepository,
 	UpdatedField,
 } from "./repositories/collection-field";
+import { CollectionSearchEngine } from "./search-engine/collection";
 
 function updateCollection(
 	collection: Collection,
@@ -87,6 +88,7 @@ export type UpdateCollectionRequestNewField = {
 
 export class UpdateCollectionUseCase {
 	collectionRepository: CollectionRepository;
+	collectionSearchEngine: CollectionSearchEngine;
 	topicRepository: TopicRepository;
 	userRepository: UserRepository;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
@@ -94,11 +96,13 @@ export class UpdateCollectionUseCase {
 
 	constructor(
 		collectionRepository: CollectionRepository,
+		collectionSearchEngine: CollectionSearchEngine,
 		topicRepository: TopicRepository,
 		userRepository: UserRepository,
 		collectionFieldRepository: CollectionFieldRepository,
 	) {
 		this.collectionRepository = collectionRepository;
+		this.collectionSearchEngine = collectionSearchEngine;
 		this.topicRepository = topicRepository;
 		this.userRepository = userRepository;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
@@ -151,6 +155,11 @@ export class UpdateCollectionUseCase {
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;
+
+		const replaceDocumentResult = await this.collectionSearchEngine.replace(
+			collection,
+		);
+		if (replaceDocumentResult.err) return replaceDocumentResult;
 
 		return Ok(None);
 	}

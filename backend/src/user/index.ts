@@ -46,7 +46,7 @@ export interface UserRepository {
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-class PrismaUserRepository implements UserRepository {
+export class PrismaUserRepository implements UserRepository {
 	private prisma: PrismaClient;
 
 	constructor() {

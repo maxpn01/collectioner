@@ -22,7 +22,7 @@ export interface CommentRepository {
 	deleteByItem(itemId: string): Promise<Result<None, Failure>>;
 }
 
-class PrismaCommentRepository implements CommentRepository {
+export class PrismaCommentRepository implements CommentRepository {
 	private prisma: PrismaClient;
 
 	constructor() {

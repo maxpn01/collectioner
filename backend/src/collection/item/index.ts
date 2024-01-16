@@ -83,12 +83,16 @@ export interface ItemRepository {
 		id: string,
 		options?: O,
 	): Promise<Result<GetItemResult<O>[], Failure>>;
+	getMany(ids: Set<string>): Promise<Result<Item[], Failure>>;
+	getOneFromEachCollection(
+		collectionIds: Set<string>,
+	): Promise<Result<Item[], Failure>>;
 	create(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
 	update(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-class PrismaItemRepository implements ItemRepository {
+export class PrismaItemRepository implements ItemRepository {
 	private prisma: PrismaClient;
 
 	constructor() {
@@ -227,6 +231,52 @@ class PrismaItemRepository implements ItemRepository {
 		);
 
 		return Ok(results);
+	}
+
+	async getMany(ids: Set<string>): Promise<Result<Item[], Failure>> {
+		const prismaItems = await this.prisma.item.findMany({
+			where: { id: { in: [...ids] } },
+			include: {
+				collection: {
+					include: {
+						owner: true,
+						topic: true,
+					},
+				},
+				tags: true,
+			},
+		});
+
+		const items: Item[] = prismaItems.map((pi) => {
+			const collection = prismaCollectionToEntity(pi.collection);
+			return prismaItemToEntity(pi, collection);
+		});
+
+		return Ok(items);
+	}
+
+	async getOneFromEachCollection(
+		collectionIds: Set<string>,
+	): Promise<Result<Item[], Failure>> {
+		const prismaItems = await this.prisma.item.findMany({
+			where: { collectionId: { in: [...collectionIds] } },
+			include: {
+				collection: {
+					include: {
+						owner: true,
+						topic: true,
+					},
+				},
+				tags: true,
+			},
+		});
+
+		const items: Item[] = prismaItems.map((pi) => {
+			const collection = prismaCollectionToEntity(pi.collection);
+			return prismaItemToEntity(pi, collection);
+		});
+
+		return Ok(items);
 	}
 
 	async create(item: Item, fields: ItemFields): Promise<Result<None, Failure>> {

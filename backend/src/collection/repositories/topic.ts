@@ -9,7 +9,7 @@ export interface TopicRepository {
 	get(id: string): Promise<Result<Topic, Failure>>;
 }
 
-class PrismaTopicRepository implements TopicRepository {
+export class PrismaTopicRepository implements TopicRepository {
 	private prisma: PrismaClient;
 
 	constructor() {

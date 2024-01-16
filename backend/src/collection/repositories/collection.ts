@@ -27,7 +27,7 @@ export interface CollectionRepository {
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
-class PrismaCollectionRepository implements CollectionRepository {
+export class PrismaCollectionRepository implements CollectionRepository {
 	private prisma: PrismaClient;
 
 	constructor() {
