@@ -9,6 +9,7 @@ import {
 } from ".";
 import { Err, None, Ok, Result } from "ts-results";
 import {
+	HttpFailure,
 	HttpFailurePresenter,
 	JsonHttpFailure,
 	expressSendHttpFailure,
@@ -123,8 +124,8 @@ export class JsonSignUpWithEmailController {
 	}
 }
 
-export class SignUpJsonHttpFailurePresenter {
-	execute(failure: Failure): JsonHttpFailure {
+export class SignUpHttpFailurePresenter {
+	execute(failure: Failure): HttpFailure {
 		if (failure instanceof ValidatePasswordFailure) {
 			return new JsonHttpFailure(422, {
 				passwordTooShort: failure.passwordTooShort,
@@ -147,24 +148,25 @@ export class SignUpJsonHttpFailurePresenter {
 	}
 }
 
-import { Application, Request, Response } from "express";
+import { Request, Response } from "express";
 
 export class ExpressSignUpWithEmail {
 	signUpWithEmail: SignUpWithEmailUseCase;
 	jsonSignUpWithEmailController: JsonSignUpWithEmailController;
-	signUpJsonHttpFailurePresenter: SignUpJsonHttpFailurePresenter;
+	signUpHttpFailurePresenter: SignUpHttpFailurePresenter;
 	httpFailurePresenter: HttpFailurePresenter;
 
 	constructor(
 		signUpWithEmail: SignUpWithEmailUseCase,
 		jsonSignUpWithEmailController: JsonSignUpWithEmailController,
-		signUpJsonHttpFailurePresenter: SignUpJsonHttpFailurePresenter,
+		signUpHttpFailurePresenter: SignUpHttpFailurePresenter,
 		httpFailurePresenter: HttpFailurePresenter,
 	) {
 		this.signUpWithEmail = signUpWithEmail;
 		this.jsonSignUpWithEmailController = jsonSignUpWithEmailController;
-		this.signUpJsonHttpFailurePresenter = signUpJsonHttpFailurePresenter;
+		this.signUpHttpFailurePresenter = signUpHttpFailurePresenter;
 		this.httpFailurePresenter = httpFailurePresenter;
+		this.execute = this.execute.bind(this);
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
@@ -182,14 +184,16 @@ export class ExpressSignUpWithEmail {
 		const signUpResult = await this.signUpWithEmail.execute(request);
 		if (signUpResult.err) {
 			const failure = signUpResult.val;
-			const httpFailure = this.signUpJsonHttpFailurePresenter.execute(failure);
+			const httpFailure = this.signUpHttpFailurePresenter.execute(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
 		const newUser = signUpResult.val;
 
-		//@ts-ignore
-		req.session.userId = newUser.id;
+		req.session.regenerate(() => {
+			//@ts-ignore
+			req.session.userId = user.id;
+		});
 
 		res.status(200).send();
 	}

@@ -1,7 +1,7 @@
-import { bcrypt } from "bcryptjs";
-import { Failure, NotFoundFailure } from "../utils/failure";
-import { UserRepository } from ".";
-import { Err, None, Ok, Result } from "ts-results";
+import bcrypt from "bcryptjs";
+import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
+import { User, UserRepository } from ".";
+import { Err, Ok, Result } from "ts-results";
 
 async function checkPasswordMatches(
 	raw: string,
@@ -17,7 +17,7 @@ type SignInWithEmailRequest = {
 	password: string;
 };
 
-class SignInWithEmailUseCase {
+export class SignInWithEmailUseCase {
 	userRepository: UserRepository;
 
 	constructor(userRepository: UserRepository) {
@@ -26,7 +26,7 @@ class SignInWithEmailUseCase {
 
 	async execute(
 		request: SignInWithEmailRequest,
-	): Promise<Result<None, Failure>> {
+	): Promise<Result<User, Failure>> {
 		const userResult = await this.userRepository.getByEmail(request.email);
 		if (userResult.err) {
 			const failure = userResult.val;
@@ -45,6 +45,86 @@ class SignInWithEmailUseCase {
 		);
 		if (!passwordMatches) return Err(new InvalidCredentialsFailure());
 
-		return Ok(None);
+		return Ok(user);
+	}
+}
+
+import {
+	HttpFailure,
+	HttpFailurePresenter,
+	expressSendHttpFailure,
+} from "../http";
+
+export class JsonSignInWithEmailController {
+	execute(json: any): Result<SignInWithEmailRequest, BadRequestFailure> {
+		const isValidJson =
+			typeof json.email === "string" && typeof json.password === "string";
+		if (!isValidJson) return Err(new BadRequestFailure());
+
+		return Ok({
+			email: json.email,
+			password: json.password,
+		});
+	}
+}
+
+export class SignInHttpFailurePresenter {
+	execute(failure: Failure): HttpFailure {
+		if (failure instanceof InvalidCredentialsFailure) {
+			return new HttpFailure(401);
+		}
+
+		throw new Error("Not implemented.");
+	}
+}
+
+import { Request, Response } from "express";
+
+export class ExpressSignInWithEmail {
+	signInWithEmail: SignInWithEmailUseCase;
+	jsonSignInWithEmailController: JsonSignInWithEmailController;
+	signInHttpFailurePresenter: SignInHttpFailurePresenter;
+	httpFailurePresenter: HttpFailurePresenter;
+
+	constructor(
+		signInWithEmail: SignInWithEmailUseCase,
+		jsonSignInWithEmailController: JsonSignInWithEmailController,
+		signInHttpFailurePresenter: SignInHttpFailurePresenter,
+		httpFailurePresenter: HttpFailurePresenter,
+	) {
+		this.signInWithEmail = signInWithEmail;
+		this.jsonSignInWithEmailController = jsonSignInWithEmailController;
+		this.signInHttpFailurePresenter = signInHttpFailurePresenter;
+		this.httpFailurePresenter = httpFailurePresenter;
+		this.execute = this.execute.bind(this);
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const json = req.body;
+
+		const controllerResult = this.jsonSignInWithEmailController.execute(json);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = this.httpFailurePresenter.execute(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const request = controllerResult.val;
+
+		const signInResult = await this.signInWithEmail.execute(request);
+		if (signInResult.err) {
+			const failure = signInResult.val;
+			const httpFailure = this.signInHttpFailurePresenter.execute(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const user = signInResult.val;
+
+		req.session.regenerate(() => {
+			//@ts-ignore
+			req.session.userId = user.id;
+		});
+
+		res.status(200).send();
 	}
 }
