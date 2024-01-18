@@ -19,8 +19,8 @@ export type User = {
 	passwordHash: string;
 };
 
-class UsernameIsTakenFailure extends Failure {}
-class EmailIsTakenFailure extends Failure {}
+export class UsernameIsTakenFailure extends Failure {}
+export class EmailIsTakenFailure extends Failure {}
 
 type GetUserIncludables = {
 	collections: Collection[];

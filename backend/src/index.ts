@@ -1,8 +1,7 @@
-import dotenv from "dotenv";
-dotenv.config(); // Must be before .env and other files that use process.env
 import env from "./setup/env";
-import { app } from "./setup/express";
+import { expressApp } from "./setup/http";
 
 import "./setup/search";
+import "./setup/user/signup";
 
-app.listen(env.port, () => console.log(`Server started on ${env.port}`));
+expressApp.listen(env.port, () => console.log(`Server started on ${env.port}`));

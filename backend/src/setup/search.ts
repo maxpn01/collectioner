@@ -5,7 +5,7 @@ import {
 	SearchUseCase,
 } from "../search";
 import { meili } from "./meili";
-import { app } from "./express";
+import { expressApp } from "./http";
 import { prismaItemRepository } from "./collection/item";
 
 const searchEngine = new MeiliSearchEngine(meili);
@@ -13,7 +13,7 @@ const search = new SearchUseCase(searchEngine, prismaItemRepository);
 const querySearchController = new QuerySearchController();
 const jsonSearchResponsePresenter = new JsonSearchResponsePresenter();
 
-app.get("/search", async (req, res) => {
+expressApp.get("/search", async (req, res) => {
 	const httpQuery = req.query.q;
 	if (typeof httpQuery !== "string") {
 		res.status(400).send();
