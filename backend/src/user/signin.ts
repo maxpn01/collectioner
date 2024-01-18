@@ -79,6 +79,7 @@ export class SignInHttpFailurePresenter {
 }
 
 import { Request, Response } from "express";
+import "express-session";
 
 export class ExpressSignInWithEmail {
 	signInWithEmail: SignInWithEmailUseCase;

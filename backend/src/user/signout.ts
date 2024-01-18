@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import "express-session";
 
 export class ExpressSignOut {
 	constructor() {

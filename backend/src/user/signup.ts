@@ -149,6 +149,7 @@ export class SignUpHttpFailurePresenter {
 }
 
 import { Request, Response } from "express";
+import "express-session";
 
 export class ExpressSignUpWithEmail {
 	signUpWithEmail: SignUpWithEmailUseCase;
