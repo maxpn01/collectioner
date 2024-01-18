@@ -10,7 +10,7 @@ import {
 	CollectionFieldRepository,
 	UpdatedField,
 } from "./repositories/collection-field";
-import { CollectionSearchEngine } from "./search-engine/collection";
+import { CollectionSearchEngine } from "./search-engine";
 
 function updateCollection(
 	collection: Collection,

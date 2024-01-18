@@ -3,7 +3,7 @@ import { Failure } from "../utils/failure";
 import { AuthorizeCollectionUpdate } from "./update-collection";
 import { UserRepository } from "../user";
 import { CollectionRepository } from "./repositories/collection";
-import { CollectionSearchEngine } from "./search-engine/collection";
+import { CollectionSearchEngine } from "./search-engine";
 
 export class DeleteCollectionUseCase {
 	collectionRepository: CollectionRepository;
