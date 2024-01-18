@@ -11,7 +11,7 @@ import {
 	RepoGetIncludedProperties,
 	RepoGetOptions,
 } from "../../utils/repository";
-import { Comment, prismaCommentToEntity } from "./comments";
+import { Comment, prismaCommentToEntity } from "./comment";
 import { PrismaClient } from "@prisma/client";
 
 import {

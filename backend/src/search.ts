@@ -4,7 +4,7 @@ import { ItemRepository } from "./collection/item";
 import MeiliSearch from "meilisearch";
 import { meiliCollectionIndex } from "./collection/search-engine";
 import { ItemDocument, meiliItemIndex } from "./collection/item/search-engine";
-import { meiliCommentIndex } from "./collection/item/comments/search-engine";
+import { meiliCommentIndex } from "./collection/item/comment/search-engine";
 import { dateToUnixTime, unixTimeToDate } from "./utils/date";
 
 type SearchResponseItem = {
