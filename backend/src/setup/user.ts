@@ -5,6 +5,7 @@ import {
 	JsonSignInWithEmailController,
 	ExpressSignInWithEmail,
 } from "../user/signin";
+import { ExpressSignOut } from "../user/signout";
 
 export const prismaUserRepository = new PrismaUserRepository();
 
@@ -39,3 +40,7 @@ const expressSignInWithEmail = new ExpressSignInWithEmail(
 );
 
 expressApp.post("/signin/email", expressSignInWithEmail.execute);
+
+const expressSignOut = new ExpressSignOut();
+
+expressApp.post("/signout", expressSignOut.execute);
