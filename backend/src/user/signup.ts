@@ -193,9 +193,8 @@ export class ExpressSignUpWithEmail {
 
 		req.session.regenerate(() => {
 			//@ts-ignore
-			req.session.userId = user.id;
+			req.session.userId = newUser.id;
+			res.status(200).json(req.session);
 		});
-
-		res.status(200).send();
 	}
 }

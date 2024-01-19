@@ -124,8 +124,7 @@ export class ExpressSignInWithEmail {
 		req.session.regenerate(() => {
 			//@ts-ignore
 			req.session.userId = user.id;
+			res.status(200).json(req.session);
 		});
-
-		res.status(200).send();
 	}
 }
