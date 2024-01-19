@@ -1,12 +1,18 @@
+import env from "./env";
 import {
 	JsonSearchResponsePresenter,
 	MeiliSearchEngine,
 	QuerySearchController,
 	SearchUseCase,
 } from "../search";
-import { meili } from "./meili";
+import { MeiliSearch } from "meilisearch";
 import { expressApp } from "./http";
 import { prismaItemRepository } from "./collection/item";
+
+export const meili = new MeiliSearch({
+	host: "http://localhost:7700",
+	apiKey: env.meiliMasterKey,
+});
 
 const searchEngine = new MeiliSearchEngine(meili);
 const search = new SearchUseCase(searchEngine, prismaItemRepository);

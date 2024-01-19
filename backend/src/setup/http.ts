@@ -4,17 +4,15 @@ export const httpFailurePresenter = new HttpFailurePresenter();
 
 import express from "express";
 import session from "express-session";
-import cookieParser from "cookie-parser";
 import connectPgSimple from "connect-pg-simple";
 import env from "./env";
 
 export const expressApp = express();
-expressApp.use(cookieParser());
 
 expressApp.use(express.json());
 expressApp.use(express.urlencoded({ extended: false }));
 
-const postgressSessionSrore = new (connectPgSimple(session))({
+const postgressSessionStore = new (connectPgSimple(session))({
 	tableName: "user_session",
 	createTableIfMissing: true,
 	conObject: {
@@ -26,10 +24,10 @@ const postgressSessionSrore = new (connectPgSimple(session))({
 expressApp.use(
 	session({
 		name: "c_id",
-		store: postgressSessionSrore,
+		store: postgressSessionStore,
 		secret: env.cookieSecret,
 		resave: false,
-		saveUninitialized: true,
+		saveUninitialized: false,
 		cookie: {
 			secure: env.isProduction,
 			httpOnly: true,
