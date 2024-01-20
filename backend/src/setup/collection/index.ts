@@ -2,6 +2,10 @@ import {
 	CreateCollectionUseCase,
 	ExpressCreateCollection,
 } from "../../collection/create-collection";
+import {
+	DeleteCollectionUseCase,
+	ExpressDeleteCollection,
+} from "../../collection/delete-collection";
 import { PrismaCollectionRepository } from "../../collection/repositories/collection";
 import { PrismaTopicRepository } from "../../collection/repositories/topic";
 import { MeiliCollectionSearchEngine } from "../../collection/search-engine";
@@ -27,4 +31,16 @@ expressApp.post(
 	"/api/collection",
 	requireAuth,
 	expressCreateCollection.execute,
+);
+
+const deleteCollection = new DeleteCollectionUseCase(
+	prismaCollectionRepository,
+	meiliCollectionSearchEngine,
+	prismaUserRepository,
+);
+const expressDeleteCollection = new ExpressDeleteCollection(deleteCollection);
+expressApp.delete(
+	"/api/collection",
+	requireAuth,
+	expressDeleteCollection.execute,
 );
