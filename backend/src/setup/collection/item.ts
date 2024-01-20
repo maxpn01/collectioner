@@ -15,4 +15,4 @@ const searchItems = new SearchItemsUseCase(
 );
 const expressSearchItems = new ExpressSearchItems(searchItems);
 
-expressApp.get("/item/search", expressSearchItems.execute);
+expressApp.get("/api/item/search", expressSearchItems.execute);

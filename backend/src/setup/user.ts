@@ -18,27 +18,31 @@ import { requireAuth } from "./middleware/auth";
 
 const signUpWithEmail = new SignUpWithEmailUseCase(prismaUserRepository);
 const expressSignUpWithEmail = new ExpressSignUpWithEmail(signUpWithEmail);
-expressApp.post("/signup/email", expressSignUpWithEmail.execute);
+expressApp.post("/api/signup/email", expressSignUpWithEmail.execute);
 
 const signInWithEmail = new SignInWithEmailUseCase(prismaUserRepository);
 const expressSignInWithEmail = new ExpressSignInWithEmail(signInWithEmail);
-expressApp.post("/signin/email", expressSignInWithEmail.execute);
+expressApp.post("/api/signin/email", expressSignInWithEmail.execute);
 
 const expressSignOut = new ExpressSignOut();
-expressApp.post("/signout", expressSignOut.execute);
+expressApp.post("/api/signout", expressSignOut.execute);
 
 const setUserIsAdmin = new SetUserIsAdminUseCase(prismaUserRepository);
 const expressSetUserIsAdmin = new ExpressSetUserIsAdmin(setUserIsAdmin);
-expressApp.put("/user/is-admin", requireAuth, expressSetUserIsAdmin.execute);
+expressApp.put(
+	"/api/user/is-admin",
+	requireAuth,
+	expressSetUserIsAdmin.execute,
+);
 
 const setUserBlocked = new SetUserBlockedUseCase(prismaUserRepository);
 const expressSetUserBlocked = new ExpressSetUserBlocked(setUserBlocked);
-expressApp.put("/user/blocked", requireAuth, expressSetUserBlocked.execute);
+expressApp.put("/api/user/blocked", requireAuth, expressSetUserBlocked.execute);
 
 const deleteUser = new DeleteUserUseCase(prismaUserRepository);
 const expressDeleteUser = new ExpressDeleteUser(deleteUser);
-expressApp.delete("/user", requireAuth, expressDeleteUser.execute);
+expressApp.delete("/api/user", requireAuth, expressDeleteUser.execute);
 
 const viewUser = new ViewUserUseCase(prismaUserRepository);
 const expressViewUser = new ExpressViewUser(viewUser);
-expressApp.get("/user", expressViewUser.execute);
+expressApp.get("/api/user", expressViewUser.execute);
