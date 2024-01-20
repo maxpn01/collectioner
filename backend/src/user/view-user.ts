@@ -76,8 +76,8 @@ export class ExpressViewUser {
 	viewUser: ViewUserUseCase;
 
 	constructor(viewUser: ViewUserUseCase) {
-		this.viewUser = viewUser;
 		this.execute = this.execute.bind(this);
+		this.viewUser = viewUser;
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {

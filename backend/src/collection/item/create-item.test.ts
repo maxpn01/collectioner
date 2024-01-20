@@ -17,8 +17,8 @@ import {
 	anything,
 } from "ts-mockito";
 import { None, Ok } from "ts-results";
-import { NotAuthorizedFailure } from "../../user/view-user";
 import { CollectionRepository } from "../repositories/collection";
+import { NotAuthorizedFailure } from "../../utils/failure";
 
 describe("create item use case", () => {
 	let createItem: CreateItemUseCase;

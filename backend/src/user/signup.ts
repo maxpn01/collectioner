@@ -153,8 +153,8 @@ export class ExpressSignUpWithEmail {
 	signUpWithEmail: SignUpWithEmailUseCase;
 
 	constructor(signUpWithEmail: SignUpWithEmailUseCase) {
-		this.signUpWithEmail = signUpWithEmail;
 		this.execute = this.execute.bind(this);
+		this.signUpWithEmail = signUpWithEmail;
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {

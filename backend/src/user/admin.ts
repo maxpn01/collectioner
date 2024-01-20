@@ -149,8 +149,8 @@ export class ExpressSetUserBlocked {
 	setUserBlocked: SetUserBlockedUseCase;
 
 	constructor(setUserBlocked: SetUserBlockedUseCase) {
-		this.setUserBlocked = setUserBlocked;
 		this.execute = this.execute.bind(this);
+		this.setUserBlocked = setUserBlocked;
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {

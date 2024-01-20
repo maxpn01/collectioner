@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
 import { UserRepository, authorizeUserUpdate } from "../user";
 import { Failure, NotFoundFailure } from "../utils/failure";
-import { NotAuthorizedFailure } from "../user/view-user";
+import { NotAuthorizedFailure } from "../utils/failure";
 import { CollectionRepository } from "./repositories/collection";
 import { TopicRepository } from "./repositories/topic";
 import {
