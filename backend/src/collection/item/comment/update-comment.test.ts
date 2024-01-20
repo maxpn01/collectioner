@@ -16,13 +16,15 @@ import {
 	when,
 } from "ts-mockito";
 import { None, Ok } from "ts-results";
-import { NotAuthorizedFailure } from "../../../user/view-user";
+import { CommentSearchEngine } from "./search-engine";
+import { NotAuthorizedFailure } from "../../../utils/failure";
 
 describe("update comment use case", () => {
 	let updateComment: UpdateCommentUseCase;
 
 	const MockUserRepo = mock<UserRepository>();
 	const MockCommentRepo = mock<CommentRepository>();
+	const MockCommentSearchEngine = mock<CommentSearchEngine>();
 
 	const john = createTestUser("john");
 	const johnCollection = createTestCollection(
@@ -53,7 +55,15 @@ describe("update comment use case", () => {
 		resetCalls(MockCommentRepo);
 		const commentRepo = instance(MockCommentRepo);
 
-		updateComment = new UpdateCommentUseCase(userRepo, commentRepo);
+		resetCalls(MockCommentSearchEngine);
+		when(MockCommentSearchEngine.replace(anything())).thenResolve(Ok(None));
+		const commentSearchEngine = instance(MockCommentSearchEngine);
+
+		updateComment = new UpdateCommentUseCase(
+			userRepo,
+			commentRepo,
+			commentSearchEngine,
+		);
 	});
 
 	it("update a comment", async () => {

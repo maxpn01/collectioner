@@ -1,8 +1,8 @@
 import { Result, None, Ok, Err } from "ts-results";
 import { CommentRepository } from ".";
-import { Failure } from "../../../utils/failure";
-import { NotAuthorizedFailure } from "../../../user/view-user";
+import { Failure, NotAuthorizedFailure } from "../../../utils/failure";
 import { UserRepository } from "../../../user";
+import { CommentSearchEngine } from "./search-engine";
 
 type UpdateCommentRequest = {
 	id: string;
@@ -12,13 +12,16 @@ type UpdateCommentRequest = {
 export class UpdateCommentUseCase {
 	userRepository: UserRepository;
 	commentRepository: CommentRepository;
+	commentSearchEngine: CommentSearchEngine;
 
 	constructor(
 		userRepository: UserRepository,
 		commentRepository: CommentRepository,
+		commentSearchEngine: CommentSearchEngine,
 	) {
 		this.userRepository = userRepository;
 		this.commentRepository = commentRepository;
+		this.commentSearchEngine = commentSearchEngine;
 	}
 
 	async execute(
@@ -39,10 +42,13 @@ export class UpdateCommentUseCase {
 		const updatedComment = structuredClone(comment);
 		updatedComment.text = request.text;
 
-		const updateCommentResult = await this.commentRepository.update(
+		const updateResult = await this.commentRepository.update(updatedComment);
+		if (updateResult.err) return updateResult;
+
+		const replaceResult = await this.commentSearchEngine.replace(
 			updatedComment,
 		);
-		if (updateCommentResult.err) return updateCommentResult;
+		if (replaceResult.err) return replaceResult;
 
 		return Ok(None);
 	}
