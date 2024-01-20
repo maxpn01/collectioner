@@ -9,3 +9,14 @@ export function areArraysEqual<T>(arr1: T[], arr2: T[]): boolean {
 
 	return true;
 }
+
+export function uniqueBy<T, U>(
+	selectUniqueProperty: (t: T) => U,
+	arr: T[],
+): T[] {
+	let uniquePropertySet = new Set(arr.map(selectUniqueProperty));
+
+	return [...uniquePropertySet].map(
+		(prop) => arr.find((item) => selectUniqueProperty(item) === prop)!,
+	);
+}
