@@ -1,8 +1,7 @@
-import { Result, Err, Option, Ok } from "ts-results";
+import { Result, Option, Ok } from "ts-results";
 import { UserRepository } from ".";
 import { Failure } from "../utils/failure";
 import { Collection } from "../collection";
-import { CollectionRepository } from "../collection/repositories/collection";
 
 type ViewUserResponse = {
 	id: string;
@@ -22,16 +21,11 @@ type ViewUserResponseCollection = {
 	imageOption: Option<string>;
 };
 
-class ViewUserUseCase {
+export class ViewUserUseCase {
 	userRepository: UserRepository;
-	collectionRepository: CollectionRepository;
 
-	constructor(
-		userRepository: UserRepository,
-		collectionRepository: CollectionRepository,
-	) {
+	constructor(userRepository: UserRepository) {
 		this.userRepository = userRepository;
-		this.collectionRepository = collectionRepository;
 	}
 
 	async execute(id: string): Promise<Result<ViewUserResponse, Failure>> {
@@ -63,38 +57,49 @@ class ViewUserUseCase {
 	}
 }
 
-type AdminViewUserResult = {
-	id: string;
-	username: string;
-	email: string;
-	fullname: string;
-	blocked: boolean;
-	isAdmin: boolean;
-};
+import { httpFailurePresenter, expressSendHttpFailure } from "../http";
 
-export class NotAuthorizedFailure extends Failure {}
+export function viewUserJsonPresenter(response: ViewUserResponse): string {
+	return JSON.stringify({
+		id: response.id,
+		username: response.username,
+		fullname: response.fullname,
+		blocked: response.blocked,
+		collections: response.collections,
+	});
+}
 
-class AdminViewUserUseCase {
-	userRepository: UserRepository;
+import { Request, Response } from "express";
+import { idController } from "../utils/id";
 
-	constructor(userRepository: UserRepository) {
-		this.userRepository = userRepository;
+export class ExpressViewUser {
+	viewUser: ViewUserUseCase;
+
+	constructor(viewUser: ViewUserUseCase) {
+		this.viewUser = viewUser;
+		this.execute = this.execute.bind(this);
 	}
 
-	async execute(
-		id: string,
-		requesterId: string,
-	): Promise<Result<AdminViewUserResult, Failure>> {
-		const requesterResult = await this.userRepository.get(requesterId);
-		if (requesterResult.err) return requesterResult;
-		const { user: requester } = requesterResult.val;
-
-		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
-		if (id === requesterId) {
-			return Ok(requester);
+	async execute(req: Request, res: Response): Promise<void> {
+		const controllerResult = idController(req.query.id);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
 		}
+		const id = controllerResult.val;
 
-		const userResult = await this.userRepository.get(id);
-		return userResult.map(({ user }) => user);
+		const viewUserResult = await this.viewUser.execute(id);
+		if (viewUserResult.err) {
+			const failure = viewUserResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const user = viewUserResult.val;
+
+		const userJson = viewUserJsonPresenter(user);
+		res.status(200).json(userJson);
 	}
 }
