@@ -14,9 +14,10 @@ import { UserRepository } from "../user";
 import { createTestTopic } from "./index.test";
 import { createTestUser } from "../user/index.test";
 import { None, Ok } from "ts-results";
-import { NotAuthorizedFailure } from "../user/view-user";
+import { NotAuthorizedFailure } from "../utils/failure";
 import { TopicRepository } from "./repositories/topic";
 import { CollectionRepository } from "./repositories/collection";
+import { CollectionSearchEngine } from "./search-engine";
 
 describe("create collection use case", () => {
 	let createCollection: CreateCollectionUseCase;
@@ -24,6 +25,7 @@ describe("create collection use case", () => {
 	const MockTopicRepo = mock<TopicRepository>();
 	const MockUserRepo = mock<UserRepository>();
 	const MockCollectionRepo = mock<CollectionRepository>();
+	const MockCollectionSearchEngine = mock<CollectionSearchEngine>();
 
 	const topic = createTestTopic("books");
 
@@ -48,6 +50,7 @@ describe("create collection use case", () => {
 
 	beforeEach(() => {
 		resetCalls(MockTopicRepo);
+		when(MockTopicRepo.get(topic.id)).thenResolve(Ok(topic));
 		const topicRepo = instance(MockTopicRepo);
 
 		resetCalls(MockUserRepo);
@@ -56,10 +59,13 @@ describe("create collection use case", () => {
 		resetCalls(MockCollectionRepo);
 		const collectionRepo = instance(MockCollectionRepo);
 
-		when(MockTopicRepo.get(topic.id)).thenResolve(Ok(topic));
+		resetCalls(MockCollectionSearchEngine);
+		when(MockCollectionSearchEngine.add(anything())).thenResolve(Ok(None));
+		const collectionSearchEngine = instance(MockCollectionSearchEngine);
 
 		createCollection = new CreateCollectionUseCase(
 			collectionRepo,
+			collectionSearchEngine,
 			topicRepo,
 			userRepo,
 		);

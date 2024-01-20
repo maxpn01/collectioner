@@ -5,14 +5,16 @@ import { createTestUser } from "../user/index.test";
 import { anything, instance, mock, resetCalls, verify, when } from "ts-mockito";
 import { UserRepository } from "../user";
 import { None, Ok } from "ts-results";
-import { NotAuthorizedFailure } from "../user/view-user";
 import { CollectionRepository } from "./repositories/collection";
+import { CollectionSearchEngine } from "./search-engine";
+import { NotAuthorizedFailure } from "../utils/failure";
 
 describe("delete collection use case", () => {
 	let deleteCollection: DeleteCollectionUseCase;
 
 	const MockUserRepo = mock<UserRepository>();
 	const MockCollectionRepo = mock<CollectionRepository>();
+	const MockCollectionSearchEngine = mock<CollectionSearchEngine>();
 
 	const topic = createTestTopic("books");
 
@@ -28,13 +30,20 @@ describe("delete collection use case", () => {
 		const userRepo = instance(MockUserRepo);
 
 		resetCalls(MockCollectionRepo);
-		const collectionRepo = instance(MockCollectionRepo);
-
 		when(MockCollectionRepo.get(johnCollection.id)).thenResolve(
 			Ok({ collection: johnCollection }),
 		);
+		const collectionRepo = instance(MockCollectionRepo);
 
-		deleteCollection = new DeleteCollectionUseCase(collectionRepo, userRepo);
+		resetCalls(MockCollectionSearchEngine);
+		when(MockCollectionSearchEngine.add(anything())).thenResolve(Ok(None));
+		const collectionSearchEngine = instance(MockCollectionSearchEngine);
+
+		deleteCollection = new DeleteCollectionUseCase(
+			collectionRepo,
+			collectionSearchEngine,
+			userRepo,
+		);
 	});
 
 	it("deletes a collection", async () => {

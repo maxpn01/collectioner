@@ -25,7 +25,8 @@ import {
 	UpdatedField,
 } from "./repositories/collection-field";
 import { Collection, CollectionField, CollectionFieldType } from ".";
-import { NotAuthorizedFailure } from "../user/view-user";
+import { CollectionSearchEngine } from "./search-engine";
+import { NotAuthorizedFailure } from "../utils/failure";
 
 describe("update collection use case", () => {
 	let updateCollection: UpdateCollectionUseCase;
@@ -34,6 +35,7 @@ describe("update collection use case", () => {
 	const MockUserRepo = mock<UserRepository>();
 	const MockCollectionRepo = mock<CollectionRepository>();
 	const MockCollectionFieldRepo = mock<CollectionFieldRepository>();
+	const MockCollectionSearchEngine = mock<CollectionSearchEngine>();
 
 	const bookTopic = createTestTopic("books");
 
@@ -277,8 +279,13 @@ describe("update collection use case", () => {
 		).thenResolve(Ok(None));
 		const collectionFieldRepo = instance(MockCollectionFieldRepo);
 
+		resetCalls(MockCollectionSearchEngine);
+		when(MockCollectionSearchEngine.add(anything())).thenResolve(Ok(None));
+		const collectionSearchEngine = instance(MockCollectionSearchEngine);
+
 		updateCollection = new UpdateCollectionUseCase(
 			collectionRepo,
+			collectionSearchEngine,
 			topicRepo,
 			userRepo,
 			collectionFieldRepo,

@@ -4,7 +4,7 @@ import { createTestItem } from "./item/index.test";
 import { createTestUser } from "../user/index.test";
 import { createTestCollection, createTestTopic } from "./index.test";
 import { ViewCollectionUseCase } from "./view-collection";
-import { mock, instance, when, deepEqual } from "ts-mockito";
+import { mock, instance, when, deepEqual, resetCalls } from "ts-mockito";
 import { Ok } from "ts-results";
 import { CollectionRepository } from "./repositories/collection";
 
@@ -38,6 +38,7 @@ describe("view collection use case", () => {
 		];
 
 		const MockCollectionRepo = mock<CollectionRepository>();
+		resetCalls(MockCollectionRepo);
 		when(
 			MockCollectionRepo.get(
 				"johncollection",
