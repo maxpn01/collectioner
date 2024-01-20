@@ -1,11 +1,11 @@
 import { beforeEach, describe, it, expect } from "vitest";
 import { ItemFields, ItemRepository } from ".";
 import { CollectionField, CollectionFieldType } from "..";
-import { createTestComment } from "./comments/index.test";
 import { ViewItemUseCase } from "./view-item";
 import { createTestUser } from "../../user/index.test";
 import { createTestCollection, createTestTopic } from "../index.test";
 import { createTestItem } from "./index.test";
+import { createTestComment } from "./comment/index.test";
 import { instance, mock, when, deepEqual, resetCalls } from "ts-mockito";
 import { Ok } from "ts-results";
 

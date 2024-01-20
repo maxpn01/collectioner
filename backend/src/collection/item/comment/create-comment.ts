@@ -4,6 +4,7 @@ import { Item, ItemRepository } from "..";
 import { User, UserRepository } from "../../../user";
 import { Failure } from "../../../utils/failure";
 import { nanoid } from "nanoid";
+import { CommentSearchEngine } from "./search-engine";
 
 function generateItemId(): string {
 	return nanoid();
@@ -36,15 +37,18 @@ export class CreateCommentUseCase {
 	userRepository: UserRepository;
 	itemRepository: ItemRepository;
 	commentRepository: CommentRepository;
+	commentSearchEngine: CommentSearchEngine;
 
 	constructor(
 		userRepository: UserRepository,
 		itemRepository: ItemRepository,
 		commentRepository: CommentRepository,
+		commentSearchEngine: CommentSearchEngine,
 	) {
 		this.userRepository = userRepository;
 		this.itemRepository = itemRepository;
 		this.commentRepository = commentRepository;
+		this.commentSearchEngine = commentSearchEngine;
 	}
 
 	async execute(
@@ -65,8 +69,11 @@ export class CreateCommentUseCase {
 			text: request.text,
 		});
 
-		const createCommentResult = await this.commentRepository.create(comment);
-		if (createCommentResult.err) return createCommentResult;
+		const createResult = await this.commentRepository.create(comment);
+		if (createResult.err) return createResult;
+
+		const addResult = await this.commentSearchEngine.add(comment);
+		if (addResult.err) return addResult;
 
 		return Ok(None);
 	}

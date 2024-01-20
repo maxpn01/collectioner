@@ -12,10 +12,12 @@ import {
 	deepEqual,
 	instance,
 	mock,
+	resetCalls,
 	verify,
 	when,
 } from "ts-mockito";
 import { None, Ok } from "ts-results";
+import { CommentSearchEngine } from "./search-engine";
 
 describe("create comment use case", () => {
 	let createComment: CreateCommentUseCase;
@@ -23,6 +25,7 @@ describe("create comment use case", () => {
 	const MockUserRepo = mock<UserRepository>();
 	const MockItemRepo = mock<ItemRepository>();
 	const MockCommentRepo = mock<CommentRepository>();
+	const MockCommentSearchEngine = mock<CommentSearchEngine>();
 
 	const john = createTestUser("john");
 	const johnCollection = createTestCollection(
@@ -35,11 +38,25 @@ describe("create comment use case", () => {
 	const tyler = createTestUser("tyler");
 
 	beforeEach(() => {
+		resetCalls(MockUserRepo);
 		const userRepo = instance(MockUserRepo);
+
+		resetCalls(MockItemRepo);
 		const itemRepo = instance(MockItemRepo);
+
+		resetCalls(MockCommentRepo);
 		const commentRepo = instance(MockCommentRepo);
 
-		createComment = new CreateCommentUseCase(userRepo, itemRepo, commentRepo);
+		resetCalls(MockCommentSearchEngine);
+		when(MockCommentSearchEngine.add(anything())).thenResolve(Ok(None));
+		const commentSearchEngine = instance(MockCommentSearchEngine);
+
+		createComment = new CreateCommentUseCase(
+			userRepo,
+			itemRepo,
+			commentRepo,
+			commentSearchEngine,
+		);
 	});
 
 	it("create a comment", async () => {
