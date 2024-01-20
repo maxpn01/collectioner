@@ -1,9 +1,9 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { AuthorizeUserUpdateUseCase, UserRepository } from ".";
-import { Failure } from "../utils/failure";
-import { NotAuthorizedFailure } from "./view-user";
+import { Failure, NotAuthorizedFailure } from "../utils/failure";
+import { httpFailurePresenter, expressSendHttpFailure } from "../http";
 
-class DeleteUserUseCase {
+export class DeleteUserUseCase {
 	userRepository: UserRepository;
 	authorizeUserUpdate: AuthorizeUserUpdateUseCase;
 
@@ -23,5 +23,43 @@ class DeleteUserUseCase {
 		if (deleteResult.err) return deleteResult;
 
 		return Ok(None);
+	}
+}
+
+import { Request, Response } from "express";
+import session from "express-session";
+import { idController } from "../utils/id";
+
+export class ExpressDeleteUser {
+	deleteUser: DeleteUserUseCase;
+
+	constructor(deleteUser: DeleteUserUseCase) {
+		this.execute = this.execute.bind(this);
+		this.deleteUser = deleteUser;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const json = req.body;
+		//@ts-ignore
+		const requesterId = req.session.userId;
+
+		const controllerResult = idController(json);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const id = controllerResult.val;
+
+		const setUserBlockedResult = await this.deleteUser.execute(id, requesterId);
+		if (setUserBlockedResult.err) {
+			const failure = setUserBlockedResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).json(req.session);
 	}
 }
