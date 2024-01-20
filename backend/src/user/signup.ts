@@ -10,9 +10,9 @@ import {
 import { Err, None, Ok, Result } from "ts-results";
 import {
 	HttpFailure,
-	HttpFailurePresenter,
 	JsonHttpFailure,
 	expressSendHttpFailure,
+	httpFailurePresenter,
 } from "../http";
 
 function generateUserId(): string {
@@ -106,46 +106,44 @@ export class SignUpWithEmailUseCase {
 	}
 }
 
-export class JsonSignUpWithEmailController {
-	execute(json: any): Result<SignUpWithEmailRequest, BadRequestFailure> {
-		const isValidJson =
-			typeof json.email === "string" &&
-			typeof json.username === "string" &&
-			typeof json.fullname === "string" &&
-			typeof json.password === "string";
-		if (!isValidJson) return Err(new BadRequestFailure());
+export function jsonSignUpWithEmailController(
+	json: any,
+): Result<SignUpWithEmailRequest, BadRequestFailure> {
+	const isValidJson =
+		typeof json.email === "string" &&
+		typeof json.username === "string" &&
+		typeof json.fullname === "string" &&
+		typeof json.password === "string";
+	if (!isValidJson) return Err(new BadRequestFailure());
 
-		return Ok({
-			email: json.email,
-			username: json.username,
-			fullname: json.fullname,
-			password: json.password,
-		});
-	}
+	return Ok({
+		email: json.email,
+		username: json.username,
+		fullname: json.fullname,
+		password: json.password,
+	});
 }
 
-export class SignUpHttpFailurePresenter {
-	execute(failure: Failure): HttpFailure {
-		if (failure instanceof ValidatePasswordFailure) {
-			return new JsonHttpFailure(422, {
-				passwordTooShort: failure.passwordTooShort,
-			});
-		}
-
-		if (failure instanceof UsernameIsTakenFailure) {
-			return new JsonHttpFailure(409, {
-				usernameIsTaken: true,
-			});
-		}
-
-		if (failure instanceof EmailIsTakenFailure) {
-			return new JsonHttpFailure(409, {
-				emailIsTaken: true,
-			});
-		}
-
-		throw new Error("Not implemented.");
+export function signUpHttpFailurePresenter(failure: Failure): HttpFailure {
+	if (failure instanceof ValidatePasswordFailure) {
+		return new JsonHttpFailure(422, {
+			passwordTooShort: failure.passwordTooShort,
+		});
 	}
+
+	if (failure instanceof UsernameIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			usernameIsTaken: true,
+		});
+	}
+
+	if (failure instanceof EmailIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			emailIsTaken: true,
+		});
+	}
+
+	return httpFailurePresenter(failure);
 }
 
 import { Request, Response } from "express";
@@ -153,30 +151,19 @@ import "express-session";
 
 export class ExpressSignUpWithEmail {
 	signUpWithEmail: SignUpWithEmailUseCase;
-	jsonSignUpWithEmailController: JsonSignUpWithEmailController;
-	signUpHttpFailurePresenter: SignUpHttpFailurePresenter;
-	httpFailurePresenter: HttpFailurePresenter;
 
-	constructor(
-		signUpWithEmail: SignUpWithEmailUseCase,
-		jsonSignUpWithEmailController: JsonSignUpWithEmailController,
-		signUpHttpFailurePresenter: SignUpHttpFailurePresenter,
-		httpFailurePresenter: HttpFailurePresenter,
-	) {
+	constructor(signUpWithEmail: SignUpWithEmailUseCase) {
 		this.signUpWithEmail = signUpWithEmail;
-		this.jsonSignUpWithEmailController = jsonSignUpWithEmailController;
-		this.signUpHttpFailurePresenter = signUpHttpFailurePresenter;
-		this.httpFailurePresenter = httpFailurePresenter;
 		this.execute = this.execute.bind(this);
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
 		const json = req.body;
 
-		const controllerResult = this.jsonSignUpWithEmailController.execute(json);
+		const controllerResult = jsonSignUpWithEmailController(json);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
-			const httpFailure = this.httpFailurePresenter.execute(failure);
+			const httpFailure = httpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
@@ -185,7 +172,7 @@ export class ExpressSignUpWithEmail {
 		const signUpResult = await this.signUpWithEmail.execute(request);
 		if (signUpResult.err) {
 			const failure = signUpResult.val;
-			const httpFailure = this.signUpHttpFailurePresenter.execute(failure);
+			const httpFailure = signUpHttpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}

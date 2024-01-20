@@ -1,4 +1,9 @@
-import { Failure, BadRequestFailure } from "./utils/failure";
+import {
+	Failure,
+	BadRequestFailure,
+	NotAuthorizedFailure,
+	NotFoundFailure,
+} from "./utils/failure";
 
 export class HttpFailure extends Failure {
 	status: number;
@@ -17,14 +22,21 @@ export class JsonHttpFailure extends HttpFailure {
 	}
 }
 
-export class HttpFailurePresenter {
-	execute(failure: Failure): HttpFailure {
-		if (failure instanceof BadRequestFailure) {
-			return new HttpFailure(400);
-		}
-
-		throw new Error("Not implemented");
+export function httpFailurePresenter(failure: Failure): HttpFailure {
+	if (failure instanceof BadRequestFailure) {
+		return new HttpFailure(400);
 	}
+
+	if (failure instanceof NotAuthorizedFailure) {
+		return new HttpFailure(401);
+	}
+
+	if (failure instanceof NotFoundFailure) {
+		return new HttpFailure(404);
+	}
+
+	console.error("Unexpected error:", failure);
+	return new HttpFailure(500);
 }
 
 import { Response } from "express";

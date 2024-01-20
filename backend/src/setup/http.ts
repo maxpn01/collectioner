@@ -1,7 +1,3 @@
-import { HttpFailurePresenter } from "../http";
-
-export const httpFailurePresenter = new HttpFailurePresenter();
-
 import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";

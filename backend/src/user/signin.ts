@@ -51,31 +51,29 @@ export class SignInWithEmailUseCase {
 
 import {
 	HttpFailure,
-	HttpFailurePresenter,
+	httpFailurePresenter,
 	expressSendHttpFailure,
 } from "../http";
 
-export class JsonSignInWithEmailController {
-	execute(json: any): Result<SignInWithEmailRequest, BadRequestFailure> {
-		const isValidJson =
-			typeof json.email === "string" && typeof json.password === "string";
-		if (!isValidJson) return Err(new BadRequestFailure());
+export function jsonSignInWithEmailController(
+	json: any,
+): Result<SignInWithEmailRequest, BadRequestFailure> {
+	const isValidJson =
+		typeof json.email === "string" && typeof json.password === "string";
+	if (!isValidJson) return Err(new BadRequestFailure());
 
-		return Ok({
-			email: json.email,
-			password: json.password,
-		});
-	}
+	return Ok({
+		email: json.email,
+		password: json.password,
+	});
 }
 
-export class SignInHttpFailurePresenter {
-	execute(failure: Failure): HttpFailure {
-		if (failure instanceof InvalidCredentialsFailure) {
-			return new HttpFailure(401);
-		}
-
-		throw new Error("Not implemented.");
+export function signInHttpFailurePresenter(failure: Failure): HttpFailure {
+	if (failure instanceof InvalidCredentialsFailure) {
+		return new HttpFailure(401);
 	}
+
+	return httpFailurePresenter(failure);
 }
 
 import { Request, Response } from "express";
@@ -83,30 +81,19 @@ import "express-session";
 
 export class ExpressSignInWithEmail {
 	signInWithEmail: SignInWithEmailUseCase;
-	jsonSignInWithEmailController: JsonSignInWithEmailController;
-	signInHttpFailurePresenter: SignInHttpFailurePresenter;
-	httpFailurePresenter: HttpFailurePresenter;
 
-	constructor(
-		signInWithEmail: SignInWithEmailUseCase,
-		jsonSignInWithEmailController: JsonSignInWithEmailController,
-		signInHttpFailurePresenter: SignInHttpFailurePresenter,
-		httpFailurePresenter: HttpFailurePresenter,
-	) {
+	constructor(signInWithEmail: SignInWithEmailUseCase) {
 		this.signInWithEmail = signInWithEmail;
-		this.jsonSignInWithEmailController = jsonSignInWithEmailController;
-		this.signInHttpFailurePresenter = signInHttpFailurePresenter;
-		this.httpFailurePresenter = httpFailurePresenter;
 		this.execute = this.execute.bind(this);
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
 		const json = req.body;
 
-		const controllerResult = this.jsonSignInWithEmailController.execute(json);
+		const controllerResult = jsonSignInWithEmailController(json);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
-			const httpFailure = this.httpFailurePresenter.execute(failure);
+			const httpFailure = httpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
@@ -115,7 +102,7 @@ export class ExpressSignInWithEmail {
 		const signInResult = await this.signInWithEmail.execute(request);
 		if (signInResult.err) {
 			const failure = signInResult.val;
-			const httpFailure = this.signInHttpFailurePresenter.execute(failure);
+			const httpFailure = signInHttpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
