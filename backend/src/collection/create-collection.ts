@@ -3,10 +3,11 @@ import { nanoid } from "nanoid";
 import { Err, None, Ok, Result } from "ts-results";
 import { User, UserRepository } from "../user";
 import { BadRequestFailure, Failure } from "../utils/failure";
-import { NotAuthorizedFailure } from "../user/view-user";
+import { NotAuthorizedFailure } from "../utils/failure";
 import { CollectionRepository } from "./repositories/collection";
 import { TopicRepository } from "./repositories/topic";
 import { CollectionSearchEngine } from "./search-engine";
+import { expressSendHttpFailure, httpFailurePresenter } from "../http";
 
 function generateCollectionId(): string {
 	return nanoid();
@@ -99,17 +100,55 @@ export class CreateCollectionUseCase {
 	}
 }
 
-export class JsonCreateCollectionController {
-	execute(json: any): Result<CreateCollectionRequest, Failure> {
-		let name = json.name as string;
-		name = name.trim();
+export function httpBodyCreateCollectionController(
+	json: any,
+): Result<CreateCollectionRequest, BadRequestFailure> {
+	const isValid =
+		typeof json.name === "string" &&
+		typeof json.ownerId === "string" &&
+		typeof json.topicId === "string";
+	if (!isValid) return Err(new BadRequestFailure());
 
-		if (name.length === 0) return Err(new BadRequestFailure());
+	return Ok({
+		name: json.name,
+		ownerId: json.ownerId,
+		topicId: json.topicId,
+	});
+}
 
-		return Ok({
-			name,
-			ownerId: json.ownerId,
-			topicId: json.topicId,
-		});
+import { Request, Response } from "express";
+
+export class ExpressCreateCollection {
+	createCollection: CreateCollectionUseCase;
+
+	constructor(createCollection: CreateCollectionUseCase) {
+		this.execute = this.execute.bind(this);
+		this.createCollection = createCollection;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const controllerResult = httpBodyCreateCollectionController(req.body);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const request = controllerResult.val;
+
+		//@ts-ignore
+		const requesterId = req.session.userId;
+		const createResult = await this.createCollection.execute(
+			request,
+			requesterId,
+		);
+		if (createResult.err) {
+			const failure = createResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).send();
 	}
 }

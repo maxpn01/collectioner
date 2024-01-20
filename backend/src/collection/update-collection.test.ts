@@ -280,7 +280,7 @@ describe("update collection use case", () => {
 		const collectionFieldRepo = instance(MockCollectionFieldRepo);
 
 		resetCalls(MockCollectionSearchEngine);
-		when(MockCollectionSearchEngine.add(anything())).thenResolve(Ok(None));
+		when(MockCollectionSearchEngine.replace(anything())).thenResolve(Ok(None));
 		const collectionSearchEngine = instance(MockCollectionSearchEngine);
 
 		updateCollection = new UpdateCollectionUseCase(

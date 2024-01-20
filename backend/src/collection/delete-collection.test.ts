@@ -36,7 +36,7 @@ describe("delete collection use case", () => {
 		const collectionRepo = instance(MockCollectionRepo);
 
 		resetCalls(MockCollectionSearchEngine);
-		when(MockCollectionSearchEngine.add(anything())).thenResolve(Ok(None));
+		when(MockCollectionSearchEngine.delete(anything())).thenResolve(Ok(None));
 		const collectionSearchEngine = instance(MockCollectionSearchEngine);
 
 		deleteCollection = new DeleteCollectionUseCase(
