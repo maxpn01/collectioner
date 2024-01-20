@@ -4,19 +4,23 @@ import { UserRepository } from "../../user";
 import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
 import { CollectionRepository } from "../repositories/collection";
+import { ItemSearchEngine } from "./search-engine";
 
 export class DeleteItemUseCase {
 	userRepository: UserRepository;
 	itemRepository: ItemRepository;
+	itemSearchEngine: ItemSearchEngine;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 
 	constructor(
 		userRepository: UserRepository,
 		itemRepository: ItemRepository,
+		itemSearchEngine: ItemSearchEngine,
 		collectionRepository: CollectionRepository,
 	) {
 		this.userRepository = userRepository;
 		this.itemRepository = itemRepository;
+		this.itemSearchEngine = itemSearchEngine;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
@@ -40,6 +44,9 @@ export class DeleteItemUseCase {
 
 		const deleteItemResult = await this.itemRepository.delete(item.id);
 		if (deleteItemResult.err) return deleteItemResult;
+
+		const deleteDocumentResult = await this.itemSearchEngine.delete(item.id);
+		if (deleteDocumentResult.err) return deleteDocumentResult;
 
 		return Ok(None);
 	}

@@ -57,7 +57,7 @@ export interface ItemSearchEngine {
 	search(query: string): Promise<Result<SearchEngineItem, Failure>>;
 	add(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
 	replace(item: Item, fields: ItemFields): Promise<Result<None, Failure>>;
-	delete(id: string, fields: ItemFields): Promise<Result<None, Failure>>;
+	delete(id: string): Promise<Result<None, Failure>>;
 }
 
 type CollectionFieldId = string;

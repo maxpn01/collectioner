@@ -7,8 +7,9 @@ import { UserRepository } from "../../user";
 import { instance, mock, when, verify, resetCalls, anything } from "ts-mockito";
 import { createTestItem } from "./index.test";
 import { None, Ok } from "ts-results";
-import { NotAuthorizedFailure } from "../../user/view-user";
 import { CollectionRepository } from "../repositories/collection";
+import { ItemSearchEngine } from "./search-engine";
+import { NotAuthorizedFailure } from "../../utils/failure";
 
 describe("delete item use case", () => {
 	let deleteItem: DeleteItemUseCase;
@@ -16,6 +17,7 @@ describe("delete item use case", () => {
 	const MockUserRepo = mock<UserRepository>();
 	const MockCollectionRepo = mock<CollectionRepository>();
 	const MockItemRepo = mock<ItemRepository>();
+	const MockItemSearchEngine = mock<ItemSearchEngine>();
 
 	const john = createTestUser("john");
 	const johnCollection = createTestCollection(
@@ -37,11 +39,19 @@ describe("delete item use case", () => {
 		const collectionRepo = instance(MockCollectionRepo);
 
 		resetCalls(MockItemRepo);
+		when(MockItemRepo.get(johnItem.id)).thenResolve(Ok({ item: johnItem }));
 		const itemRepo = instance(MockItemRepo);
 
-		when(MockItemRepo.get(johnItem.id)).thenResolve(Ok({ item: johnItem }));
+		resetCalls(MockItemSearchEngine);
+		when(MockItemSearchEngine.delete(anything())).thenResolve(Ok(None));
+		const itemSearchEngine = instance(MockItemSearchEngine);
 
-		deleteItem = new DeleteItemUseCase(userRepo, itemRepo, collectionRepo);
+		deleteItem = new DeleteItemUseCase(
+			userRepo,
+			itemRepo,
+			itemSearchEngine,
+			collectionRepo,
+		);
 	});
 
 	it("deletes the item", async () => {
