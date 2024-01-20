@@ -93,8 +93,8 @@ export class CreateCollectionUseCase {
 		const createResult = await this.collectionRepository.create(collection);
 		if (createResult.err) return createResult;
 
-		const addDocumentResult = await this.collectionSearchEngine.add(collection);
-		if (addDocumentResult.err) return addDocumentResult;
+		const addResult = await this.collectionSearchEngine.add(collection);
+		if (addResult.err) return addResult;
 
 		return Ok(None);
 	}

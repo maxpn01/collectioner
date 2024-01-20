@@ -156,10 +156,10 @@ export class UpdateCollectionUseCase {
 		);
 		if (updateResult.err) return updateResult;
 
-		const replaceDocumentResult = await this.collectionSearchEngine.replace(
-			collection,
+		const replaceResult = await this.collectionSearchEngine.replace(
+			updatedCollection,
 		);
-		if (replaceDocumentResult.err) return replaceDocumentResult;
+		if (replaceResult.err) return replaceResult;
 
 		return Ok(None);
 	}

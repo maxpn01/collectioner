@@ -5,6 +5,7 @@ import { Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
 import { CollectionFieldRepository } from "../repositories/collection-field";
 import { CollectionRepository } from "../repositories/collection";
+import { ItemSearchEngine } from "./search-engine";
 
 type UpdateItemRequest = {
 	id: string;
@@ -23,17 +24,20 @@ export class UpdateItemUseCase {
 	userRepository: UserRepository;
 	collectionFieldRepository: CollectionFieldRepository;
 	itemRepository: ItemRepository;
+	itemSearchEngine: ItemSearchEngine;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 
 	constructor(
 		userRepository: UserRepository,
 		collectionFieldRepository: CollectionFieldRepository,
 		itemRepository: ItemRepository,
+		itemSearchEngine: ItemSearchEngine,
 		collectionRepository: CollectionRepository,
 	) {
 		this.userRepository = userRepository;
 		this.collectionFieldRepository = collectionFieldRepository;
 		this.itemRepository = itemRepository;
+		this.itemSearchEngine = itemSearchEngine;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
@@ -127,11 +131,11 @@ export class UpdateItemUseCase {
 			dateFields,
 		};
 
-		const updateItemResult = await this.itemRepository.update(
-			updatedItem,
-			fields,
-		);
-		if (updateItemResult.err) return updateItemResult;
+		const updateResult = await this.itemRepository.update(updatedItem, fields);
+		if (updateResult.err) return updateResult;
+
+		const replaceResult = await this.itemSearchEngine.replace(item, fields);
+		if (replaceResult.err) return replaceResult;
 
 		return Ok(None);
 	}

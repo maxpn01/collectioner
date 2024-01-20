@@ -42,8 +42,8 @@ export class DeleteItemUseCase {
 		);
 		if (authorizeResult.err) return authorizeResult;
 
-		const deleteItemResult = await this.itemRepository.delete(item.id);
-		if (deleteItemResult.err) return deleteItemResult;
+		const deleteResult = await this.itemRepository.delete(item.id);
+		if (deleteResult.err) return deleteResult;
 
 		const deleteDocumentResult = await this.itemSearchEngine.delete(item.id);
 		if (deleteDocumentResult.err) return deleteDocumentResult;

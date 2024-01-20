@@ -9,9 +9,10 @@ import { instance, mock, when, verify, resetCalls, anything } from "ts-mockito";
 import { createTestItem } from "./index.test";
 import { None, Ok } from "ts-results";
 import { betterDeepEqual } from "../../utils/ts-mockito";
-import { NotAuthorizedFailure } from "../../user/view-user";
 import { CollectionRepository } from "../repositories/collection";
 import { CollectionFieldRepository } from "../repositories/collection-field";
+import { ItemSearchEngine } from "./search-engine";
+import { NotAuthorizedFailure } from "../../utils/failure";
 
 describe("update item use case", () => {
 	let updateItem: UpdateItemUseCase;
@@ -20,6 +21,7 @@ describe("update item use case", () => {
 	const MockCollectionRepo = mock<CollectionRepository>();
 	const MockCollectionFieldRepo = mock<CollectionFieldRepository>();
 	const MockItemRepo = mock<ItemRepository>();
+	const MockItemSearchEngine = mock<ItemSearchEngine>();
 
 	const john = createTestUser("john");
 	const johnCollection = createTestCollection(
@@ -141,20 +143,26 @@ describe("update item use case", () => {
 		const collectionRepo = instance(MockCollectionRepo);
 
 		resetCalls(MockCollectionFieldRepo);
-		const collectionFieldRepo = instance(MockCollectionFieldRepo);
-
-		resetCalls(MockItemRepo);
-		const itemRepo = instance(MockItemRepo);
-
-		when(MockItemRepo.get(johnItem.id)).thenResolve(Ok({ item: johnItem }));
 		when(
 			MockCollectionFieldRepo.getByCollection(johnCollection.id),
 		).thenResolve(Ok(collectionFields));
+		const collectionFieldRepo = instance(MockCollectionFieldRepo);
+
+		resetCalls(MockItemRepo);
+		when(MockItemRepo.get(johnItem.id)).thenResolve(Ok({ item: johnItem }));
+		const itemRepo = instance(MockItemRepo);
+
+		resetCalls(MockItemSearchEngine);
+		when(MockItemSearchEngine.replace(anything(), anything())).thenResolve(
+			Ok(None),
+		);
+		const itemSearchEngine = instance(MockItemSearchEngine);
 
 		updateItem = new UpdateItemUseCase(
 			userRepo,
 			collectionFieldRepo,
 			itemRepo,
+			itemSearchEngine,
 			collectionRepo,
 		);
 	});
