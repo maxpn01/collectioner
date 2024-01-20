@@ -19,6 +19,7 @@ import {
 import { None, Ok } from "ts-results";
 import { CollectionRepository } from "../repositories/collection";
 import { NotAuthorizedFailure } from "../../utils/failure";
+import { ItemSearchEngine } from "./search-engine";
 
 describe("create item use case", () => {
 	let createItem: CreateItemUseCase;
@@ -26,6 +27,7 @@ describe("create item use case", () => {
 	const MockUserRepo = mock<UserRepository>();
 	const MockCollectionRepo = mock<CollectionRepository>();
 	const MockItemRepo = mock<ItemRepository>();
+	const MockItemSearchEngine = mock<ItemSearchEngine>();
 
 	const john = createTestUser("john");
 	const johnCollection = createTestCollection(
@@ -127,6 +129,12 @@ But if she is to win, she will have to start making choices that weight survival
 		resetCalls(MockCollectionRepo);
 		const collectionRepo = instance(MockCollectionRepo);
 
+		resetCalls(MockItemSearchEngine);
+		when(MockItemSearchEngine.add(anything(), anything())).thenResolve(
+			Ok(None),
+		);
+		const itemSearchEngine = instance(MockItemSearchEngine);
+
 		resetCalls(MockItemRepo);
 		const itemRepo = instance(MockItemRepo);
 
@@ -148,7 +156,12 @@ But if she is to win, she will have to start making choices that weight survival
 			}),
 		);
 
-		createItem = new CreateItemUseCase(collectionRepo, itemRepo, userRepo);
+		createItem = new CreateItemUseCase(
+			collectionRepo,
+			itemRepo,
+			itemSearchEngine,
+			userRepo,
+		);
 	});
 
 	it("creates an item", async () => {

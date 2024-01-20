@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { Item, ItemRepository, ItemFields, ItemField } from ".";
 import { areArraysEqual } from "../../utils/array";
 import { CollectionRepository } from "../repositories/collection";
+import { ItemSearchEngine } from "./search-engine";
 
 function generateItemId(): string {
 	return nanoid();
@@ -51,15 +52,18 @@ type CollectionFieldId = string;
 export class CreateItemUseCase {
 	collectionRepository: CollectionRepository;
 	itemRepository: ItemRepository;
+	itemSearchEngine: ItemSearchEngine;
 	authorizeCollectionUpdate: AuthorizeCollectionUpdate;
 
 	constructor(
 		collectionRepository: CollectionRepository,
 		itemRepository: ItemRepository,
+		itemSearchEngine: ItemSearchEngine,
 		userRepository: UserRepository,
 	) {
 		this.collectionRepository = collectionRepository;
 		this.itemRepository = itemRepository;
+		this.itemSearchEngine = itemSearchEngine;
 		this.authorizeCollectionUpdate = new AuthorizeCollectionUpdate(
 			collectionRepository,
 			userRepository,
@@ -161,6 +165,9 @@ export class CreateItemUseCase {
 
 		const createItemResult = await this.itemRepository.create(item, fields);
 		if (createItemResult.err) return createItemResult;
+
+		const addDocumentResult = await this.itemSearchEngine.add(item, fields);
+		if (addDocumentResult.err) return addDocumentResult;
 
 		return Ok(item.id);
 	}
