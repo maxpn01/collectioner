@@ -8,13 +8,15 @@ import { createTestComment } from "./index.test";
 import { DeleteCommentUseCase } from "./delete-comment";
 import { instance, mock, when, verify, resetCalls, anything } from "ts-mockito";
 import { None, Ok } from "ts-results";
-import { NotAuthorizedFailure } from "../../../user/view-user";
+import { CommentSearchEngine } from "./search-engine";
+import { NotAuthorizedFailure } from "../../../utils/failure";
 
 describe("delete comment use case", () => {
 	let deleteComment: DeleteCommentUseCase;
 
 	const MockUserRepo = mock<UserRepository>();
 	const MockCommentRepo = mock<CommentRepository>();
+	const MockCommentSearchEngine = mock<CommentSearchEngine>();
 
 	const john = createTestUser("john");
 	const johnCollection = createTestCollection(
@@ -41,7 +43,15 @@ describe("delete comment use case", () => {
 		resetCalls(MockCommentRepo);
 		const commentRepo = instance(MockCommentRepo);
 
-		deleteComment = new DeleteCommentUseCase(userRepo, commentRepo);
+		resetCalls(MockCommentSearchEngine);
+		when(MockCommentSearchEngine.delete(anything())).thenResolve(Ok(None));
+		const commentSearchEngine = instance(MockCommentSearchEngine);
+
+		deleteComment = new DeleteCommentUseCase(
+			userRepo,
+			commentRepo,
+			commentSearchEngine,
+		);
 	});
 
 	it("deletes a comment", async () => {
