@@ -43,7 +43,7 @@ export class ExpressDeleteUser {
 		//@ts-ignore
 		const requesterId = req.session.userId;
 
-		const controllerResult = idController(json);
+		const controllerResult = idController(json.id);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);

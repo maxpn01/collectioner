@@ -59,14 +59,14 @@ export class ViewUserUseCase {
 
 import { httpFailurePresenter, expressSendHttpFailure } from "../http";
 
-export function viewUserJsonPresenter(response: ViewUserResponse): string {
-	return JSON.stringify({
+export function viewUserHttpBodyPresenter(response: ViewUserResponse) {
+	return {
 		id: response.id,
 		username: response.username,
 		fullname: response.fullname,
 		blocked: response.blocked,
 		collections: response.collections,
-	});
+	};
 }
 
 import { Request, Response } from "express";
@@ -99,7 +99,8 @@ export class ExpressViewUser {
 		}
 		const user = viewUserResult.val;
 
-		const userJson = viewUserJsonPresenter(user);
-		res.status(200).json(userJson);
+		const httpUser = viewUserHttpBodyPresenter(user);
+
+		res.status(200).json(httpUser);
 	}
 }
