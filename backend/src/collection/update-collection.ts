@@ -150,8 +150,6 @@ export class UpdateCollectionUseCase {
 			imageOption: request.imageOption,
 		});
 
-		console.log(updatedCollection);
-
 		const updateResult = await this.collectionRepository.update(
 			request.id,
 			updatedCollection,

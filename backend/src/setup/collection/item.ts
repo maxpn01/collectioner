@@ -13,6 +13,10 @@ import {
 import { prismaCollectionRepository } from ".";
 import { prismaUserRepository } from "../user";
 import {
+	DeleteItemUseCase,
+	ExpressDeleteItem,
+} from "../../collection/item/delete-item";
+import {
 	ExpressViewItem,
 	ViewItemUseCase,
 } from "../../collection/item/view-item";
@@ -35,6 +39,15 @@ const createItem = new CreateItemUseCase(
 );
 const expressCreateItem = new ExpressCreateItem(createItem);
 expressApp.post("/api/item", requireAuth, expressCreateItem.execute);
+
+const deleteItem = new DeleteItemUseCase(
+	prismaUserRepository,
+	prismaItemRepository,
+	itemSearchEngine,
+	prismaCollectionRepository,
+);
+const expressDeleteItem = new ExpressDeleteItem(deleteItem);
+expressApp.delete("/api/item", expressDeleteItem.execute);
 
 const viewItem = new ViewItemUseCase(prismaItemRepository);
 const expressViewItem = new ExpressViewItem(viewItem);

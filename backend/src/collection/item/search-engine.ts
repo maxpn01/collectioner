@@ -115,7 +115,6 @@ export class MeiliItemSearchEngine implements ItemSearchEngine {
 		const itemsResult = response.results.find(
 			(result) => result.indexUid === meiliItemIndex,
 		)!;
-		console.log(itemsResult);
 		const items = itemsResult.hits.map((itemDocument) =>
 			itemDocumentToItem(itemDocument as ItemDocument),
 		);
