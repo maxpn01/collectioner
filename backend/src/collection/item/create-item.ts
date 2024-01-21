@@ -228,7 +228,7 @@ export class CheckAllFieldsSpecified {
 	}
 }
 
-function isValidFields(fieldArray, valueTypeCheck) {
+export function isValidFields(fieldArray, valueTypeCheck) {
 	return (
 		Array.isArray(fieldArray) &&
 		fieldArray.every(

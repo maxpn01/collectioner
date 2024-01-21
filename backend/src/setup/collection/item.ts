@@ -10,7 +10,7 @@ import {
 	CreateItemUseCase,
 	ExpressCreateItem,
 } from "../../collection/item/create-item";
-import { prismaCollectionRepository } from ".";
+import { prismaCollectionFieldRepository, prismaCollectionRepository } from ".";
 import { prismaUserRepository } from "../user";
 import {
 	DeleteItemUseCase,
@@ -21,6 +21,10 @@ import {
 	ViewItemUseCase,
 } from "../../collection/item/view-item";
 import { requireAuth } from "../middleware/auth";
+import {
+	ExpressUpdateItem,
+	UpdateItemUseCase,
+} from "../../collection/item/update-item";
 
 const itemSearchEngine = new MeiliItemSearchEngine(meili);
 export const prismaItemRepository = new PrismaItemRepository();
@@ -48,6 +52,16 @@ const deleteItem = new DeleteItemUseCase(
 );
 const expressDeleteItem = new ExpressDeleteItem(deleteItem);
 expressApp.delete("/api/item", expressDeleteItem.execute);
+
+const updateItem = new UpdateItemUseCase(
+	prismaUserRepository,
+	prismaItemRepository,
+	itemSearchEngine,
+	prismaCollectionRepository,
+	prismaCollectionFieldRepository,
+);
+const expressUpdateItem = new ExpressUpdateItem(updateItem);
+expressApp.put("/api/item", expressUpdateItem.execute);
 
 const viewItem = new ViewItemUseCase(prismaItemRepository);
 const expressViewItem = new ExpressViewItem(viewItem);

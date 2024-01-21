@@ -160,10 +160,10 @@ describe("update item use case", () => {
 
 		updateItem = new UpdateItemUseCase(
 			userRepo,
-			collectionFieldRepo,
 			itemRepo,
 			itemSearchEngine,
 			collectionRepo,
+			collectionFieldRepo,
 		);
 	});
 

@@ -366,7 +366,7 @@ export class PrismaItemRepository implements ItemRepository {
 					deleteMany: {},
 					create: fields.dateFields.map((f) => ({
 						collectionFieldId: f.collectionField.id,
-						value: f.value,
+						value: safeDateConversion(f.value),
 					})),
 				},
 			},
