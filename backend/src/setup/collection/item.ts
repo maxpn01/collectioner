@@ -16,6 +16,7 @@ import {
 	ExpressViewItem,
 	ViewItemUseCase,
 } from "../../collection/item/view-item";
+import { requireAuth } from "../middleware/auth";
 
 const itemSearchEngine = new MeiliItemSearchEngine(meili);
 export const prismaItemRepository = new PrismaItemRepository();
@@ -33,7 +34,7 @@ const createItem = new CreateItemUseCase(
 	prismaUserRepository,
 );
 const expressCreateItem = new ExpressCreateItem(createItem);
-expressApp.post("/api/item", expressCreateItem.execute);
+expressApp.post("/api/item", requireAuth, expressCreateItem.execute);
 
 const viewItem = new ViewItemUseCase(prismaItemRepository);
 const expressViewItem = new ExpressViewItem(viewItem);

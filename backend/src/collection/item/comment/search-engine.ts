@@ -30,7 +30,7 @@ export class MeiliCommentSearchEngine implements CommentSearchEngine {
 		const document = commentToDocument(comment);
 		const task = await this.meilisearch
 			.index(meiliCommentIndex)
-			.addDocuments([document]);
+			.addDocuments([document], { primaryKey: "id" });
 
 		if (task.status === TaskStatus.TASK_FAILED)
 			throw new Error("Failed to add document");

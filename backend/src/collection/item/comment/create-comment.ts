@@ -1,8 +1,8 @@
-import { Result, None, Ok } from "ts-results";
+import { Result, None, Ok, Err } from "ts-results";
 import { Comment, CommentRepository } from ".";
 import { Item, ItemRepository } from "..";
 import { User, UserRepository } from "../../../user";
-import { Failure } from "../../../utils/failure";
+import { BadRequestFailure, Failure } from "../../../utils/failure";
 import { nanoid } from "nanoid";
 import { CommentSearchEngine } from "./search-engine";
 
@@ -76,5 +76,53 @@ export class CreateCommentUseCase {
 		if (addResult.err) return addResult;
 
 		return Ok(None);
+	}
+}
+
+export function jsonCreateCommentController(
+	json: any,
+): Result<CreateCommentRequest, BadRequestFailure> {
+	const isValid =
+		typeof json.itemId === "string" && typeof json.text === "string";
+	if (!isValid) return Err(new BadRequestFailure());
+
+	return Ok({
+		itemId: json.itemId,
+		text: json.text,
+	});
+}
+
+import { Request, Response } from "express";
+import { expressSendHttpFailure, httpFailurePresenter } from "../../../http";
+
+export class ExpressCreateComment {
+	createComment: CreateCommentUseCase;
+
+	constructor(createComment: CreateCommentUseCase) {
+		this.execute = this.execute.bind(this);
+		this.createComment = createComment;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const controllerResult = jsonCreateCommentController(req.body);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const request = controllerResult.val;
+
+		//@ts-ignore
+		const requesterId = req.session.userId;
+		const createResult = await this.createComment.execute(request, requesterId);
+		if (createResult.err) {
+			const failure = createResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).send();
 	}
 }
