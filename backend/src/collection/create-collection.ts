@@ -1,4 +1,4 @@
-import { Collection, Topic } from ".";
+import { Collection, CollectionField, Topic } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Result } from "ts-results";
 import { User, UserRepository } from "../user";
@@ -93,14 +93,16 @@ export class CreateCollectionUseCase {
 		const createResult = await this.collectionRepository.create(collection);
 		if (createResult.err) return createResult;
 
-		const addResult = await this.collectionSearchEngine.add(collection);
+		const fields: CollectionField[] = [];
+
+		const addResult = await this.collectionSearchEngine.add(collection, fields);
 		if (addResult.err) return addResult;
 
 		return Ok(None);
 	}
 }
 
-export function httpBodyCreateCollectionController(
+export function jsonCreateCollectionController(
 	json: any,
 ): Result<CreateCollectionRequest, BadRequestFailure> {
 	const isValid =
@@ -127,7 +129,7 @@ export class ExpressCreateCollection {
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
-		const controllerResult = httpBodyCreateCollectionController(req.body);
+		const controllerResult = jsonCreateCollectionController(req.body);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);

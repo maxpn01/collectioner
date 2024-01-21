@@ -1,11 +1,17 @@
 import { Result, None, Ok } from "ts-results";
 import { Failure } from "../utils/failure";
-import { Collection } from ".";
+import { Collection, CollectionField } from ".";
 import { MeiliSearch, TaskStatus } from "meilisearch";
 
 export interface CollectionSearchEngine {
-	add(collection: Collection): Promise<Result<None, Failure>>;
-	replace(collection: Collection): Promise<Result<None, Failure>>;
+	add(
+		collection: Collection,
+		fields: CollectionField[],
+	): Promise<Result<None, Failure>>;
+	replace(
+		collection: Collection,
+		fields: CollectionField[],
+	): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
 }
 
@@ -16,6 +22,7 @@ export type CollectionDocument = {
 		id: string;
 		name: string;
 	};
+	fields: CollectionField[];
 };
 
 export const meiliCollectionIndex = "collection";
@@ -27,8 +34,11 @@ export class MeiliCollectionSearchEngine implements CollectionSearchEngine {
 		this.meilisearch = meilisearch;
 	}
 
-	async add(collection: Collection): Promise<Result<None, Failure>> {
-		const document = collectionToDocument(collection);
+	async add(
+		collection: Collection,
+		fields: CollectionField[],
+	): Promise<Result<None, Failure>> {
+		const document = collectionToDocument(collection, fields);
 		const task = await this.meilisearch
 			.index(meiliCollectionIndex)
 			.addDocuments([document]);
@@ -39,10 +49,13 @@ export class MeiliCollectionSearchEngine implements CollectionSearchEngine {
 		return Ok(None);
 	}
 
-	async replace(collection: Collection): Promise<Result<None, Failure>> {
+	async replace(
+		collection: Collection,
+		fields: CollectionField[],
+	): Promise<Result<None, Failure>> {
 		// Meilisearch's addDocuments method also replaces the existing documents
 		// https://www.meilisearch.com/docs/reference/api/documents#add-or-replace-documents
-		return this.add(collection);
+		return this.add(collection, fields);
 	}
 
 	async delete(id: string): Promise<Result<None, Failure>> {
@@ -59,6 +72,7 @@ export class MeiliCollectionSearchEngine implements CollectionSearchEngine {
 
 export function collectionToDocument(
 	collection: Collection,
+	fields: CollectionField[],
 ): CollectionDocument {
 	return {
 		id: collection.id,
@@ -67,5 +81,11 @@ export function collectionToDocument(
 			id: collection.topic.id,
 			name: collection.topic.name,
 		},
+		fields: fields.map((field) => ({
+			collection: field.collection,
+			id: field.id,
+			name: field.name,
+			type: field.type,
+		})),
 	};
 }
