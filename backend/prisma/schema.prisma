@@ -32,7 +32,7 @@ model Topic {
 }
 
 model Collection {
-    owner            User              @relation(fields: [userId], references: [id])
+    owner            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
     id               String            @id
     name             String
     topic            Topic             @relation(fields: [topicId], references: [id])
@@ -49,8 +49,8 @@ model Collection {
 
 model CollectionField {
     id                  String               @id
-    name                String
-    collection          Collection           @relation(fields: [collectionId], references: [id])
+    name                String               @unique
+    collection          Collection           @relation(fields: [collectionId], references: [id], onDelete: Cascade)
     type                CollectionFieldType
     collectionId        String
     numberFields        NumberField[]
@@ -71,7 +71,7 @@ enum CollectionFieldType {
 }
 
 model Item {
-    collection          Collection           @relation(fields: [collectionId], references: [id])
+    collection          Collection           @relation(fields: [collectionId], references: [id], onDelete: Cascade)
     id                  String               @id
     name                String
     collectionId        String
@@ -89,7 +89,7 @@ model Item {
 }
 
 model ItemTag {
-    item   Item   @relation(fields: [itemId], references: [id])
+    item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
     tag    String
     itemId String
 
@@ -97,8 +97,8 @@ model ItemTag {
 }
 
 model NumberField {
-    item              Item            @relation(fields: [itemId], references: [id])
-    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    item              Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id], onDelete: Cascade)
     value             Int
     itemId            String
     collectionFieldId String
@@ -107,8 +107,8 @@ model NumberField {
 }
 
 model TextField {
-    item              Item            @relation(fields: [itemId], references: [id])
-    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    item              Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id], onDelete: Cascade)
     value             String
     itemId            String
     collectionFieldId String
@@ -117,8 +117,8 @@ model TextField {
 }
 
 model MultilineTextField {
-    item              Item            @relation(fields: [itemId], references: [id])
-    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    item              Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id], onDelete: Cascade)
     value             String
     itemId            String
     collectionFieldId String
@@ -127,8 +127,8 @@ model MultilineTextField {
 }
 
 model CheckboxField {
-    item              Item            @relation(fields: [itemId], references: [id])
-    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    item              Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id], onDelete: Cascade)
     value             Boolean
     itemId            String
     collectionFieldId String
@@ -137,8 +137,8 @@ model CheckboxField {
 }
 
 model DateField {
-    item              Item            @relation(fields: [itemId], references: [id])
-    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id])
+    item              Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    collectionField   CollectionField @relation(fields: [collectionFieldId], references: [id], onDelete: Cascade)
     value             DateTime
     itemId            String
     collectionFieldId String
@@ -147,9 +147,9 @@ model DateField {
 }
 
 model Comment {
-    item      Item     @relation(fields: [itemId], references: [id])
+    item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
     id        String   @id
-    author    User     @relation(fields: [userId], references: [id])
+    author    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     text      String
     itemId    String
     userId    String
