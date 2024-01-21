@@ -25,9 +25,15 @@ import {
 	ExpressUpdateItem,
 	UpdateItemUseCase,
 } from "../../collection/item/update-item";
+import {
+	AutocompleteTagsUseCase,
+	ExpressAutocompleteTags,
+	PrismaTagsRepository,
+} from "../../collection/item/tags";
 
 const itemSearchEngine = new MeiliItemSearchEngine(meili);
 export const prismaItemRepository = new PrismaItemRepository();
+export const prismaTagsRepository = new PrismaTagsRepository();
 const searchItems = new SearchItemsUseCase(
 	itemSearchEngine,
 	prismaItemRepository,
@@ -66,3 +72,7 @@ expressApp.put("/api/item", expressUpdateItem.execute);
 const viewItem = new ViewItemUseCase(prismaItemRepository);
 const expressViewItem = new ExpressViewItem(viewItem);
 expressApp.get("/api/item", expressViewItem.execute);
+
+const autocompleteTags = new AutocompleteTagsUseCase(prismaTagsRepository);
+const expressAutocompleteTags = new ExpressAutocompleteTags(autocompleteTags);
+expressApp.get("/api/item/tags", expressAutocompleteTags.execute);
