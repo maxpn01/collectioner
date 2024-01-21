@@ -163,11 +163,11 @@ export class CreateItemUseCase {
 			dateFields,
 		};
 
-		const createItemResult = await this.itemRepository.create(item, fields);
-		if (createItemResult.err) return createItemResult;
+		const createResult = await this.itemRepository.create(item, fields);
+		if (createResult.err) return createResult;
 
-		const addDocumentResult = await this.itemSearchEngine.add(item, fields);
-		if (addDocumentResult.err) return addDocumentResult;
+		const addResult = await this.itemSearchEngine.add(item, fields);
+		if (addResult.err) return addResult;
 
 		return Ok(item.id);
 	}
@@ -225,5 +225,106 @@ export class CheckAllFieldsSpecified {
 		};
 
 		return map[type];
+	}
+}
+
+function isValidFields(fieldArray, valueTypeCheck) {
+	return (
+		Array.isArray(fieldArray) &&
+		fieldArray.every(
+			(field) =>
+				typeof field.collectionFieldId === "string" &&
+				valueTypeCheck(field.value),
+		)
+	);
+}
+
+export function jsonCreateItemController(
+	json: any,
+): Result<CreateItemRequest, BadRequestFailure> {
+	const isValid =
+		typeof json.collectionId === "string" &&
+		typeof json.name === "string" &&
+		Array.isArray(json.tags) &&
+		json.tags.every((tag) => typeof tag === "string") &&
+		isValidFields(json.numberFields, (value) => typeof value === "number") &&
+		isValidFields(json.textFields, (value) => typeof value === "string") &&
+		isValidFields(
+			json.multilineTextFields,
+			(value) => typeof value === "string",
+		) &&
+		isValidFields(json.checkboxFields, (value) => typeof value === "boolean") &&
+		isValidFields(json.dateFields, (value) => typeof value === "string");
+	if (!isValid) return Err(new BadRequestFailure());
+
+	return Ok({
+		collectionId: json.collectionId,
+		name: json.name,
+		tags: json.tags,
+		numberFields: new Map(
+			json.numberFields?.map(({ collectionFieldId, value }) => [
+				collectionFieldId,
+				value,
+			]),
+		),
+		textFields: new Map(
+			json.textFields?.map(({ collectionFieldId, value }) => [
+				collectionFieldId,
+				value,
+			]),
+		),
+		multilineTextFields: new Map(
+			json.multilineTextFields?.map(({ collectionFieldId, value }) => [
+				collectionFieldId,
+				value,
+			]),
+		),
+		checkboxFields: new Map(
+			json.checkboxFields?.map(({ collectionFieldId, value }) => [
+				collectionFieldId,
+				value,
+			]),
+		),
+		dateFields: new Map(
+			json.dateFields?.map(({ collectionFieldId, value }) => [
+				collectionFieldId,
+				value,
+			]),
+		),
+	});
+}
+
+import { Request, Response } from "express";
+import { expressSendHttpFailure, httpFailurePresenter } from "../../http";
+
+export class ExpressCreateItem {
+	createItem: CreateItemUseCase;
+
+	constructor(createItem: CreateItemUseCase) {
+		this.execute = this.execute.bind(this);
+		this.createItem = createItem;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const controllerResult = jsonCreateItemController(req.body);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const request = controllerResult.val;
+
+		//@ts-ignore
+		const requesterId = req.session.userId;
+		const createResult = await this.createItem.execute(request, requesterId);
+		if (createResult.err) {
+			const failure = createResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).send();
 	}
 }

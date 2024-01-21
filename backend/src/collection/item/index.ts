@@ -26,6 +26,7 @@ import {
 	Comment as PrismaComment,
 } from "@prisma/client";
 import { PrismaTopic } from "../repositories/topic";
+import { safeDateConversion } from "../../utils/date";
 
 export { Item as PrismaItem, ItemTag as PrismaItemTag } from "@prisma/client";
 
@@ -315,7 +316,7 @@ export class PrismaItemRepository implements ItemRepository {
 				dateFields: {
 					create: fields.dateFields.map((f) => ({
 						collectionFieldId: f.collectionField.id,
-						value: f.value,
+						value: safeDateConversion(f.value),
 					})),
 				},
 			},

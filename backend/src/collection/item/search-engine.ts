@@ -2,7 +2,12 @@ import { Result, None, Ok, Err } from "ts-results";
 import { Failure, BadRequestFailure } from "../../utils/failure";
 import { MeiliSearch, TaskStatus } from "meilisearch";
 import { Item, ItemField, ItemFields } from ".";
-import { UnixTime, dateToUnixTime, unixTimeToDate } from "../../utils/date";
+import {
+	UnixTime,
+	dateToUnixTime,
+	safeDateConversion,
+	unixTimeToDate,
+} from "../../utils/date";
 import { ItemRepository } from ".";
 import { meiliCollectionIndex } from "../search-engine";
 import { meiliCommentIndex } from "./comment/search-engine";
@@ -169,7 +174,7 @@ export class MeiliItemSearchEngine implements ItemSearchEngine {
 export function itemToDocument(item: Item, fields: ItemFields): ItemDocument {
 	const unixTimeDateFields = fields.dateFields.map((itemField) => ({
 		...itemField,
-		value: dateToUnixTime(itemField.value),
+		value: dateToUnixTime(safeDateConversion(itemField.value)),
 	}));
 
 	return {
