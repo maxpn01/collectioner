@@ -11,6 +11,10 @@ import { PrismaCollectionFieldRepository } from "../../collection/repositories/c
 import { PrismaTopicRepository } from "../../collection/repositories/topic";
 import { MeiliCollectionSearchEngine } from "../../collection/search-engine";
 import {
+	ExpressUpdateCollection,
+	UpdateCollectionUseCase,
+} from "../../collection/update-collection";
+import {
 	ExpressViewCollection,
 	ViewCollectionUseCase,
 } from "../../collection/view-collection";
@@ -51,6 +55,16 @@ expressApp.delete(
 	requireAuth,
 	expressDeleteCollection.execute,
 );
+
+const updateCollection = new UpdateCollectionUseCase(
+	prismaCollectionRepository,
+	meiliCollectionSearchEngine,
+	prismaTopicRepository,
+	prismaUserRepository,
+	prismaCollectionFieldRepository,
+);
+const expressUpdateCollection = new ExpressUpdateCollection(updateCollection);
+expressApp.put("/api/collection", requireAuth, expressUpdateCollection.execute);
 
 const viewCollection = new ViewCollectionUseCase(prismaCollectionRepository);
 const expressViewCollection = new ExpressViewCollection(viewCollection);

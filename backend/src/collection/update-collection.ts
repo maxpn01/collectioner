@@ -2,7 +2,7 @@ import { CollectionFieldType, Topic, CollectionField, Collection } from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
 import { UserRepository, authorizeUserUpdate } from "../user";
-import { Failure, NotFoundFailure } from "../utils/failure";
+import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
 import { NotAuthorizedFailure } from "../utils/failure";
 import { CollectionRepository } from "./repositories/collection";
 import { TopicRepository } from "./repositories/topic";
@@ -68,11 +68,12 @@ function generateItemFieldId(): string {
 }
 
 export type UpdateCollectionRequest = {
+	id: string;
 	name: string;
 	topicId: string;
 	imageOption: Option<string>;
-	fields: UpdateCollectionRequestField[];
-	newFields: UpdateCollectionRequestNewField[];
+	updatedFields: UpdateCollectionRequestField[];
+	createdFields: UpdateCollectionRequestNewField[];
 };
 
 export type UpdateCollectionRequestField = {
@@ -113,11 +114,10 @@ export class UpdateCollectionUseCase {
 	}
 
 	async execute(
-		id: string,
 		request: UpdateCollectionRequest,
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
-		const collectionResult = await this.collectionRepository.get(id, {
+		const collectionResult = await this.collectionRepository.get(request.id, {
 			include: { fields: true },
 		});
 		if (collectionResult.err) return collectionResult;
@@ -150,14 +150,19 @@ export class UpdateCollectionUseCase {
 			imageOption: request.imageOption,
 		});
 
+		console.log(updatedCollection);
+
 		const updateResult = await this.collectionRepository.update(
-			id,
+			request.id,
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;
 
+		const updatedFields: CollectionField[] = updateCollectionFieldsResult.val;
+
 		const replaceResult = await this.collectionSearchEngine.replace(
 			updatedCollection,
+			updatedFields,
 		);
 		if (replaceResult.err) return replaceResult;
 
@@ -168,11 +173,11 @@ export class UpdateCollectionUseCase {
 		request: UpdateCollectionRequest,
 		collection: Collection,
 		fields: CollectionField[],
-	): Promise<Result<None, Failure>> {
+	): Promise<Result<CollectionField[], Failure>> {
 		const updatedFields: UpdatedField[] = [];
 
-		for (let i = 0; i < request.fields.length; i++) {
-			const field = request.fields[i];
+		for (let i = 0; i < request.updatedFields.length; i++) {
+			const field = request.updatedFields[i];
 			const index = fields.findIndex((f) => f.id === field.id);
 			const fieldExists = index > -1;
 			if (!fieldExists) return Err(new NotFoundFailure());
@@ -193,8 +198,8 @@ export class UpdateCollectionUseCase {
 
 		const createdFields: CollectionField[] = [];
 
-		for (let i = 0; i < request.newFields.length; i++) {
-			const field = request.newFields[i];
+		for (let i = 0; i < request.createdFields.length; i++) {
+			const field = request.createdFields[i];
 			const createdField: CollectionField = {
 				id: generateItemFieldId(),
 				collection,
@@ -209,6 +214,121 @@ export class UpdateCollectionUseCase {
 		);
 		if (createResult.err) return createResult;
 
-		return Ok(None);
+		const result: CollectionField[] = [
+			...updatedFields.map((uf) => uf.field),
+			...createdFields,
+		];
+
+		return Ok(result);
+	}
+}
+
+function isUpdateCollectionRequestField(
+	obj: any,
+): obj is UpdateCollectionRequestField {
+	return (
+		typeof obj === "object" &&
+		typeof obj.id === "string" &&
+		typeof obj.name === "string" &&
+		CollectionFieldType.hasOwnProperty(obj.type)
+	);
+}
+
+function isUpdateCollectionRequestNewField(
+	obj: any,
+): obj is UpdateCollectionRequestNewField {
+	return (
+		typeof obj === "object" &&
+		typeof obj.name === "string" &&
+		CollectionFieldType.hasOwnProperty(obj.type)
+	);
+}
+
+export function jsonUpdateCollectionController(
+	json: any,
+): Result<UpdateCollectionRequest, BadRequestFailure> {
+	const isValidUpdatedFields =
+		(Array.isArray(json.updatedFields) &&
+			json.updatedFields.every(isUpdateCollectionRequestField)) ||
+		json.updatedFields.length === 0;
+	const isValidCreatedFields =
+		(Array.isArray(json.createdFields) &&
+			json.createdFields.every(isUpdateCollectionRequestNewField)) ||
+		json.createdFields.length === 0;
+	const isValid =
+		typeof json.id === "string" &&
+		typeof json.name === "string" &&
+		typeof json.topicId === "string" &&
+		typeof json.imageOption === "string" &&
+		isValidUpdatedFields &&
+		isValidCreatedFields;
+	if (!isValid) return Err(new BadRequestFailure());
+
+	return Ok({
+		id: json.id,
+		name: json.name,
+		topicId: json.topicId,
+		imageOption: json.imageOption,
+		updatedFields: json.updatedFields,
+		createdFields: json.createdFields,
+	});
+}
+
+export class FieldNameIsTakenFailure extends Failure {}
+
+export function updateCollectionHttpFailurePresenter(
+	failure: Failure,
+): HttpFailure {
+	if (failure instanceof FieldNameIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			fieldNameIsTaken: true,
+		});
+	}
+
+	return httpFailurePresenter(failure);
+}
+
+import { Request, Response } from "express";
+import {
+	HttpFailure,
+	JsonHttpFailure,
+	expressSendHttpFailure,
+	httpFailurePresenter,
+} from "../http";
+
+export class ExpressUpdateCollection {
+	updateCollection: UpdateCollectionUseCase;
+
+	constructor(updateCollection: UpdateCollectionUseCase) {
+		this.execute = this.execute.bind(this);
+		this.updateCollection = updateCollection;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const json = req.body;
+
+		const controllerResult = jsonUpdateCollectionController(json);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const request = controllerResult.val;
+
+		//@ts-ignore
+		const requesterId = req.session.userId;
+		const updateResult = await this.updateCollection.execute(
+			request,
+			requesterId,
+		);
+		if (updateResult.err) {
+			const failure = updateResult.val;
+			const httpFailure = updateCollectionHttpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).send();
 	}
 }
