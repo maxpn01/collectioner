@@ -46,3 +46,40 @@ export class DeleteCommentUseCase {
 		return Ok(None);
 	}
 }
+
+import { idController } from "../../../utils/id";
+import { Request, Response } from "express";
+import { expressSendHttpFailure, httpFailurePresenter } from "../../../http";
+
+export class ExpressDeleteComment {
+	deleteComment: DeleteCommentUseCase;
+
+	constructor(deleteComment: DeleteCommentUseCase) {
+		this.execute = this.execute.bind(this);
+		this.deleteComment = deleteComment;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const controllerResult = idController(req.body.id);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const id = controllerResult.val;
+
+		//@ts-ignore
+		const requesterId = req.session.userId;
+
+		const deleteResult = await this.deleteComment.execute(id, requesterId);
+		if (deleteResult.err) {
+			const failure = deleteResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).send();
+	}
+}
