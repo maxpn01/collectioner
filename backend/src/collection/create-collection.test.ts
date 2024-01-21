@@ -60,7 +60,9 @@ describe("create collection use case", () => {
 		const collectionRepo = instance(MockCollectionRepo);
 
 		resetCalls(MockCollectionSearchEngine);
-		when(MockCollectionSearchEngine.add(anything())).thenResolve(Ok(None));
+		when(MockCollectionSearchEngine.add(anything(), anything())).thenResolve(
+			Ok(None),
+		);
 		const collectionSearchEngine = instance(MockCollectionSearchEngine);
 
 		createCollection = new CreateCollectionUseCase(

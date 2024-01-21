@@ -128,11 +128,12 @@ describe("update collection use case", () => {
 	];
 
 	const updatedCollectionRequest: UpdateCollectionRequest = {
+		id: johnCollection.id,
 		name: updatedCollection.name,
 		topicId: updatedCollection.topic.id,
 		imageOption: updatedCollection.imageOption,
-		fields: collectionFieldsRequest,
-		newFields: newCollectionFieldsRequest,
+		updatedFields: collectionFieldsRequest,
+		createdFields: newCollectionFieldsRequest,
 	};
 
 	const collectionNumberField: CollectionField = {
@@ -280,7 +281,9 @@ describe("update collection use case", () => {
 		const collectionFieldRepo = instance(MockCollectionFieldRepo);
 
 		resetCalls(MockCollectionSearchEngine);
-		when(MockCollectionSearchEngine.replace(anything())).thenResolve(Ok(None));
+		when(
+			MockCollectionSearchEngine.replace(anything(), anything()),
+		).thenResolve(Ok(None));
 		const collectionSearchEngine = instance(MockCollectionSearchEngine);
 
 		updateCollection = new UpdateCollectionUseCase(
@@ -301,7 +304,6 @@ describe("update collection use case", () => {
 		when(updateStub).thenResolve(Ok(None));
 
 		const result = await updateCollection.execute(
-			johnCollection.id,
 			updatedCollectionRequest,
 			john.id,
 		);
@@ -319,7 +321,6 @@ describe("update collection use case", () => {
 		when(updateStub).thenResolve(Ok(None));
 
 		const result = await updateCollection.execute(
-			johnCollection.id,
 			updatedCollectionRequest,
 			admin.id,
 		);
@@ -330,7 +331,6 @@ describe("update collection use case", () => {
 
 	it("should not allow another user", async () => {
 		const result = await updateCollection.execute(
-			johnCollection.id,
 			updatedCollectionRequest,
 			tyler.id,
 		);

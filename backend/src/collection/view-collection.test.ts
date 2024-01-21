@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { ItemRepository } from "./item";
 import { createTestItem } from "./item/index.test";
 import { createTestUser } from "../user/index.test";
 import { createTestCollection, createTestTopic } from "./index.test";
@@ -63,10 +62,7 @@ describe("view collection use case", () => {
 		);
 		const collectionRepo = instance(MockCollectionRepo);
 
-		const MockItemRepo = mock<ItemRepository>();
-		const itemRepo = instance(MockItemRepo);
-
-		viewCollection = new ViewCollectionUseCase(collectionRepo, itemRepo);
+		viewCollection = new ViewCollectionUseCase(collectionRepo);
 	});
 
 	it("returns john's collection from the repository", async () => {
