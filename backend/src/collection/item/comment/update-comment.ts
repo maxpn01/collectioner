@@ -1,6 +1,10 @@
 import { Result, None, Ok, Err } from "ts-results";
 import { CommentRepository } from ".";
-import { Failure, NotAuthorizedFailure } from "../../../utils/failure";
+import {
+	BadRequestFailure,
+	Failure,
+	NotAuthorizedFailure,
+} from "../../../utils/failure";
 import { UserRepository } from "../../../user";
 import { CommentSearchEngine } from "./search-engine";
 
@@ -51,5 +55,52 @@ export class UpdateCommentUseCase {
 		if (replaceResult.err) return replaceResult;
 
 		return Ok(None);
+	}
+}
+
+export function jsonUpdateCommentController(
+	json: any,
+): Result<UpdateCommentRequest, BadRequestFailure> {
+	const isValid = typeof json.id === "string" && typeof json.text === "string";
+	if (!isValid) return Err(new BadRequestFailure());
+
+	return Ok({
+		id: json.id,
+		text: json.text,
+	});
+}
+
+import { Request, Response } from "express";
+import { expressSendHttpFailure, httpFailurePresenter } from "../../../http";
+
+export class ExpressUpdateComment {
+	updateComment: UpdateCommentUseCase;
+
+	constructor(updateComment: UpdateCommentUseCase) {
+		this.execute = this.execute.bind(this);
+		this.updateComment = updateComment;
+	}
+
+	async execute(req: Request, res: Response): Promise<void> {
+		const controllerResult = jsonUpdateCommentController(req.body);
+		if (controllerResult.err) {
+			const failure = controllerResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+		const request = controllerResult.val;
+
+		//@ts-ignore
+		const requesterId = req.session.userId;
+		const updateResult = await this.updateComment.execute(request, requesterId);
+		if (updateResult.err) {
+			const failure = updateResult.val;
+			const httpFailure = httpFailurePresenter(failure);
+			expressSendHttpFailure(httpFailure, res);
+			return;
+		}
+
+		res.status(200).send();
 	}
 }
