@@ -20,18 +20,18 @@ type SearchItemsResponseItem = {
 };
 
 export class SearchItemsUseCase {
-	saerchEngine: ItemSearchEngine;
+	searchEngine: ItemSearchEngine;
 	itemRepository: ItemRepository;
 
-	constructor(saerchEngine: ItemSearchEngine, itemRepository: ItemRepository) {
-		this.saerchEngine = saerchEngine;
+	constructor(searchEngine: ItemSearchEngine, itemRepository: ItemRepository) {
+		this.searchEngine = searchEngine;
 		this.itemRepository = itemRepository;
 	}
 
 	async execute(
 		query: string,
 	): Promise<Result<SearchItemsResponseItem[], Failure>> {
-		const searchResult = await this.saerchEngine.search(query);
+		const searchResult = await this.searchEngine.search(query);
 		if (searchResult.err) return searchResult;
 		const searchItemsMatches = searchResult.val;
 
@@ -93,14 +93,17 @@ export class MeiliItemSearchEngine implements ItemSearchEngine {
 				{
 					indexUid: meiliCollectionIndex,
 					q: query,
+					limit: 25,
 				},
 				{
 					indexUid: meiliItemIndex,
 					q: query,
+					limit: 25,
 				},
 				{
 					indexUid: meiliCommentIndex,
 					q: query,
+					limit: 25,
 				},
 			],
 		});
