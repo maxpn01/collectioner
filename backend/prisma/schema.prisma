@@ -25,7 +25,7 @@ model User {
 
 model Topic {
     id          String       @id
-    name        String
+    name        String       @unique
     collections Collection[]
 
     @@map("topic")
@@ -34,7 +34,7 @@ model Topic {
 model Collection {
     owner            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
     id               String            @id
-    name             String
+    name             String            @unique
     topic            Topic             @relation(fields: [topicId], references: [id])
     image            String?
     userId           String
@@ -90,7 +90,7 @@ model Item {
 
 model ItemTag {
     item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
-    tag    String
+    tag    String @unique
     itemId String
 
     @@unique([itemId, tag])
