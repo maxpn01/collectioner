@@ -12,7 +12,12 @@ import { ExpressSignOut } from "../user/signout";
 export const prismaUserRepository = new PrismaUserRepository();
 
 import { SignUpWithEmailUseCase, ExpressSignUpWithEmail } from "../user/signup";
-import { ExpressViewUser, ViewUserUseCase } from "../user/view-user";
+import {
+	AdminViewUsersUseCase,
+	ExpressAdminViewUsers,
+	ExpressViewUser,
+	ViewUserUseCase,
+} from "../user/view-user";
 import { expressApp } from "./http";
 import { requireAuth } from "./middleware/auth";
 
@@ -25,7 +30,7 @@ const expressSignInWithEmail = new ExpressSignInWithEmail(signInWithEmail);
 expressApp.post("/api/signin/email", expressSignInWithEmail.execute);
 
 const expressSignOut = new ExpressSignOut();
-expressApp.post("/api/signout", expressSignOut.execute);
+expressApp.post("/api/signout", requireAuth, expressSignOut.execute);
 
 const setUserIsAdmin = new SetUserIsAdminUseCase(prismaUserRepository);
 const expressSetUserIsAdmin = new ExpressSetUserIsAdmin(setUserIsAdmin);
@@ -46,3 +51,7 @@ expressApp.delete("/api/user", requireAuth, expressDeleteUser.execute);
 const viewUser = new ViewUserUseCase(prismaUserRepository);
 const expressViewUser = new ExpressViewUser(viewUser);
 expressApp.get("/api/user", expressViewUser.execute);
+
+const adminViewUsers = new AdminViewUsersUseCase(prismaUserRepository);
+const expressAdminViewUsers = new ExpressAdminViewUsers(adminViewUsers);
+expressApp.get("/api/users", requireAuth, expressAdminViewUsers.execute);
