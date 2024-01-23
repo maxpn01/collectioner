@@ -387,6 +387,7 @@ export class ExpressUpdateCollection {
 
 		//@ts-ignore
 		const requesterId = req.session.userId;
+
 		const updateResult = await this.updateCollection.execute(
 			request,
 			requesterId,

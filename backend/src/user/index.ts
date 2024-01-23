@@ -22,8 +22,13 @@ export type User = {
 export class UsernameIsTakenFailure extends Failure {}
 export class EmailIsTakenFailure extends Failure {}
 
+export type SizedCollection = {
+	collection: Collection;
+	size: number;
+};
+
 type GetUserIncludables = {
-	collections: Collection[];
+	collections: SizedCollection[];
 };
 type GetUserIncludedProperties<O extends GetUserOptions> =
 	RepoGetIncludedProperties<GetUserIncludables, O>;
@@ -77,8 +82,18 @@ export class PrismaUserRepository implements UserRepository {
 
 		if (options?.include?.collections) {
 			const prismaCollections = prismaUser.collections;
-			includables.collections = prismaCollections.map((pc) =>
+			const collections = prismaCollections.map((pc) =>
 				prismaCollectionToEntity(pc, pc.topic, user),
+			);
+			includables.collections = await this.prisma.$transaction(() =>
+				Promise.all(
+					collections.map(async (collection) => ({
+						collection,
+						size: await this.prisma.item.count({
+							where: { collection: { id: collection.id } },
+						}),
+					})),
+				),
 			);
 		}
 
@@ -125,8 +140,18 @@ export class PrismaUserRepository implements UserRepository {
 
 		if (options?.include?.collections) {
 			const prismaCollections = prismaUser.collections;
-			includables.collections = prismaCollections.map((pc) =>
+			const collections = prismaCollections.map((pc) =>
 				prismaCollectionToEntity(pc, pc.topic, user),
+			);
+			includables.collections = await this.prisma.$transaction(() =>
+				Promise.all(
+					collections.map(async (collection) => ({
+						collection,
+						size: await this.prisma.item.count({
+							where: { collection: { id: collection.id } },
+						}),
+					})),
+				),
 			);
 		}
 

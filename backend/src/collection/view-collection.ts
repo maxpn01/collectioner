@@ -21,6 +21,7 @@ type ViewCollectionResponse = {
 		tags: Set<string>;
 		createdAt: Date;
 	}[];
+	size: number;
 };
 
 export class ViewCollectionUseCase {
@@ -47,24 +48,35 @@ export class ViewCollectionUseCase {
 		return Ok({
 			items: itemsResponse,
 			id: collection.id,
-			owner: collection.owner,
+			owner: {
+				id: collection.owner.id,
+				fullname: collection.owner.fullname,
+				blocked: collection.owner.blocked,
+			},
 			name: collection.name,
 			topic: collection.topic,
 			imageOption: collection.imageOption,
+			size: itemsResponse.length,
 		});
 	}
 }
 
 export function viewCollectionHttpBodyPresenter(
 	response: ViewCollectionResponse,
-) {
+): any {
 	return {
 		id: response.id,
 		name: response.name,
 		imageOption: response.imageOption,
 		owner: response.owner,
 		topic: response.topic,
-		items: response.items,
+		items: response.items.map((item) => ({
+			id: item.id,
+			name: item.name,
+			tags: Array.from(item.tags),
+			createdAt: item.createdAt,
+		})),
+		size: response.size,
 	};
 }
 

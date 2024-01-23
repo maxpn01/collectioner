@@ -1,11 +1,10 @@
 import { Result, Option, Ok, Err } from "ts-results";
-import { UserRepository } from ".";
+import { SizedCollection, UserRepository } from ".";
 import {
 	BadRequestFailure,
 	Failure,
 	NotAuthorizedFailure,
 } from "../utils/failure";
-import { Collection } from "../collection";
 
 type ViewUserResponse = {
 	id: string;
@@ -23,6 +22,7 @@ type ViewUserResponseCollection = {
 		name: string;
 	};
 	imageOption: Option<string>;
+	size: number;
 };
 
 export class ViewUserUseCase {
@@ -48,7 +48,10 @@ export class ViewUserUseCase {
 		});
 	}
 
-	private toResponseCollection(c: Collection): ViewUserResponseCollection {
+	private toResponseCollection({
+		collection: c,
+		size,
+	}: SizedCollection): ViewUserResponseCollection {
 		return {
 			id: c.id,
 			name: c.name,
@@ -57,13 +60,14 @@ export class ViewUserUseCase {
 				name: c.topic.name,
 			},
 			imageOption: c.imageOption,
+			size,
 		};
 	}
 }
 
 import { httpFailurePresenter, expressSendHttpFailure } from "../http";
 
-export function viewUserHttpBodyPresenter(response: ViewUserResponse) {
+export function viewUserHttpBodyPresenter(response: ViewUserResponse): any {
 	return {
 		id: response.id,
 		username: response.username,
