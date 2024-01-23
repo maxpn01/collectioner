@@ -17,6 +17,11 @@ type SignInWithEmailRequest = {
 	password: string;
 };
 
+type SignInWithEmailResponse = {
+	id: string;
+	isAdmin: boolean;
+};
+
 export class SignInWithEmailUseCase {
 	userRepository: UserRepository;
 
@@ -26,7 +31,7 @@ export class SignInWithEmailUseCase {
 
 	async execute(
 		request: SignInWithEmailRequest,
-	): Promise<Result<User, Failure>> {
+	): Promise<Result<SignInWithEmailResponse, Failure>> {
 		const userResult = await this.userRepository.getByEmail(request.email);
 		if (userResult.err) {
 			const failure = userResult.val;
@@ -45,8 +50,20 @@ export class SignInWithEmailUseCase {
 		);
 		if (!passwordMatches) return Err(new InvalidCredentialsFailure());
 
-		return Ok(user);
+		return Ok({
+			id: user.id,
+			isAdmin: user.isAdmin,
+		});
 	}
+}
+
+function jsonSignInWithEmailResponsePresenter(
+	response: SignInWithEmailResponse,
+): any {
+	return {
+		userId: response.id,
+		isAdmin: response.isAdmin,
+	};
 }
 
 import {
@@ -106,12 +123,13 @@ export class ExpressSignInWithEmail {
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
-		const user = signInResult.val;
+		const response = signInResult.val;
 
 		req.session.regenerate(() => {
 			//@ts-ignore
-			req.session.userId = user.id;
-			res.status(200).send();
+			req.session.userId = response.id;
+			const json = jsonSignInWithEmailResponsePresenter(response);
+			res.status(200).json(json);
 		});
 	}
 }
