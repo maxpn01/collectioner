@@ -60,6 +60,6 @@ export class ExpressDeleteUser {
 			return;
 		}
 
-		res.status(200).json(req.session);
+		res.status(200).send();
 	}
 }

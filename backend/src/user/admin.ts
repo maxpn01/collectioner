@@ -91,7 +91,7 @@ export class ExpressSetUserIsAdmin {
 			return;
 		}
 
-		res.status(200).json(req.session);
+		res.status(200).send();
 	}
 }
 
@@ -176,6 +176,6 @@ export class ExpressSetUserBlocked {
 			return;
 		}
 
-		res.status(200).json(req.session);
+		res.status(200).send();
 	}
 }
