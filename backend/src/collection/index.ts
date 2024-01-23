@@ -1,4 +1,4 @@
-import { Option } from "ts-results";
+import { Err, None, Ok, Option, Result } from "ts-results";
 import { PrismaUser, User, prismaUserToEntity } from "../user";
 import { Item } from "./item";
 import { RepoGetIncludedProperties, RepoGetOptions } from "../utils/repository";
@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { nullableToOption } from "../utils/ts-results";
 import { prismaTopicToEntity, PrismaTopic } from "./repositories/topic";
+import { Failure, ValidateLengthFailure } from "../utils/failure";
 
 export { Collection as PrismaCollection } from "@prisma/client";
 
@@ -29,6 +30,30 @@ export type CollectionField = {
 	collection: Collection;
 	type: CollectionFieldType;
 };
+
+export class ValidateCollectionNameFailure extends ValidateLengthFailure {}
+
+export function validateCollectionName(
+	collectionName: string,
+): Result<None, ValidateCollectionNameFailure> {
+	const satisfiesMinLength = collectionName.length >= 1;
+	const satisfiesMaxLength = collectionName.length <= 100;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidateCollectionNameFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+	}
+
+	return Ok(None);
+}
+
+export class CollectionNameIsTakenFailure extends Failure {}
+export class CollectionFieldNameIsTakenFailure extends Failure {}
 
 export const CollectionFieldType = {
 	Number: "Number",

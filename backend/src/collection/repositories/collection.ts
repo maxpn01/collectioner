@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Result, None, Err, Ok } from "ts-results";
 import {
 	GetCollectionOptions,
@@ -8,10 +8,12 @@ import {
 	GetCollectionIncludables,
 	prismaCollectionFieldToEntity,
 	GetCollectionIncludedProperties,
+	CollectionNameIsTakenFailure,
 } from "..";
 import { Failure, NotFoundFailure } from "../../utils/failure";
 import { optionToNullable } from "../../utils/ts-results";
 import { prismaItemToEntity } from "../item";
+import { PrismaErrors } from "../../utils/prisma";
 
 export interface CollectionRepository {
 	get<O extends GetCollectionOptions>(
@@ -139,15 +141,27 @@ export class PrismaCollectionRepository implements CollectionRepository {
 	}
 
 	async create(collection: Collection): Promise<Result<None, Failure>> {
-		await this.prisma.collection.create({
-			data: {
-				id: collection.id,
-				name: collection.name,
-				image: optionToNullable(collection.imageOption),
-				userId: collection.owner.id,
-				topicId: collection.topic.id,
-			},
-		});
+		try {
+			await this.prisma.collection.create({
+				data: {
+					id: collection.id,
+					name: collection.name,
+					image: optionToNullable(collection.imageOption),
+					userId: collection.owner.id,
+					topicId: collection.topic.id,
+				},
+			});
+		} catch (e) {
+			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
+			if (!isPrismaError) throw e;
+
+			if (e.code === PrismaErrors.UniqueConstraintFailed) {
+				const target = e.meta?.target as string[];
+
+				if (target.includes("name"))
+					return Err(new CollectionNameIsTakenFailure());
+			} else throw e;
+		}
 
 		return Ok(None);
 	}
@@ -156,13 +170,25 @@ export class PrismaCollectionRepository implements CollectionRepository {
 		id: string,
 		collection: Collection,
 	): Promise<Result<None, Failure>> {
-		await this.prisma.collection.update({
-			where: { id },
-			data: {
-				name: collection.name,
-				image: optionToNullable(collection.imageOption),
-			},
-		});
+		try {
+			await this.prisma.collection.update({
+				where: { id },
+				data: {
+					name: collection.name,
+					image: optionToNullable(collection.imageOption),
+				},
+			});
+		} catch (e) {
+			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
+			if (!isPrismaError) throw e;
+
+			if (e.code === PrismaErrors.UniqueConstraintFailed) {
+				const target = e.meta?.target as string[];
+
+				if (target.includes("name"))
+					return Err(new CollectionNameIsTakenFailure());
+			} else throw e;
+		}
 
 		return Ok(None);
 	}

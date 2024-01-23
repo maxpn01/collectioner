@@ -1,4 +1,11 @@
-import { Collection, CollectionField, Topic } from ".";
+import {
+	Collection,
+	CollectionField,
+	CollectionNameIsTakenFailure,
+	Topic,
+	ValidateCollectionNameFailure,
+	validateCollectionName,
+} from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Result } from "ts-results";
 import { User, UserRepository } from "../user";
@@ -7,7 +14,12 @@ import { NotAuthorizedFailure } from "../utils/failure";
 import { CollectionRepository } from "./repositories/collection";
 import { TopicRepository } from "./repositories/topic";
 import { CollectionSearchEngine } from "./search-engine";
-import { expressSendHttpFailure, httpFailurePresenter } from "../http";
+import {
+	HttpFailure,
+	JsonHttpFailure,
+	expressSendHttpFailure,
+	httpFailurePresenter,
+} from "../http";
 
 function generateCollectionId(): string {
 	return nanoid();
@@ -21,14 +33,17 @@ function createNewCollection({
 	owner: User;
 	name: string;
 	topic: Topic;
-}): Collection {
-	return {
+}): Result<Collection, Failure> {
+	const validateCollectionNameResult = validateCollectionName(name);
+	if (validateCollectionNameResult.err) return validateCollectionNameResult;
+
+	return Ok({
 		id: generateCollectionId(),
 		owner,
 		name,
 		topic,
 		imageOption: None,
-	};
+	});
 }
 
 function checkAllowedCreateCollection(requester: User, owner: User): boolean {
@@ -84,11 +99,13 @@ export class CreateCollectionUseCase {
 		if (topicResult.err) return topicResult;
 		const topic = topicResult.val;
 
-		const collection = createNewCollection({
+		const collectionResult = createNewCollection({
 			owner,
 			topic,
 			name: request.name,
 		});
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
 
 		const createResult = await this.collectionRepository.create(collection);
 		if (createResult.err) return createResult;
@@ -116,6 +133,25 @@ export function jsonCreateCollectionController(
 		ownerId: json.ownerId,
 		topicId: json.topicId,
 	});
+}
+
+export function createCollectionHttpFailurePresenter(
+	failure: Failure,
+): HttpFailure {
+	if (failure instanceof ValidateCollectionNameFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiedMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
+	if (failure instanceof CollectionNameIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			collectionNameIsTaken: true,
+		});
+	}
+
+	return httpFailurePresenter(failure);
 }
 
 import { Request, Response } from "express";
@@ -146,7 +182,7 @@ export class ExpressCreateCollection {
 		);
 		if (createResult.err) {
 			const failure = createResult.val;
-			const httpFailure = httpFailurePresenter(failure);
+			const httpFailure = createCollectionHttpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}

@@ -1,8 +1,22 @@
-import { CollectionFieldType, Topic, CollectionField, Collection } from ".";
+import {
+	CollectionFieldType,
+	Topic,
+	CollectionField,
+	Collection,
+	CollectionFieldNameIsTakenFailure,
+	CollectionNameIsTakenFailure,
+	ValidateCollectionNameFailure,
+	validateCollectionName,
+} from ".";
 import { nanoid } from "nanoid";
 import { Err, None, Ok, Option, Result } from "ts-results";
 import { UserRepository, authorizeUserUpdate } from "../user";
-import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
+import {
+	BadRequestFailure,
+	Failure,
+	NotFoundFailure,
+	ValidateLengthFailure,
+} from "../utils/failure";
 import { NotAuthorizedFailure } from "../utils/failure";
 import { CollectionRepository } from "./repositories/collection";
 import { TopicRepository } from "./repositories/topic";
@@ -11,6 +25,27 @@ import {
 	UpdatedField,
 } from "./repositories/collection-field";
 import { CollectionSearchEngine } from "./search-engine";
+
+export class ValidateCollectionFieldNameFailure extends ValidateLengthFailure {}
+
+export function validateCollectionFieldName(
+	collectionFieldName: string,
+): Result<None, ValidateCollectionFieldNameFailure> {
+	const satisfiesMinLength = collectionFieldName.length >= 1;
+	const satisfiesMaxLength = collectionFieldName.length <= 25;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidateCollectionFieldNameFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+	}
+
+	return Ok(None);
+}
 
 function updateCollection(
 	collection: Collection,
@@ -23,14 +58,17 @@ function updateCollection(
 		topic: Topic;
 		imageOption: Option<string>;
 	},
-): Collection {
+): Result<Collection, Failure> {
+	const validateCollectionNameResult = validateCollectionName(name);
+	if (validateCollectionNameResult.err) return validateCollectionNameResult;
+
 	collection = structuredClone(collection);
 
 	collection.name = name;
 	collection.topic = topic;
 	collection.imageOption = imageOption;
 
-	return collection;
+	return Ok(collection);
 }
 
 export class AuthorizeCollectionUpdate {
@@ -143,20 +181,21 @@ export class UpdateCollectionUseCase {
 			fields,
 		);
 		if (updateCollectionFieldsResult.err) return updateCollectionFieldsResult;
+		const updatedFields: CollectionField[] = updateCollectionFieldsResult.val;
 
-		const updatedCollection = updateCollection(collection, {
+		const updatedCollectionResult = updateCollection(collection, {
 			name: request.name,
 			topic,
 			imageOption: request.imageOption,
 		});
+		if (updatedCollectionResult.err) return updatedCollectionResult;
+		const updatedCollection = updatedCollectionResult.val;
 
 		const updateResult = await this.collectionRepository.update(
 			request.id,
 			updatedCollection,
 		);
 		if (updateResult.err) return updateResult;
-
-		const updatedFields: CollectionField[] = updateCollectionFieldsResult.val;
 
 		const replaceResult = await this.collectionSearchEngine.replace(
 			updatedCollection,
@@ -177,8 +216,15 @@ export class UpdateCollectionUseCase {
 		for (let i = 0; i < request.updatedFields.length; i++) {
 			const field = request.updatedFields[i];
 			const index = fields.findIndex((f) => f.id === field.id);
+
 			const fieldExists = index > -1;
 			if (!fieldExists) return Err(new NotFoundFailure());
+
+			const validateCollectionFieldNameResult = validateCollectionFieldName(
+				field.name,
+			);
+			if (validateCollectionFieldNameResult.err)
+				return validateCollectionFieldNameResult;
 
 			const updatedField: CollectionField = { collection, ...field };
 
@@ -198,6 +244,13 @@ export class UpdateCollectionUseCase {
 
 		for (let i = 0; i < request.createdFields.length; i++) {
 			const field = request.createdFields[i];
+
+			const validateCollectionFieldNameResult = validateCollectionFieldName(
+				field.name,
+			);
+			if (validateCollectionFieldNameResult.err)
+				return validateCollectionFieldNameResult;
+
 			const createdField: CollectionField = {
 				id: generateItemFieldId(),
 				collection,
@@ -272,20 +325,6 @@ export function jsonUpdateCollectionController(
 	});
 }
 
-export class FieldNameIsTakenFailure extends Failure {}
-
-export function updateCollectionHttpFailurePresenter(
-	failure: Failure,
-): HttpFailure {
-	if (failure instanceof FieldNameIsTakenFailure) {
-		return new JsonHttpFailure(409, {
-			fieldNameIsTaken: true,
-		});
-	}
-
-	return httpFailurePresenter(failure);
-}
-
 import { Request, Response } from "express";
 import {
 	HttpFailure,
@@ -293,6 +332,38 @@ import {
 	expressSendHttpFailure,
 	httpFailurePresenter,
 } from "../http";
+
+export function updateCollectionHttpFailurePresenter(
+	failure: Failure,
+): HttpFailure {
+	if (failure instanceof ValidateCollectionNameFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiedMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
+	if (failure instanceof ValidateCollectionFieldNameFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiedMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
+	if (failure instanceof CollectionNameIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			collectionNameIsTaken: true,
+		});
+	}
+
+	if (failure instanceof CollectionFieldNameIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			collectionFieldNameIsTaken: true,
+		});
+	}
+
+	return httpFailurePresenter(failure);
+}
 
 export class ExpressUpdateCollection {
 	updateCollection: UpdateCollectionUseCase;
