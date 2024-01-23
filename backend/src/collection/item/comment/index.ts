@@ -84,7 +84,11 @@ export class PrismaCommentRepository implements CommentRepository {
 		});
 		if (!prismaComment) return Err(new NotFoundFailure());
 
-		const collection = prismaCollectionToEntity(prismaComment.item.collection);
+		const collection = prismaCollectionToEntity(
+			prismaComment.item.collection,
+			prismaComment.item.collection.topic,
+			prismaUserToEntity(prismaComment.item.collection.owner),
+		);
 
 		const comment: Comment = prismaCommentToEntity(
 			prismaComment,
@@ -113,15 +117,19 @@ export class PrismaCommentRepository implements CommentRepository {
 			},
 		});
 
-		const item =
-			prismaComments.length > 0
-				? prismaItemToEntity(
-						prismaComments[0].item,
-						prismaCollectionToEntity(prismaComments[0].item.collection),
-				  )
-				: null;
+		if (prismaComments.length === 0) return Ok([]);
+
+		const prismaItem = prismaComments[0].item;
+		const item = prismaItemToEntity(
+			prismaItem,
+			prismaCollectionToEntity(
+				prismaItem.collection,
+				prismaItem.collection.topic,
+				prismaUserToEntity(prismaItem.collection.owner),
+			),
+		);
 		const comments: Comment[] = prismaComments.map((prismaComment) =>
-			prismaCommentToEntity(prismaComment, item!),
+			prismaCommentToEntity(prismaComment, item),
 		);
 
 		return Ok(comments);

@@ -5,7 +5,7 @@ import {
 	PrismaCollection,
 	prismaCollectionToEntity,
 } from "..";
-import { PrismaUser, User } from "../../user";
+import { PrismaUser, User, prismaUserToEntity } from "../../user";
 import {
 	Failure,
 	NotFoundFailure,
@@ -373,7 +373,11 @@ export class PrismaItemRepository implements ItemRepository {
 		});
 
 		const items: Item[] = prismaItems.map((pi) => {
-			const collection = prismaCollectionToEntity(pi.collection);
+			const collection = prismaCollectionToEntity(
+				pi.collection,
+				pi.collection.topic,
+				prismaUserToEntity(pi.collection.owner),
+			);
 			return prismaItemToEntity(pi, collection);
 		});
 
@@ -397,7 +401,11 @@ export class PrismaItemRepository implements ItemRepository {
 		});
 
 		const items: Item[] = prismaItems.map((pi) => {
-			const collection = prismaCollectionToEntity(pi.collection);
+			const collection = prismaCollectionToEntity(
+				pi.collection,
+				pi.collection.topic,
+				prismaUserToEntity(pi.collection.owner),
+			);
 			return prismaItemToEntity(pi, collection);
 		});
 
@@ -616,7 +624,11 @@ function prismaItemToGetItemResult<O extends GetItemOptions>(
 ): GetItemResult<O> {
 	const item: Item = prismaItemToEntity(
 		pi,
-		prismaCollectionToEntity(pi.collection),
+		prismaCollectionToEntity(
+			pi.collection,
+			pi.collection.topic,
+			prismaUserToEntity(pi.collection.owner),
+		),
 	);
 
 	const includables: Partial<GetItemIncludables> = {};

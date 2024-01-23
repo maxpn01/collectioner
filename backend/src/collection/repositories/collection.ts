@@ -14,6 +14,7 @@ import { Failure, NotFoundFailure } from "../../utils/failure";
 import { optionToNullable } from "../../utils/ts-results";
 import { prismaItemToEntity } from "../item";
 import { PrismaErrors } from "../../utils/prisma";
+import { prismaUserToEntity } from "../../user";
 
 export interface CollectionRepository {
 	get<O extends GetCollectionOptions>(
@@ -58,7 +59,11 @@ export class PrismaCollectionRepository implements CollectionRepository {
 		});
 		if (!prismaCollection) return Err(new NotFoundFailure());
 
-		const collection: Collection = prismaCollectionToEntity(prismaCollection);
+		const collection: Collection = prismaCollectionToEntity(
+			prismaCollection,
+			prismaCollection.topic,
+			prismaUserToEntity(prismaCollection.owner),
+		);
 		const includables: Partial<GetCollectionIncludables> = {};
 
 		if (options?.include?.items) {
@@ -105,8 +110,8 @@ export class PrismaCollectionRepository implements CollectionRepository {
 		});
 		if (!prismaCollections) return Err(new NotFoundFailure());
 
-		const collections: Collection[] = prismaCollections.map(
-			prismaCollectionToEntity,
+		const collections: Collection[] = prismaCollections.map((pc) =>
+			prismaCollectionToEntity(pc, pc.topic, pc.owner),
 		);
 		const includables: Partial<GetCollectionIncludables> = {};
 

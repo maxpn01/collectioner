@@ -1,4 +1,4 @@
-import { Result, Ok } from "ts-results";
+import { Result, Ok, Option } from "ts-results";
 import { ItemRepository } from ".";
 import { Failure } from "../../utils/failure";
 import { User } from "../../user";
@@ -41,10 +41,10 @@ export class ViewItemUseCase {
 
 	async execute(id: string): Promise<Result<ViewItemResponse, Failure>> {
 		const itemResult = await this.itemRepository.get(id, {
-			include: { collection: true, fields: true, comments: true },
+			include: { fields: true, comments: true },
 		});
 		if (itemResult.err) return itemResult;
-		const { item, collection, fields, comments } = itemResult.val;
+		const { item, fields, comments } = itemResult.val;
 
 		const numberFieldsMap = new Map<CollectionFieldId, number>();
 		const textFieldsMap = new Map<CollectionFieldId, string>();

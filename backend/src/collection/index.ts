@@ -84,16 +84,15 @@ export type GetCollectionResult<O extends GetCollectionOptions> = {
 } & RepoGetIncludedProperties<GetCollectionIncludables, O>;
 
 export function prismaCollectionToEntity(
-	model: PrismaCollection & {
-		owner: PrismaUser;
-		topic: PrismaTopic;
-	},
+	model: PrismaCollection,
+	pt: PrismaTopic,
+	owner: User,
 ) {
 	return {
-		owner: prismaUserToEntity(model.owner),
+		owner,
 		id: model.id,
 		name: model.name,
-		topic: prismaTopicToEntity(model.topic),
+		topic: prismaTopicToEntity(pt),
 		imageOption: nullableToOption(model.image),
 	};
 }
