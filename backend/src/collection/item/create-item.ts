@@ -271,7 +271,7 @@ export function jsonCreateItemController(
 	return Ok({
 		collectionId: json.collectionId,
 		name: json.name,
-		tags: json.tags,
+		tags: new Set(json.tags),
 		numberFields: new Map(
 			json.numberFields?.map(({ collectionFieldId, value }) => [
 				collectionFieldId,

@@ -16,6 +16,15 @@ import { httpFailurePresenter, expressSendHttpFailure } from "../../http";
 type SearchItemsResponseItem = {
 	id: string;
 	name: string;
+	tags: Set<string>;
+	collection: {
+		id: string;
+		name: string;
+		owner: {
+			id: string;
+			username: string;
+		};
+	};
 	createdAt: Date;
 };
 
@@ -66,10 +75,19 @@ export interface ItemSearchEngine {
 }
 
 type CollectionFieldId = string;
+
 export type ItemDocument = {
 	id: string;
 	name: string;
-	tags: Set<string>;
+	tags: string[];
+	collection: {
+		id: string;
+		name: string;
+		owner: {
+			id: string;
+			username: string;
+		};
+	};
 	createdAt: UnixTime;
 	numberFields: Record<CollectionFieldId, number>;
 	textFields: Record<CollectionFieldId, string>;
@@ -182,7 +200,15 @@ export function itemToDocument(item: Item, fields: ItemFields): ItemDocument {
 	return {
 		id: item.id,
 		name: item.name,
-		tags: item.tags,
+		tags: Array.from(item.tags),
+		collection: {
+			id: item.collection.id,
+			name: item.collection.name,
+			owner: {
+				id: item.collection.owner.id,
+				username: item.collection.owner.username,
+			},
+		},
 		createdAt: dateToUnixTime(item.createdAt),
 		numberFields: itemFieldToDocumentField(fields.numberFields),
 		textFields: itemFieldToDocumentField(fields.textFields),
@@ -209,6 +235,15 @@ type SearchEngineItem = {
 	items: {
 		id: string;
 		name: string;
+		tags: Set<string>;
+		collection: {
+			id: string;
+			name: string;
+			owner: {
+				id: string;
+				username: string;
+			};
+		};
 		createdAt: Date;
 	}[];
 	comments: {
@@ -216,16 +251,16 @@ type SearchEngineItem = {
 	};
 };
 
-function itemDocumentToItem(itemDocument: ItemDocument): {
-	id: string;
-	name: string;
-	createdAt: Date;
-} {
+function itemDocumentToItem(
+	itemDocument: ItemDocument,
+): SearchItemsResponseItem {
 	const unixTimeCreatedAt = itemDocument.createdAt as number;
 
 	return {
-		id: itemDocument.id as string,
-		name: itemDocument.name as string,
+		collection: itemDocument.collection,
+		id: itemDocument.id,
+		name: itemDocument.name,
+		tags: new Set(itemDocument.tags),
 		createdAt: unixTimeToDate(unixTimeCreatedAt),
 	};
 }
@@ -242,13 +277,13 @@ export function querySearchController(query: any): Result<string, Failure> {
 export function httpMatchedItemsPresenter(
 	matchedItems: SearchItemsResponseItem[],
 ) {
-	return matchedItems.map((item) => {
-		return {
-			id: item.id,
-			name: item.name,
-			createdAt: dateToUnixTime(item.createdAt),
-		};
-	});
+	return matchedItems.map((item) => ({
+		collection: item.collection,
+		id: item.id,
+		name: item.name,
+		tags: Array.from(item.tags),
+		createdAt: dateToUnixTime(item.createdAt),
+	}));
 }
 
 import { Request, Response } from "express";
