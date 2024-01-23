@@ -1,9 +1,14 @@
 import { Result, None, Err, Ok } from "ts-results";
 import { Item, prismaItemToEntity } from "..";
 import { PrismaUser, User, prismaUserToEntity } from "../../../user";
-import { Failure, NotFoundFailure } from "../../../utils/failure";
+import {
+	Failure,
+	NotFoundFailure,
+	ValidateLengthFailure,
+} from "../../../utils/failure";
 import { PrismaClient, Comment as PrismaComment } from "@prisma/client";
 import { prismaCollectionToEntity } from "../..";
+import { HttpFailure, JsonHttpFailure } from "../../../http";
 
 export type Comment = {
 	item: Item;
@@ -12,6 +17,36 @@ export type Comment = {
 	text: string;
 	createdAt: Date;
 };
+
+export class ValidateCommentTextFailure extends ValidateLengthFailure {}
+
+export function validateCommentTextHttpFailurePresenter(
+	failure: ValidateCommentTextFailure,
+): HttpFailure {
+	return new JsonHttpFailure(422, {
+		satisfiesMinLength: failure.satisfiesMinLength,
+		satisfiesMaxLength: failure.satisfiesMaxLength,
+	});
+}
+
+export function validateCommentText(
+	text: string,
+): Result<None, ValidateCommentTextFailure> {
+	const satisfiesMinLength = text.length >= 1;
+	const satisfiesMaxLength = text.length <= 400;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidateCommentTextFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+	}
+
+	return Ok(None);
+}
 
 export interface CommentRepository {
 	get(id: string): Promise<Result<Comment, Failure>>;

@@ -1,5 +1,11 @@
 import { Result, None, Ok, Err } from "ts-results";
-import { Comment, CommentRepository } from ".";
+import {
+	Comment,
+	CommentRepository,
+	ValidateCommentTextFailure,
+	validateCommentText,
+	validateCommentTextHttpFailurePresenter,
+} from ".";
 import { Item, ItemRepository } from "..";
 import { User, UserRepository } from "../../../user";
 import { BadRequestFailure, Failure } from "../../../utils/failure";
@@ -18,14 +24,17 @@ function createNewComment({
 	item: Item;
 	author: User;
 	text: string;
-}): Comment {
-	return {
+}): Result<Comment, Failure> {
+	const validateCommentTextResult = validateCommentText(text);
+	if (validateCommentTextResult.err) return validateCommentTextResult;
+
+	return Ok({
 		item,
 		author,
 		text,
 		id: generateItemId(),
 		createdAt: new Date(),
-	};
+	});
 }
 
 type CreateCommentRequest = {
@@ -63,11 +72,13 @@ export class CreateCommentUseCase {
 		if (commenterResult.err) return commenterResult;
 		const { user: requester } = commenterResult.val;
 
-		const comment: Comment = createNewComment({
+		const commentResult = createNewComment({
 			item,
 			author: requester,
 			text: request.text,
 		});
+		if (commentResult.err) return commentResult;
+		const comment = commentResult.val;
 
 		const createResult = await this.commentRepository.create(comment);
 		if (createResult.err) return createResult;
@@ -93,7 +104,21 @@ export function jsonCreateCommentController(
 }
 
 import { Request, Response } from "express";
-import { expressSendHttpFailure, httpFailurePresenter } from "../../../http";
+import {
+	HttpFailure,
+	expressSendHttpFailure,
+	httpFailurePresenter,
+} from "../../../http";
+
+export function createCommentHttpFailurePresenter(
+	failure: Failure,
+): HttpFailure {
+	if (failure instanceof ValidateCommentTextFailure) {
+		return validateCommentTextHttpFailurePresenter(failure);
+	}
+
+	return httpFailurePresenter(failure);
+}
 
 export class ExpressCreateComment {
 	createComment: CreateCommentUseCase;
@@ -118,7 +143,7 @@ export class ExpressCreateComment {
 		const createResult = await this.createComment.execute(request, requesterId);
 		if (createResult.err) {
 			const failure = createResult.val;
-			const httpFailure = httpFailurePresenter(failure);
+			const httpFailure = createCommentHttpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}

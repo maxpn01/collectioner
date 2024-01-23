@@ -1,5 +1,11 @@
 import { Result, None, Ok, Err } from "ts-results";
-import { CommentRepository } from ".";
+import {
+	Comment,
+	CommentRepository,
+	validateCommentTextHttpFailurePresenter,
+	ValidateCommentTextFailure,
+	validateCommentText,
+} from ".";
 import {
 	BadRequestFailure,
 	Failure,
@@ -12,6 +18,19 @@ type UpdateCommentRequest = {
 	id: string;
 	text: string;
 };
+
+function updateComment(
+	comment: Comment,
+	text: string,
+): Result<Comment, Failure> {
+	const validateCommentTextResult = validateCommentText(text);
+	if (validateCommentTextResult.err) return validateCommentTextResult;
+
+	comment = structuredClone(comment);
+	comment.text = text;
+
+	return Ok(comment);
+}
 
 export class UpdateCommentUseCase {
 	userRepository: UserRepository;
@@ -43,8 +62,9 @@ export class UpdateCommentUseCase {
 		const canUpdateComment = requester.id === comment.author.id;
 		if (!canUpdateComment) return Err(new NotAuthorizedFailure());
 
-		const updatedComment = structuredClone(comment);
-		updatedComment.text = request.text;
+		const updatedCommentResult = updateComment(comment, request.text);
+		if (updatedCommentResult.err) return updatedCommentResult;
+		const updatedComment = updatedCommentResult.val;
 
 		const updateResult = await this.commentRepository.update(updatedComment);
 		if (updateResult.err) return updateResult;
@@ -71,7 +91,21 @@ export function jsonUpdateCommentController(
 }
 
 import { Request, Response } from "express";
-import { expressSendHttpFailure, httpFailurePresenter } from "../../../http";
+import {
+	HttpFailure,
+	expressSendHttpFailure,
+	httpFailurePresenter,
+} from "../../../http";
+
+export function updateCommentHttpFailurePresenter(
+	failure: Failure,
+): HttpFailure {
+	if (failure instanceof ValidateCommentTextFailure) {
+		return validateCommentTextHttpFailurePresenter(failure);
+	}
+
+	return httpFailurePresenter(failure);
+}
 
 export class ExpressUpdateComment {
 	updateComment: UpdateCommentUseCase;
@@ -96,7 +130,7 @@ export class ExpressUpdateComment {
 		const updateResult = await this.updateComment.execute(request, requesterId);
 		if (updateResult.err) {
 			const failure = updateResult.val;
-			const httpFailure = httpFailurePresenter(failure);
+			const httpFailure = updateCommentHttpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
