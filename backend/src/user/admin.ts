@@ -5,7 +5,6 @@ import {
 	Failure,
 	NotAuthorizedFailure,
 } from "../utils/failure";
-import { idController } from "../utils/id";
 
 type SetUserIsAdminRequest = {
 	id: string;
@@ -134,10 +133,9 @@ export class SetUserBlockedUseCase {
 export function jsonSetUserBlockedController(
 	json: any,
 ): Result<SetUserBlockedRequest, BadRequestFailure> {
-	const idControllerResult = idController(json.id);
-	if (idControllerResult.err) return idControllerResult;
-
-	if (typeof json.blocked !== "boolean") return Err(new BadRequestFailure());
+	const isValid =
+		typeof json.id === "string" && typeof json.blocked === "boolean";
+	if (!isValid) return Err(new BadRequestFailure());
 
 	return Ok({
 		id: json.id,

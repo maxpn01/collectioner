@@ -1,10 +1,14 @@
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
-import { BadRequestFailure, Failure } from "../utils/failure";
 import {
-	EmailIsTakenFailure,
+	BadRequestFailure,
+	Failure,
+	ValidateLengthFailure,
+} from "../utils/failure";
+import {
 	User,
 	UserRepository,
+	EmailIsTakenFailure,
 	UsernameIsTakenFailure,
 } from ".";
 import { Err, None, Ok, Result } from "ts-results";
@@ -19,27 +23,98 @@ function generateUserId(): string {
 	return nanoid();
 }
 
-class ValidatePasswordFailure extends Failure {
-	passwordTooShort: boolean;
+class InvalidEmailFailure extends Failure {}
+class ValidateUsernameFailure extends Failure {
+	satisfiesMinLength: boolean;
+	satisfiesMaxLength: boolean;
+	hasValidCharacters: boolean;
 
-	constructor({ passwordTooShort }: { passwordTooShort: boolean }) {
+	constructor({
+		satisfiesMinLength,
+		satisfiesMaxLength,
+		hasValidCharacters,
+	}: {
+		satisfiesMinLength: boolean;
+		satisfiesMaxLength: boolean;
+		hasValidCharacters: boolean;
+	}) {
 		super();
 
-		const isFailure = passwordTooShort;
-		if (!isFailure) throw new Error("This failure is not really a failure");
+		const isValid =
+			satisfiesMinLength && satisfiesMaxLength && hasValidCharacters;
+		if (isValid) throw new Error("This failure is not really a failure");
 
-		this.passwordTooShort = passwordTooShort;
+		this.satisfiesMinLength = satisfiesMinLength;
+		this.satisfiesMaxLength = satisfiesMaxLength;
+		this.hasValidCharacters = hasValidCharacters;
 	}
+}
+class ValidateFullnameFailure extends ValidateLengthFailure {}
+class ValidatePasswordFailure extends ValidateLengthFailure {}
+
+function validateEmail(email: string): Result<None, InvalidEmailFailure> {
+	const emailRegex =
+		/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+	const correctFormat = emailRegex.test(email);
+
+	const isValid = correctFormat;
+	if (!isValid) return Err(new InvalidEmailFailure());
+
+	return Ok(None);
+}
+
+function validateUsername(
+	username: string,
+): Result<None, ValidateUsernameFailure> {
+	const satisfiesMinLength = username.length >= 1;
+	const satisfiesMaxLength = username.length <= 50;
+	const hasValidCharacters = /^[a-zA-Z0-9._-]+$/.test(username);
+
+	const isValid =
+		satisfiesMinLength && satisfiesMaxLength && hasValidCharacters;
+	if (!isValid) {
+		return Err(
+			new ValidateUsernameFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+				hasValidCharacters,
+			}),
+		);
+	}
+
+	return Ok(None);
+}
+
+function validateFullname(
+	fullname: string,
+): Result<None, ValidateFullnameFailure> {
+	const satisfiesMinLength = fullname.length >= 1;
+	const satisfiesMaxLength = fullname.length <= 50;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidateFullnameFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+	}
+
+	return Ok(None);
 }
 
 function validatePassword(
 	password: string,
 ): Result<None, ValidatePasswordFailure> {
-	const passwordTooShort = password.length < 8;
+	const satisfiesMinLength = password.length >= 10;
+	const satisfiesMaxLength = password.length <= 100;
 
-	const isFailure = passwordTooShort;
-	if (isFailure) {
-		return Err(new ValidatePasswordFailure({ passwordTooShort }));
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidatePasswordFailure({ satisfiesMinLength, satisfiesMaxLength }),
+		);
 	}
 
 	return Ok(None);
@@ -61,6 +136,15 @@ async function createNewUser({
 	fullname: string;
 	password: string;
 }): Promise<Result<User, Failure>> {
+	const validateEmailResult = validateEmail(email);
+	if (validateEmailResult.err) return validateEmailResult;
+
+	const validateUsernameResult = validateUsername(username);
+	if (validateUsernameResult.err) return validateUsernameResult;
+
+	const validateFullnameResult = validateFullname(fullname);
+	if (validateFullnameResult.err) return validateFullnameResult;
+
 	const validatePasswordResult = validatePassword(password);
 	if (validatePasswordResult.err) return validatePasswordResult;
 
@@ -125,9 +209,31 @@ export function jsonSignUpWithEmailController(
 }
 
 export function signUpHttpFailurePresenter(failure: Failure): HttpFailure {
+	if (failure instanceof InvalidEmailFailure) {
+		return new JsonHttpFailure(422, {
+			invalidEmail: true,
+		});
+	}
+
+	if (failure instanceof ValidateUsernameFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiesMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+			hasValidCharacters: failure.hasValidCharacters,
+		});
+	}
+
+	if (failure instanceof ValidateFullnameFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiesMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
 	if (failure instanceof ValidatePasswordFailure) {
 		return new JsonHttpFailure(422, {
-			passwordTooShort: failure.passwordTooShort,
+			satisfiesMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
 		});
 	}
 
