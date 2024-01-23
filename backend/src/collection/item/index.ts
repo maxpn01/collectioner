@@ -6,13 +6,17 @@ import {
 	prismaCollectionToEntity,
 } from "..";
 import { PrismaUser, User } from "../../user";
-import { Failure, NotFoundFailure } from "../../utils/failure";
+import {
+	Failure,
+	NotFoundFailure,
+	ValidateLengthFailure,
+} from "../../utils/failure";
 import {
 	RepoGetIncludedProperties,
 	RepoGetOptions,
 } from "../../utils/repository";
 import { Comment, prismaCommentToEntity } from "./comment";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import {
 	Item as PrismaItem,
@@ -27,6 +31,8 @@ import {
 } from "@prisma/client";
 import { PrismaTopic } from "../repositories/topic";
 import { safeDateConversion } from "../../utils/date";
+import { PrismaErrors } from "../../utils/prisma";
+import { HttpFailure, JsonHttpFailure, httpFailurePresenter } from "../../http";
 
 export { Item as PrismaItem, ItemTag as PrismaItemTag } from "@prisma/client";
 
@@ -56,6 +62,124 @@ type ItemLike = {
 	item: Item;
 	author: User;
 };
+
+export class ValidateItemNameFailure extends ValidateLengthFailure {}
+export class ValidateItemTagsLengthFailure extends ValidateLengthFailure {}
+export class ValidateItemTagFailure extends ValidateLengthFailure {}
+
+export function validateItemName(
+	itemName: string,
+): Result<None, ValidateItemNameFailure> {
+	const satisfiesMinLength = itemName.length >= 5;
+	const satisfiesMaxLength = itemName.length <= 100;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidateItemNameFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+	}
+
+	return Ok(None);
+}
+
+export function validateItemTagsLength(
+	itemTags: Set<string>,
+): Result<None, ValidateItemTagsLengthFailure> {
+	const satisfiesMinLength = itemTags.size >= 1;
+	const satisfiesMaxLength = itemTags.size <= 20;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid)
+		return Err(
+			new ValidateItemTagsLengthFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+
+	return Ok(None);
+}
+
+export function validateItemTag(
+	itemTag: string,
+): Result<None, ValidateItemTagFailure> {
+	const satisfiesMinLength = itemTag.length >= 1;
+	const satisfiesMaxLength = itemTag.length <= 30;
+
+	const isValid = satisfiesMinLength && satisfiesMaxLength;
+	if (!isValid) {
+		return Err(
+			new ValidateItemTagFailure({
+				satisfiesMinLength,
+				satisfiesMaxLength,
+			}),
+		);
+	}
+
+	return Ok(None);
+}
+
+export function validateItem(
+	name: string,
+	tags: Set<string>,
+): Result<None, Failure> {
+	const validateItemNameResult = validateItemName(name);
+	if (validateItemNameResult.err) return validateItemNameResult;
+
+	const validateItemTagsLengthResult = validateItemTagsLength(tags);
+	if (validateItemTagsLengthResult.err) return validateItemTagsLengthResult;
+
+	for (const tag in tags) {
+		const validateItemTagResult = validateItemTag(tag);
+		if (validateItemTagResult.err) return validateItemTagResult;
+	}
+
+	return Ok(None);
+}
+
+export function itemHttpFailurePresenter(failure: Failure): HttpFailure {
+	if (failure instanceof ValidateItemNameFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiesMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
+	if (failure instanceof ValidateItemTagFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiesMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
+	if (failure instanceof ValidateItemTagsLengthFailure) {
+		return new JsonHttpFailure(422, {
+			satisfiesMinLength: failure.satisfiesMinLength,
+			satisfiesMaxLength: failure.satisfiesMaxLength,
+		});
+	}
+
+	if (failure instanceof ItemNameIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			itemNameIsTaken: true,
+		});
+	}
+
+	if (failure instanceof ItemTagIsTakenFailure) {
+		return new JsonHttpFailure(409, {
+			itemTagIsTaken: true,
+		});
+	}
+
+	return httpFailurePresenter(failure);
+}
+
+export class ItemNameIsTakenFailure extends Failure {}
+export class ItemTagIsTakenFailure extends Failure {}
 
 export function generateItemFieldId(itemId: string, collectionFieldId: string) {
 	return `${itemId}->${collectionFieldId}`;
@@ -281,46 +405,58 @@ export class PrismaItemRepository implements ItemRepository {
 	}
 
 	async create(item: Item, fields: ItemFields): Promise<Result<None, Failure>> {
-		await this.prisma.item.create({
-			data: {
-				id: item.id,
-				name: item.name,
-				collectionId: item.collection.id,
-				tags: {
-					create: Array.from(item.tags).map((tag) => ({ tag })),
+		try {
+			await this.prisma.item.create({
+				data: {
+					id: item.id,
+					name: item.name,
+					collectionId: item.collection.id,
+					tags: {
+						create: Array.from(item.tags).map((tag) => ({ tag })),
+					},
+					numberFields: {
+						create: fields.numberFields.map((f) => ({
+							collectionFieldId: f.collectionField.id,
+							value: f.value,
+						})),
+					},
+					textFields: {
+						create: fields.textFields.map((f) => ({
+							collectionFieldId: f.collectionField.id,
+							value: f.value,
+						})),
+					},
+					multilineTextFields: {
+						create: fields.multilineTextFields.map((f) => ({
+							collectionFieldId: f.collectionField.id,
+							value: f.value,
+						})),
+					},
+					checkboxFields: {
+						create: fields.checkboxFields.map((f) => ({
+							collectionFieldId: f.collectionField.id,
+							value: f.value,
+						})),
+					},
+					dateFields: {
+						create: fields.dateFields.map((f) => ({
+							collectionFieldId: f.collectionField.id,
+							value: safeDateConversion(f.value),
+						})),
+					},
 				},
-				numberFields: {
-					create: fields.numberFields.map((f) => ({
-						collectionFieldId: f.collectionField.id,
-						value: f.value,
-					})),
-				},
-				textFields: {
-					create: fields.textFields.map((f) => ({
-						collectionFieldId: f.collectionField.id,
-						value: f.value,
-					})),
-				},
-				multilineTextFields: {
-					create: fields.multilineTextFields.map((f) => ({
-						collectionFieldId: f.collectionField.id,
-						value: f.value,
-					})),
-				},
-				checkboxFields: {
-					create: fields.checkboxFields.map((f) => ({
-						collectionFieldId: f.collectionField.id,
-						value: f.value,
-					})),
-				},
-				dateFields: {
-					create: fields.dateFields.map((f) => ({
-						collectionFieldId: f.collectionField.id,
-						value: safeDateConversion(f.value),
-					})),
-				},
-			},
-		});
+			});
+		} catch (e) {
+			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
+			if (!isPrismaError) throw e;
+
+			if (e.code === PrismaErrors.UniqueConstraintFailed) {
+				const target = e.meta?.target as string[];
+
+				if (target.includes("name")) return Err(new ItemNameIsTakenFailure());
+				if (target.includes("tag")) return Err(new ItemTagIsTakenFailure());
+			} else throw e;
+		}
 
 		return Ok(None);
 	}

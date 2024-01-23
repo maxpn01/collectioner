@@ -1,5 +1,12 @@
 import { Result, None, Ok, Err } from "ts-results";
-import { ItemField, ItemFields, ItemRepository } from ".";
+import {
+	Item,
+	ItemField,
+	ItemFields,
+	ItemRepository,
+	itemHttpFailurePresenter,
+	validateItem,
+} from ".";
 import { UserRepository } from "../../user";
 import { BadRequestFailure, Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
@@ -19,6 +26,26 @@ type UpdateItemRequest = {
 };
 
 type CollectionFieldId = string;
+
+function updateItem(
+	item: Item,
+	{
+		name,
+		tags,
+	}: {
+		name: string;
+		tags: Set<string>;
+	},
+): Result<Item, Failure> {
+	validateItem(name, tags);
+
+	item = structuredClone(item);
+
+	item.name = name;
+	item.tags = tags;
+
+	return Ok(item);
+}
 
 export class UpdateItemUseCase {
 	userRepository: UserRepository;
@@ -64,9 +91,12 @@ export class UpdateItemUseCase {
 		if (collectionFieldsResult.err) throw Error();
 		const collectionFields = collectionFieldsResult.val;
 
-		const updatedItem = structuredClone(item);
-		updatedItem.name = request.name;
-		updatedItem.tags = request.tags;
+		const updatedItemResult = updateItem(item, {
+			name: request.name,
+			tags: request.tags,
+		});
+		if (updatedItemResult.err) return updatedItemResult;
+		const updatedItem = updatedItemResult.val;
 
 		const numberFields: ItemField<number>[] = [];
 		for (const [collectionFieldId, value] of request.numberFields) {
@@ -196,9 +226,17 @@ export function jsonUpdateItemController(
 	});
 }
 
+function updateItemHttpFailurePresenter(failure: Failure): HttpFailure {
+	return itemHttpFailurePresenter(failure);
+}
+
 import { Request, Response } from "express";
 import { isValidFields } from "./create-item";
-import { expressSendHttpFailure, httpFailurePresenter } from "../../http";
+import {
+	HttpFailure,
+	expressSendHttpFailure,
+	httpFailurePresenter,
+} from "../../http";
 
 export class ExpressUpdateItem {
 	updateItem: UpdateItemUseCase;
@@ -227,7 +265,7 @@ export class ExpressUpdateItem {
 		const updateResult = await this.updateItem.execute(request, requesterId);
 		if (updateResult.err) {
 			const failure = updateResult.val;
-			const httpFailure = httpFailurePresenter(failure);
+			const httpFailure = updateItemHttpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}

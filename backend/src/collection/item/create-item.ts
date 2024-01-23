@@ -9,7 +9,14 @@ import { UserRepository } from "../../user";
 import { BadRequestFailure, Failure } from "../../utils/failure";
 import { AuthorizeCollectionUpdate } from "../update-collection";
 import { nanoid } from "nanoid";
-import { Item, ItemRepository, ItemFields, ItemField } from ".";
+import {
+	Item,
+	ItemRepository,
+	ItemFields,
+	ItemField,
+	validateItem,
+	itemHttpFailurePresenter,
+} from ".";
 import { areArraysEqual } from "../../utils/array";
 import { CollectionRepository } from "../repositories/collection";
 import { ItemSearchEngine } from "./search-engine";
@@ -26,14 +33,16 @@ function createNewItem({
 	name: string;
 	tags: Set<string>;
 	collection: Collection;
-}): Item {
-	return {
+}): Result<Item, Failure> {
+	validateItem(name, tags);
+
+	return Ok({
 		name,
 		tags,
 		collection,
 		id: generateItemId(),
 		createdAt: new Date(),
-	};
+	});
 }
 
 type CreateItemRequest = {
@@ -94,11 +103,13 @@ export class CreateItemUseCase {
 		const allFieldsSpecified = await checkAllFieldsSpecified.execute();
 		if (!allFieldsSpecified) return Err(new BadRequestFailure());
 
-		const item: Item = createNewItem({
+		const itemResult = createNewItem({
 			collection,
 			name: request.name,
 			tags: request.tags,
 		});
+		if (itemResult.err) return itemResult;
+		const item = itemResult.val;
 
 		const numberFields: ItemField<number>[] = [];
 		for (const [collectionFieldId, value] of request.numberFields) {
@@ -294,8 +305,16 @@ export function jsonCreateItemController(
 	});
 }
 
+export function createItemHttpFailurePresenter(failure: Failure): HttpFailure {
+	return itemHttpFailurePresenter(failure);
+}
+
 import { Request, Response } from "express";
-import { expressSendHttpFailure, httpFailurePresenter } from "../../http";
+import {
+	HttpFailure,
+	expressSendHttpFailure,
+	httpFailurePresenter,
+} from "../../http";
 
 export class ExpressCreateItem {
 	createItem: CreateItemUseCase;
