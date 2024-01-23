@@ -7,6 +7,14 @@ type ViewItemResponse = {
 	id: string;
 	name: string;
 	tags: Set<string>;
+	collection: {
+		id: string;
+		name: string;
+		owner: {
+			id: string;
+			username: string;
+		};
+	};
 	fields: {
 		numberFields: Map<CollectionFieldId, number>;
 		textFields: Map<CollectionFieldId, string>;
@@ -33,10 +41,10 @@ export class ViewItemUseCase {
 
 	async execute(id: string): Promise<Result<ViewItemResponse, Failure>> {
 		const itemResult = await this.itemRepository.get(id, {
-			include: { fields: true, comments: true },
+			include: { collection: true, fields: true, comments: true },
 		});
 		if (itemResult.err) return itemResult;
-		const { item, fields, comments } = itemResult.val;
+		const { item, collection, fields, comments } = itemResult.val;
 
 		const numberFieldsMap = new Map<CollectionFieldId, number>();
 		const textFieldsMap = new Map<CollectionFieldId, string>();
@@ -78,6 +86,14 @@ export class ViewItemUseCase {
 			id,
 			name: item.name,
 			tags: item.tags,
+			collection: {
+				id: item.collection.id,
+				name: item.collection.name,
+				owner: {
+					id: item.collection.owner.id,
+					username: item.collection.owner.username,
+				},
+			},
 			fields: responseFields,
 			comments,
 		});
@@ -89,6 +105,14 @@ export function viewItemHttpBodyPresenter(response: ViewItemResponse) {
 		id: response.id,
 		name: response.name,
 		tags: Array.from(response.tags),
+		collection: {
+			id: response.collection.id,
+			name: response.collection.name,
+			owner: {
+				id: response.collection.owner.id,
+				username: response.collection.owner.username,
+			},
+		},
 		fields: {
 			numberFields: Array.from(response.fields.numberFields),
 			textFields: Array.from(response.fields.textFields),
