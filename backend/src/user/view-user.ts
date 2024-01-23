@@ -4,6 +4,7 @@ import {
 	BadRequestFailure,
 	Failure,
 	NotAuthorizedFailure,
+	NotFoundFailure,
 } from "../utils/failure";
 
 type ViewUserResponse = {
@@ -119,13 +120,16 @@ type AdminViewUsersRequest = {
 };
 
 type AdminViewUsersResponse = {
-	id: string;
-	username: string;
-	email: string;
-	fullname: string;
-	blocked: boolean;
-	isAdmin: boolean;
-}[];
+	page: {
+		id: string;
+		username: string;
+		email: string;
+		fullname: string;
+		blocked: boolean;
+		isAdmin: boolean;
+	}[];
+	lastPage: number;
+};
 
 export class AdminViewUsersUseCase {
 	userRepository: UserRepository;
@@ -151,15 +155,21 @@ export class AdminViewUsersUseCase {
 			request.pageN,
 		);
 		if (usersResult.err) return usersResult;
+		const { page, lastPage } = usersResult.val;
 
-		const result: AdminViewUsersResponse = usersResult.val.map((user) => ({
-			id: user.id,
-			username: user.username,
-			email: user.email,
-			fullname: user.fullname,
-			blocked: user.blocked,
-			isAdmin: user.isAdmin,
-		}));
+		if (request.pageN > lastPage) return Err(new NotFoundFailure());
+
+		const result: AdminViewUsersResponse = {
+			page: page.map((user) => ({
+				id: user.id,
+				username: user.username,
+				email: user.email,
+				fullname: user.fullname,
+				blocked: user.blocked,
+				isAdmin: user.isAdmin,
+			})),
+			lastPage,
+		};
 
 		return Ok(result);
 	}

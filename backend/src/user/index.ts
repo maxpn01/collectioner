@@ -42,7 +42,10 @@ export interface UserRepository {
 		id: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>>;
-	getPage(size: number, pageN: number): Promise<Result<User[], Failure>>;
+	getPage(
+		size: number,
+		pageN: number,
+	): Promise<Result<{ page: User[]; lastPage: number }, Failure>>;
 	getByEmail<O extends GetUserOptions>(
 		email: string,
 		options?: O,
@@ -103,8 +106,12 @@ export class PrismaUserRepository implements UserRepository {
 		});
 	}
 
-	async getPage(size: number, pageN: number): Promise<Result<User[], Failure>> {
+	async getPage(
+		size: number,
+		pageN: number,
+	): Promise<Result<{ page: User[]; lastPage: number }, Failure>> {
 		const offset = size * (pageN - 1);
+		const lastPage = Math.ceil((await this.prisma.user.count()) / size);
 
 		const prismaUsers = await this.prisma.user.findMany({
 			skip: offset,
@@ -114,7 +121,7 @@ export class PrismaUserRepository implements UserRepository {
 
 		const users: User[] = prismaUsers.map(prismaUserToEntity);
 
-		return Ok(users);
+		return Ok({ page: users, lastPage });
 	}
 
 	async getByEmail<O extends GetUserOptions>(
