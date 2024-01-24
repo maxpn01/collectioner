@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { BadRequestFailure, Failure, NotFoundFailure } from "../utils/failure";
-import { User, UserRepository } from ".";
+import { UserRepository } from ".";
 import { Err, Ok, Result } from "ts-results";
 
 async function checkPasswordMatches(
@@ -19,6 +19,7 @@ type SignInWithEmailRequest = {
 
 type SignInWithEmailResponse = {
 	id: string;
+	username: string;
 	isAdmin: boolean;
 };
 
@@ -52,6 +53,7 @@ export class SignInWithEmailUseCase {
 
 		return Ok({
 			id: user.id,
+			username: user.username,
 			isAdmin: user.isAdmin,
 		});
 	}
@@ -62,6 +64,7 @@ function jsonSignInWithEmailResponsePresenter(
 ): any {
 	return {
 		userId: response.id,
+		username: response.username,
 		isAdmin: response.isAdmin,
 	};
 }

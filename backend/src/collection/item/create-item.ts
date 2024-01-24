@@ -343,7 +343,8 @@ export class ExpressCreateItem {
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
+		const id = createResult.val;
 
-		res.status(200).send();
+		res.status(200).json({ id });
 	}
 }

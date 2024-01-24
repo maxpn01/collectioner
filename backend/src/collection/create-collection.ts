@@ -77,7 +77,7 @@ export class CreateCollectionUseCase {
 	async execute(
 		request: CreateCollectionRequest,
 		requesterId: string,
-	): Promise<Result<None, Failure>> {
+	): Promise<Result<string, Failure>> {
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) return requesterResult;
 		const { user: requester } = requesterResult.val;
@@ -115,7 +115,7 @@ export class CreateCollectionUseCase {
 		const addResult = await this.collectionSearchEngine.add(collection, fields);
 		if (addResult.err) return addResult;
 
-		return Ok(None);
+		return Ok(collection.id);
 	}
 }
 
@@ -186,7 +186,8 @@ export class ExpressCreateCollection {
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
+		const id = createResult.val;
 
-		res.status(200).send();
+		res.status(200).json({ id });
 	}
 }
