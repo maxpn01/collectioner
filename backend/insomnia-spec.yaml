@@ -1,0 +1,1223 @@
+_type: export
+__export_format: 4
+__export_date: 2024-01-24T10:41:44.818Z
+__export_source: insomnia.desktop.app:v8.6.0
+resources:
+  - _id: req_62f682d09dbd4cb3b7da314b13450caa
+    parentId: fld_24eb5c5d5d454a0ea264c00394a0fdb7
+    modified: 1706008966609
+    created: 1705838706164
+    url: http://localhost:5000/api/comment
+    name: Create Comment
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"itemId": "AX5drkY8HJSXCdcXtOSo_",
+        	"text": "love it!"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705838714736
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: fld_24eb5c5d5d454a0ea264c00394a0fdb7
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1705838700778
+    created: 1705838700778
+    name: Comment
+    description: ""
+    environment: {}
+    environmentPropertyOrder: null
+    metaSortKey: -1705838700778
+    _type: request_group
+  - _id: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    parentId: null
+    modified: 1689524789864
+    created: 1689524789864
+    name: my-spec.yaml
+    description: ""
+    scope: design
+    _type: workspace
+  - _id: req_8436d970972b4504a837f45c84b61793
+    parentId: fld_24eb5c5d5d454a0ea264c00394a0fdb7
+    modified: 1705840352152
+    created: 1705840281798
+    url: http://localhost:5000/api/comment
+    name: Update Comment
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "yytZxzeIv4GDpMCcpa1Sy",
+        	"text": "wow, what a wonderful book!"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705838714686
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_bdc44a99a01d4db99cefd0e0cb447181
+    parentId: fld_24eb5c5d5d454a0ea264c00394a0fdb7
+    modified: 1705839963298
+    created: 1705839921693
+    url: http://localhost:5000/api/comment
+    name: Delete Comment
+    description: ""
+    method: DELETE
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "-W4Eu3R6oKmEGXuFUQXR0"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705838714636
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_683a52d765464ebd9da963cd543c90a1
+    parentId: fld_dab0df16e2434d519ac3b7b27110bc9f
+    modified: 1706003398452
+    created: 1705409063034
+    url: http://localhost:5000/api/item/search
+    name: Search Item
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_c6bf4d8022834ec9b3841095d25e979e
+        name: q
+        value: h
+        description: ""
+    headers:
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705745980271
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: fld_dab0df16e2434d519ac3b7b27110bc9f
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1705745975537
+    created: 1705745975537
+    name: Item
+    description: ""
+    environment: {}
+    environmentPropertyOrder: null
+    metaSortKey: -1705745975537
+    _type: request_group
+  - _id: req_3268c945d8094266841df6599b0f9b94
+    parentId: fld_dab0df16e2434d519ac3b7b27110bc9f
+    modified: 1706022889238
+    created: 1705830329457
+    url: http://localhost:5000/api/item
+    name: Create Item
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: >-
+        {
+        	"collectionId": "m0GPdimJf8sg0SKgaHxA7",
+        	"name": "Harry Potter and the Sorcerer’s Stone",
+        	"tags": [
+        		"children",
+        		"fantasy"
+        	],
+        	"numberFields": [
+        		{
+        			"collectionFieldId": "dFSaeICazntPCnJuY4l5a",
+        			"value": 333
+        		}
+        	],
+        	"textFields": [
+        		{
+        			"collectionFieldId": "y1jBhbbk5zSkdZqz8un9m",
+        			"value": "JK Rowling"
+        		}
+        	],
+        	"multilineTextFields": [
+        		{
+        			"collectionFieldId": "mbiBmVGjkG0la96nzQ3MU",
+        			"value": "Turning the envelope over, his hand trembling, Harry saw a purple wax seal bearing a coat of arms; a lion, an eagle, a badger and a snake surrounding a large letter H."
+        		}
+        	],
+        	"checkboxFields": [
+        		{
+        			"collectionFieldId": "z-GiwCog4-68gBqRn625c",
+        			"value": true
+        		}
+        	],
+        	"dateFields": [
+        		{
+        			"collectionFieldId": "d63wvEsbeLJ9EAYN2B_2Q",
+        			"value": "June 26, 1997"
+        		}
+        	]
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705745980171
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_78f78d11d7f642538ea7e94fcdf17df6
+    parentId: fld_dab0df16e2434d519ac3b7b27110bc9f
+    modified: 1705860413466
+    created: 1705851863605
+    url: http://localhost:5000/api/item
+    name: Update Item
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: >-
+        {
+        	"id": "QPZg3SQRc1TD5V-5F25Wy",
+        	"name": "The Hunger Games",
+        	"tags": [
+        		"teen",
+        		"fantasy",
+        		"dystopia"
+        	],
+        	"numberFields": [
+        		{
+        			"collectionFieldId": "rEDn6Id2CHfHTtbA-nIoZ",
+        			"value": 374
+        		}
+        	],
+        	"textFields": [
+        		{
+        			"collectionFieldId": "g_VwXahmH-4jfJRkRv3-d",
+        			"value": "Suzanne Collins"
+        		}
+        	],
+        	"multilineTextFields": [
+        		{
+        			"collectionFieldId": "fZUP346ID9qISoGFxfQns",
+        			"value": "In the ruins of a place once known as North America lies the nation of Panem, a shining Capitol surrounded by twelve outlying districts. The Capitol is harsh and cruel and keeps the districts in line by forcing them all to send one boy and one girl between the ages of twelve and eighteen to participate in the annual Hunger Games, a fight to the death on live TV."
+        		}
+        	],
+        	"checkboxFields": [
+        		{
+        			"collectionFieldId": "ozDujcUUe8ro4h6s46dsh",
+        			"value": false
+        		}
+        	],
+        	"dateFields": [
+        		{
+        			"collectionFieldId": "-9iR4DF69Mc1cHg5kWzSi",
+        			"value": "September 14, 2008"
+        		}
+        	]
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705745980146
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_9fa15327198d47f4b67bec452d2a0913
+    parentId: fld_dab0df16e2434d519ac3b7b27110bc9f
+    modified: 1706009412739
+    created: 1705836201874
+    url: http://localhost:5000/api/item
+    name: Delete Item
+    description: ""
+    method: DELETE
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "AX5drkY8HJSXCdcXtOSo_"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705745980121
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_85807a7b2d3d40f4a0c3542bfcf55033
+    parentId: fld_dab0df16e2434d519ac3b7b27110bc9f
+    modified: 1706010111073
+    created: 1705837057237
+    url: http://localhost:5000/api/item
+    name: View Item
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_430c471b855f405d937235cc79857bd6
+        name: id
+        value: xSK1VvG26pH1S03DcNm0g
+        description: ""
+    headers:
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705745979971
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_8729ea9087ea4eee89b196e0349acc79
+    parentId: fld_dab0df16e2434d519ac3b7b27110bc9f
+    modified: 1705856068860
+    created: 1705853115298
+    url: http://localhost:5000/api/item/tags
+    name: Autocomplete Tags
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_430c471b855f405d937235cc79857bd6
+        name: s
+        value: d
+        description: ""
+    headers:
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705743796067.5
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_c5d3e0b56ebe4ef4ad0a5c7fee7b1128
+    parentId: fld_c34c523baccb48c4ba25defb5795886b
+    modified: 1706022007447
+    created: 1705741604811
+    url: http://localhost:5000/api/collection
+    name: Create Collection
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"ownerId": "My-qhKDHx3ygzBP0tseH_",
+        	"name": "top50fantasy",
+        	"topicId": "topic_books"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705741612164
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: fld_c34c523baccb48c4ba25defb5795886b
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1705741590767
+    created: 1705741590767
+    name: Collection
+    description: ""
+    environment: {}
+    environmentPropertyOrder: null
+    metaSortKey: -1705741590767
+    _type: request_group
+  - _id: req_acf42e25d7e14519a416922baf0e8a25
+    parentId: fld_c34c523baccb48c4ba25defb5795886b
+    modified: 1706022044539
+    created: 1705758094329
+    url: http://localhost:5000/api/collection
+    name: Update Collection
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "m0GPdimJf8sg0SKgaHxA7",
+        	"name": "top50fantasy",
+        	"topicId": "topic_books",
+        	"imageOption": "image",
+        	"updatedFields": [],
+        	"createdFields": [
+        		{
+        			"name": "Pages",
+        			"type": "Number"
+        		},
+        		{
+        			"name": "Author",
+        			"type": "Text"
+        		},
+        		{
+        			"name": "Description",
+        			"type": "MultilineText"
+        		},
+        		{
+        			"name": "Read",
+        			"type": "Checkbox"
+        		},
+        		{
+        			"name": "Published",
+        			"type": "Date"
+        		}
+        	]
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705703536984.5
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_21dd5faf3bb5463eae58ca564236d326
+    parentId: fld_c34c523baccb48c4ba25defb5795886b
+    modified: 1706013221168
+    created: 1705754901553
+    url: http://localhost:5000/api/collection
+    name: Delete Collection
+    description: ""
+    method: DELETE
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "bblhr2qdCI1-YpNuUvvPK"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705665461805
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_cc50ccf4e1da42fe86dc6468f4de3e96
+    parentId: fld_c34c523baccb48c4ba25defb5795886b
+    modified: 1706022775412
+    created: 1705826356067
+    url: http://localhost:5000/api/collection
+    name: View Collection
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_430c471b855f405d937235cc79857bd6
+        name: id
+        value: m0GPdimJf8sg0SKgaHxA7
+        description: ""
+    headers:
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705665461705
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_4e44322c92ba4ba4a3461e0fa2f6190b
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1706025210913
+    created: 1705589306603
+    url: http://localhost:5000/api/signup/email
+    name: Sign Up
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"email": "john3@gmail.com",
+        	"username": "johndoe3",
+        	"fullname": "John Doe 3",
+        	"password": "12345678901"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705589311446
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1705664604744
+    created: 1705589298039
+    name: User
+    description: ""
+    environment: {}
+    environmentPropertyOrder: null
+    metaSortKey: -1705589298039
+    _type: request_group
+  - _id: req_1729321a32de4a2dabdc6effc5488dbf
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1705821798332
+    created: 1705595322870
+    url: http://localhost:5000/api/signin/email
+    name: Sign In
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"email": "john@gmail.com",
+        	"password": "12345678901"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705500690044.5
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_a85996b960b94e85b1cd8860978ea868
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1705746045438
+    created: 1705598390712
+    url: http://localhost:5000/api/signout
+    name: Sign Out
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: ""
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705456379343.75
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_2b28bb856d2e4bf1830a11d8b7930ffd
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1705746049658
+    created: 1705649728536
+    url: http://localhost:5000/api/user/is-admin
+    name: Set IsAdmin
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "84Ic63XUvC-vXiwCJcLca",
+        	"isAdmin": true
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705434223993.375
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_ed8a05d7b673414b94a4afbad14d7e4f
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1705746053564
+    created: 1705662477259
+    url: http://localhost:5000/api/user/blocked
+    name: Set Blocked
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "84Ic63XUvC-vXiwCJcLca",
+        	"blocked": true
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705423146318.1875
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_d580dcfc1b444a9098dd589953200e6d
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1706013605754
+    created: 1705664612178
+    url: http://localhost:5000/api/user
+    name: Delete User
+    description: ""
+    method: DELETE
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "aT1PkniihmBA-nOAxW3uU"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705417607480.5938
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_e73e6d50dbbc4deda6fb422e0b2a72aa
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1706023087400
+    created: 1705666521660
+    url: http://localhost:5000/api/user
+    name: View User
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_430c471b855f405d937235cc79857bd6
+        name: id
+        value: My-qhKDHx3ygzBP0tseH_
+        description: ""
+    headers:
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705414838061.7969
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_7e715559de284417bb4ed2601003aef3
+    parentId: fld_a111bc8aed7c432abf7d73c40f9ec0c8
+    modified: 1706026057176
+    created: 1705917599942
+    url: http://localhost:5000/api/users
+    name: Admin View Users
+    description: ""
+    method: GET
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"size": 1,
+        	"pageN": 3
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication: {}
+    metaSortKey: -1705413453352.3984
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_6f2b25eb1f874824b6e3bbc787ee351e
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1706090688589
+    created: 1705411501223
+    url: https://localhost:7700/tasks
+    name: Get tasks
+    description: ""
+    method: GET
+    body: {}
+    parameters: []
+    headers: []
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068643
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: fld_7329a8234f124663bb3d4e7647aec1a8
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1705753590541
+    created: 1705411975630
+    name: Meili
+    description: ""
+    environment: {}
+    environmentPropertyOrder: null
+    metaSortKey: -1705410519332
+    _type: request_group
+  - _id: req_0595ddf129fd4346af4fd3a47af74437
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705412290286
+    created: 1705411950579
+    url: http://localhost:7700/keys
+    name: Create admin API key
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"actions": [
+        		"*"
+        	],
+        	"indexes": [
+        		"*"
+        	],
+        	"expiresAt": null
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068543
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_8ff6827c6d5b450eadd8ac79884bb9a8
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705412122075
+    created: 1705411194177
+    url: http://localhost:7700/indexes/item/documents/fetch
+    name: Get Items
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"filter": ""
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068443
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_013faa703da24bdf95cdbfa3b172becd
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705477285591
+    created: 1705477148700
+    url: http://localhost:7700/indexes/collection/settings
+    name: Get settings
+    description: ""
+    method: GET
+    body:
+      mimeType: application/json
+      text: ""
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068393
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_f25767636a454f938c49e369d8bfceeb
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705565496697
+    created: 1705477300826
+    url: http://localhost:7700/indexes/collection/settings/searchable-attributes
+    name: Update collection searchable attributes
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        [
+        	"name"
+        ]
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068368
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_6740cbd16aa84bddb467bb5e39fcb451
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1706091073269
+    created: 1705564935203
+    url: https://localhost:7700/indexes/item/settings/searchable-attributes
+    name: Update item searchable-attributes
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        [
+        	"name",
+        	"tags",
+        	"createdAt",
+        	"textFields",
+        	"multilineTextFields"
+        ]
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068355.5
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_65d774bef5a94956912f3529eb650b51
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705565512400
+    created: 1705565012920
+    url: http://localhost:7700/indexes/comment/settings/searchable-attributes
+    name: Update comment searchable-attributes
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        [
+        	"text",
+        	"createdAt"
+        ]
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068349.25
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_bff5933118b640acb197971846d4697e
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705565623159
+    created: 1705565544625
+    url: http://localhost:7700/indexes/item/settings/filterable-attributes
+    name: Update item filterable-attributes
+    description: ""
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        [
+        	"tags"
+        ]
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068346.125
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_22c2a22055904d41880d0d22c3833877
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705565969145
+    created: 1705565779003
+    url: http://localhost:7700/indexes/item/search
+    name: Search items with facets
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"q": "fantasy",
+          "facets": [
+            "tags"
+          ]
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068344.5625
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_de8d413a6ae244129b62e13b392b30f8
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705412117359
+    created: 1705410087245
+    url: http://localhost:7700/indexes/item/documents/
+    name: Create Item
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "harrypotter",
+        	"name": "Harry Potter",
+        	"tags": ["fantasy", "children"],
+        	"createdAt": 1263578400, 
+        	"numberFields": {},
+        	"textFields": {},
+        	"multilineTextFields": {},
+        	"checkboxFields": {},
+        	"dateFields": {}
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+        id: pair_55e5752c9b7b4504b629b9889291ea6f
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068343
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_5663c35b838c48e3bbe049e5efbdebc1
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705412078182
+    created: 1689524801694
+    url: http://localhost:7700/indexes/collection/documents/
+    name: Create Collection
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "john_collection_id",
+        	"name": "top50fantasy",
+        	"topic": {
+        		"id": "topic_books_id",
+        		"name": "books"
+        	}
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+        id: pair_55e5752c9b7b4504b629b9889291ea6f
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068243
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_4a7b266a39cf4b8885d296f7977b54c6
+    parentId: fld_7329a8234f124663bb3d4e7647aec1a8
+    modified: 1705412068243
+    created: 1705409865724
+    url: http://localhost:7700//indexes/
+    name: Create Index
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        "uid": "comment"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.5.1
+    authentication:
+      type: bearer
+      token: ""
+    metaSortKey: -1705412068143
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: env_cc7f57fe4c496bfa8c05434e3f363b1f29d00dd4
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1689524789872
+    created: 1689524789872
+    name: Base Environment
+    data: {}
+    dataPropertyOrder: null
+    color: null
+    isPrivate: false
+    metaSortKey: 1689524789873
+    _type: environment
+  - _id: jar_cc7f57fe4c496bfa8c05434e3f363b1f29d00dd4
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1706025225572
+    created: 1689524789879
+    name: Default Jar
+    cookies:
+    _type: cookie_jar
+  - _id: spc_d5b2d7a3d8b94d419a395d406a1a9410
+    parentId: wrk_ead9ed7c60ac4adf8ab1e0b1361c8066
+    modified: 1696243879718
+    created: 1689524789867
+    fileName: my-spec.yaml
+    contents: ""
+    contentType: yaml
+    _type: api_spec
