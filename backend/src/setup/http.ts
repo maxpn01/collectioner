@@ -27,9 +27,14 @@ expressApp.use(
 		cookie: {
 			secure: env.isProduction,
 			httpOnly: true,
+			sameSite: "strict",
 			maxAge: 1000 * 60 * 60 * 24 * 30,
 		},
 	}),
 );
+
+if (env.isProduction) {
+	expressApp.set("trust proxy", 1);
+}
 
 expressApp.get("/", (req, res) => res.send("Server is running ..."));
