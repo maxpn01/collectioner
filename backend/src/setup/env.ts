@@ -8,6 +8,7 @@ const env = {
 	isProduction: mode === "production",
 	isDevelopment: mode === "development",
 	port: process.env.PORT ?? 5000,
+	meiliHost: process.env.MEILI_HOST!,
 	meiliMasterKey: process.env.MEILI_MASTER_KEY!,
 	cookieSecret: process.env.COOKIE_SECRET!,
 	databaseUrl: process.env.DATABASE_URL!,
