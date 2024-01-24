@@ -23,7 +23,7 @@
         "express": "^4.18.2",
         "express-session": "^1.17.3",
         "meilisearch": "^0.36.0",
-        "nanoid": "^5.0.4",
+        "nanoid": "3.3.7",
         "ts-results": "^3.3.0"
     },
     "devDependencies": {
