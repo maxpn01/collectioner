@@ -8,7 +8,7 @@
     "main": "./dist/index.js",
     "scripts": {
         "start": "node dist/index.js",
-        "build": "pkgroll",
+        "build": "npx pkgroll",
         "dev": "tsx src/index.ts",
         "test": "vitest --passWithNoTests",
         "meili": "node meili"
@@ -20,11 +20,13 @@
         "@types/express-session": "^1.17.10",
         "bcryptjs": "^2.4.3",
         "connect-pg-simple": "^9.0.1",
+        "dotenv": "^16.4.0",
         "express": "^4.18.2",
         "express-session": "^1.17.3",
         "meilisearch": "^0.36.0",
         "nanoid": "3.3.7",
-        "ts-results": "^3.3.0"
+        "ts-results": "^3.3.0",
+        "tslib": "^2.6.2"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.2",
@@ -35,8 +37,6 @@
         "pkgroll": "^2.0.1",
         "prisma": "^5.7.1",
         "ts-mockito": "^2.6.1",
-        "tsc": "^2.0.4",
-        "tslib": "^2.6.2",
         "tsx": "^4.7.0",
         "typescript": "^5.3.3",
         "vitest": "^1.1.0"
