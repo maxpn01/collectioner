@@ -31,3 +31,5 @@ expressApp.use(
 		},
 	}),
 );
+
+expressApp.get("/", (req, res) => res.send("Server is running ..."));
