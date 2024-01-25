@@ -6,7 +6,7 @@ import {
 	StatePromise,
 } from "@/utils/state-promise";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Ok, Result } from "ts-results";
+import { Err, Ok, Result, Some } from "ts-results";
 
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -14,8 +14,15 @@ import { DangerButton } from "@/components/button";
 import { Checkbox } from "@/components/checkbox";
 import { Failure } from "@/utils/failure";
 import { Signal, signal, useComputed } from "@preact/signals-react";
-import { httpSetUserBlockedService, httpSetUserIsAdminService } from ".";
 import { UserTable } from "./user-table";
+import { UserBlockedSetManyContext, UserIsAdminSetManyContext } from ".";
+import env from "@/env";
+import {
+	authenticatedUserState,
+	localStorageAuthenticatedUserRepository,
+} from "@/user/auth";
+import { homePageRoute } from "@/home";
+import { useNavigate } from "react-router-dom";
 
 type ViewDashboardService = (
 	pageN: number,
@@ -92,6 +99,26 @@ const dummyViewDashboardService: ViewDashboardService = async (
 	});
 };
 
+const httpViewDashboardService: ViewDashboardService = async (
+	pageN: number,
+	size: number,
+) => {
+	const res = await fetch(
+		`${env.backendApiBase}/users?pageN=${pageN}&size=${size}`,
+		{
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include",
+		},
+	);
+	if (!res.ok) return Err(new Failure());
+	const json = await res.json();
+
+	return Ok(json);
+};
+
 function dashboardPresenter(dashboard: Dashboard): DashboardPageState {
 	return {
 		users: dashboard.page.map((user) => {
@@ -106,89 +133,12 @@ function dashboardPresenter(dashboard: Dashboard): DashboardPageState {
 }
 
 export const ViewDashboardContext = createContext(
-	new ViewDashboardUseCase(dummyViewDashboardService),
+	new ViewDashboardUseCase(
+		env.isProduction ? httpViewDashboardService : httpViewDashboardService,
+	),
 );
 
-export const userTableColumns: ColumnDef<DashboardPageUser>[] = [
-	{
-		id: "select",
-		header: ({ table }) => (
-			<Checkbox
-				checked={
-					table.getIsAllPageRowsSelected() ||
-					(table.getIsSomePageRowsSelected() && "indeterminate")
-				}
-				className="flex"
-				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-				aria-label="Select all"
-			/>
-		),
-		cell: ({ row }) => (
-			<Checkbox
-				checked={row.getIsSelected()}
-				className="flex"
-				onCheckedChange={(value) => row.toggleSelected(!!value)}
-				aria-label="Select row"
-			/>
-		),
-		enableSorting: false,
-		enableHiding: false,
-	},
-	{
-		accessorKey: "username",
-		header: "Username",
-	},
-	{
-		accessorKey: "fullname",
-		header: "Fullname",
-	},
-	{
-		accessorKey: "email",
-		header: "Email",
-	},
-	{
-		accessorKey: "blocked",
-		header: "Blocked",
-		cell: ({ row }) => {
-			const user = row.original;
-
-			return useComputed(() => (
-				<Checkbox
-					checked={user.blocked.value}
-					className="flex"
-					onClick={async () => {
-						const toggled = !user.blocked.value;
-						const result = await httpSetUserBlockedService(user.id, toggled);
-						if (result.err) throw new Error("Not implemented");
-						user.blocked.value = toggled;
-					}}
-				/>
-			));
-		},
-	},
-	{
-		accessorKey: "isAdmin",
-		header: "Admin",
-		cell: ({ row }) => {
-			const user = row.original;
-
-			return useComputed(() => (
-				<Checkbox
-					checked={user.isAdmin.value}
-					className="flex"
-					onClick={async () => {
-						const toggled = !user.isAdmin.value;
-						const result = await httpSetUserIsAdminService(user.id, toggled);
-						if (result.err) throw new Error("Not implemented");
-						user.isAdmin.value = toggled;
-					}}
-				/>
-			));
-		},
-	},
-];
-
-type DashboardPageUser = {
+export type DashboardPageUser = {
 	id: string;
 	username: string;
 	email: string;
@@ -203,10 +153,12 @@ type DashboardPageState = {
 
 export const dashboardPageRoute = "/dashboard" as const;
 export function DashboardPage() {
+	const navigate = useNavigate();
 	const viewDashboard = useContext(ViewDashboardContext);
 	const [statePromise, setStatePromise] =
 		useState<StatePromise<DashboardPageState>>(Loading);
 	const [pageN, setPageN] = useState(1);
+	const userIsAdminSetMany = useContext(UserIsAdminSetManyContext);
 
 	useEffect(() => {
 		(async () => {
@@ -234,11 +186,22 @@ export function DashboardPage() {
 				Admin Dashboard
 			</h1>
 			<UserTable
-				columns={userTableColumns}
 				data={state.users}
 				pageN={pageN}
 				setPageN={setPageN}
 				lastPageN={state.lastPageN}
+				refreshData={async () => {
+					setStatePromise(Loading);
+					const result = await viewDashboard.execute(pageN, 50);
+					if (result.err) {
+						console.error(result);
+						setStatePromise(Loaded(result));
+						return;
+					}
+					const dashboard = result.val;
+					const state = dashboardPresenter(dashboard);
+					setStatePromise(Loaded(Ok(state)));
+				}}
 			/>
 			<h3 className="mt-8 mb-4 font-semibold text-slate-700">Danger zone</h3>
 			<DangerButton
@@ -247,7 +210,32 @@ export function DashboardPage() {
 					body: "Are you sure you want to give up your admin privileges?",
 					okButton: {
 						label: "Give up privileges",
-						onClick: () => {},
+						onClick: async () => {
+							const authenticatedUserOption = authenticatedUserState.value;
+							if (authenticatedUserOption.none)
+								throw new Error("Admin is not authenticated");
+							const authenticatedUser = authenticatedUserOption.val;
+
+							const result = await userIsAdminSetMany.execute(
+								[authenticatedUser.id],
+								false,
+							);
+							if (result.err) {
+								console.error(result);
+								return;
+							}
+
+							const updatedAuthenticatedUser =
+								structuredClone(authenticatedUser);
+							updatedAuthenticatedUser.isAdmin = false;
+
+							localStorageAuthenticatedUserRepository.set(
+								Some(updatedAuthenticatedUser),
+							);
+							authenticatedUserState.value = Some(updatedAuthenticatedUser);
+
+							navigate(homePageRoute);
+						},
 					},
 				}}
 			>

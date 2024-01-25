@@ -105,7 +105,13 @@ export function DangerButton({
 					<Button variant="secondary" onClick={() => setIsOpen(false)}>
 						Cancel
 					</Button>
-					<Button variant="destructive" onClick={dialog.okButton.onClick}>
+					<Button
+						variant="destructive"
+						onClick={() => {
+							dialog.okButton.onClick();
+							setIsOpen(false);
+						}}
+					>
 						{dialog.okButton.label}
 					</Button>
 				</DialogFooter>

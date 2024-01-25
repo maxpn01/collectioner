@@ -193,18 +193,17 @@ export class AdminViewUsersUseCase {
 	}
 }
 
-export function jsonAdminViewUsersController(
-	json: any,
+export function queryAdminViewUsersController(
+	query: any,
 ): Result<AdminViewUsersRequest, BadRequestFailure> {
-	const isValid =
-		typeof json.size === "number" &&
-		typeof json.pageN === "number" &&
-		json.pageN > 0;
+	const size = parseInt(query.size);
+	const pageN = parseInt(query.pageN);
+	const isValid = !isNaN(size) && !isNaN(pageN) && pageN > 0;
 	if (!isValid) return Err(new BadRequestFailure());
 
 	return Ok({
-		size: json.size,
-		pageN: json.pageN,
+		size,
+		pageN,
 	});
 }
 
@@ -221,7 +220,7 @@ export class ExpressAdminViewUsers {
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
-		const controllerResult = jsonAdminViewUsersController(req.body);
+		const controllerResult = queryAdminViewUsersController(req.query);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);

@@ -27,8 +27,31 @@ export type FormItemField<T extends number | string | boolean | Date> = {
 	value: T;
 };
 
+type TagInputProps = {
+	tags: string[];
+	setTags: (tags: string[]) => void;
+};
+
+const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
+	const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		// Split the input by commas and trim whitespace
+		const newTags = event.target.value.split(",").map((tag) => tag.trim());
+		setTags(newTags);
+	};
+
+	return (
+		<Input
+			className="w-60"
+			type="text"
+			value={tags?.join(", ") || ""}
+			onChange={handleInputChange}
+		/>
+	);
+};
+
 export type UiItemForm = {
 	name: string;
+	tags: string[];
 	numberFields: FormItemField<number>[];
 	textFields: FormItemField<string>[];
 	multilineTextFields: FormItemField<string>[];
@@ -38,6 +61,7 @@ export type UiItemForm = {
 
 const itemSchema = z.object({
 	name: z.string(),
+	tags: z.array(z.string().min(1, "Tag cannot be empty")),
 	textFields: z.array(
 		z.object({
 			value: z.string(),
@@ -78,6 +102,8 @@ export function ItemForm({
 		resolver: zodResolver(itemSchema),
 		defaultValues,
 	});
+	const { register, handleSubmit, setValue, watch } = useForm<UiItemForm>();
+	const tags = watch("tags");
 	const { fields: textFields } = useFieldArray({
 		name: "textFields",
 		control: form.control,
@@ -117,6 +143,29 @@ export function ItemForm({
 							</FormLabel>
 							<FormControl>
 								<Input className="w-60" {...field} value={field.value ?? ""} />
+							</FormControl>
+							{fieldState.error && (
+								<FormMessage className="pl-2">
+									{fieldState.error.message}
+								</FormMessage>
+							)}
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					name="tags"
+					render={({ field, fieldState }) => (
+						<FormItem className="mb-4">
+							<FormLabel className="pl-2 font-bold text-slate-600">
+								Tags
+							</FormLabel>
+							<FormControl>
+								{/* <Input className="w-60" {...field} value={field.value ?? ""} /> */}
+								<TagInput
+									tags={tags}
+									setTags={(newTags) => setValue("tags", newTags)}
+								/>
 							</FormControl>
 							{fieldState.error && (
 								<FormMessage className="pl-2">

@@ -1,11 +1,14 @@
 import { PrismaUserRepository } from "../user";
 import {
-	ExpressSetUserBlocked,
+	ExpressUserBlockedSetMany,
 	ExpressUserIsAdminSetMany,
-	SetUserBlockedUseCase,
+	UserBlockedSetManyUseCase,
 	UserIsAdminSetManyUseCase,
 } from "../user/admin";
-import { DeleteUserUseCase, ExpressDeleteUser } from "../user/delete-user";
+import {
+	UserDeleteManyUseCase,
+	ExpressUserDeleteMany,
+} from "../user/delete-user";
 import { SignInWithEmailUseCase, ExpressSignInWithEmail } from "../user/signin";
 import { ExpressSignOut } from "../user/signout";
 
@@ -40,13 +43,19 @@ expressApp.put(
 	expressSetUserIsAdmin.execute,
 );
 
-const setUserBlocked = new SetUserBlockedUseCase(prismaUserRepository);
-const expressSetUserBlocked = new ExpressSetUserBlocked(setUserBlocked);
-expressApp.put("/api/user/blocked", requireAuth, expressSetUserBlocked.execute);
+const userBlockedSetMany = new UserBlockedSetManyUseCase(prismaUserRepository);
+const expressUserBlockedSetMany = new ExpressUserBlockedSetMany(
+	userBlockedSetMany,
+);
+expressApp.put(
+	"/api/user/blocked",
+	requireAuth,
+	expressUserBlockedSetMany.execute,
+);
 
-const deleteUser = new DeleteUserUseCase(prismaUserRepository);
-const expressDeleteUser = new ExpressDeleteUser(deleteUser);
-expressApp.delete("/api/user", requireAuth, expressDeleteUser.execute);
+const userDeleteMany = new UserDeleteManyUseCase(prismaUserRepository);
+const expressUserDeleteMany = new ExpressUserDeleteMany(userDeleteMany);
+expressApp.delete("/api/user", requireAuth, expressUserDeleteMany.execute);
 
 const viewUser = new ViewUserUseCase(prismaUserRepository);
 const expressViewUser = new ExpressViewUser(viewUser);

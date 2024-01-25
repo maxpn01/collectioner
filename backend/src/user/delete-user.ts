@@ -1,9 +1,13 @@
 import { Err, None, Ok, Result } from "ts-results";
 import { AuthorizeUserUpdateUseCase, UserRepository } from ".";
-import { Failure, NotAuthorizedFailure } from "../utils/failure";
-import { httpFailurePresenter, expressSendHttpFailure } from "../http";
+import { expressSendHttpFailure, httpFailurePresenter } from "../http";
+import {
+	BadRequestFailure,
+	Failure,
+	NotAuthorizedFailure,
+} from "../utils/failure";
 
-export class DeleteUserUseCase {
+export class UserDeleteManyUseCase {
 	userRepository: UserRepository;
 	authorizeUserUpdate: AuthorizeUserUpdateUseCase;
 
@@ -13,27 +17,38 @@ export class DeleteUserUseCase {
 	}
 
 	async execute(
-		id: string,
+		ids: string[],
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
-		const authorized = await this.authorizeUserUpdate.execute(id, requesterId);
-		if (!authorized) return Err(new NotAuthorizedFailure());
+		const requesterResult = await this.userRepository.get(requesterId);
+		if (requesterResult.err) throw new Error();
+		const { user: requester } = requesterResult.val;
+		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
 
-		const deleteResult = await this.userRepository.delete(id);
+		const deleteResult = await this.userRepository.deleteMany(ids);
 		if (deleteResult.err) return deleteResult;
 
 		return Ok(None);
 	}
 }
 
+export function jsonUserDeleteManyController(
+	json: any,
+): Result<string[], BadRequestFailure> {
+	const isValid =
+		Array.isArray(json.ids) &&
+		json.ids.every((id: any) => typeof id === "string");
+	if (!isValid) return Err(new BadRequestFailure());
+
+	return Ok(json.ids);
+}
+
 import { Request, Response } from "express";
-import session from "express-session";
-import { idController } from "../utils/id";
 
-export class ExpressDeleteUser {
-	deleteUser: DeleteUserUseCase;
+export class ExpressUserDeleteMany {
+	deleteUser: UserDeleteManyUseCase;
 
-	constructor(deleteUser: DeleteUserUseCase) {
+	constructor(deleteUser: UserDeleteManyUseCase) {
 		this.execute = this.execute.bind(this);
 		this.deleteUser = deleteUser;
 	}
@@ -43,18 +58,18 @@ export class ExpressDeleteUser {
 		//@ts-ignore
 		const requesterId = req.session.userId;
 
-		const controllerResult = idController(json.id);
+		const controllerResult = jsonUserDeleteManyController(json);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
-		const id = controllerResult.val;
+		const userIds = controllerResult.val;
 
-		const setUserBlockedResult = await this.deleteUser.execute(id, requesterId);
-		if (setUserBlockedResult.err) {
-			const failure = setUserBlockedResult.val;
+		const deleteResult = await this.deleteUser.execute(userIds, requesterId);
+		if (deleteResult.err) {
+			const failure = deleteResult.val;
 			const httpFailure = httpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;

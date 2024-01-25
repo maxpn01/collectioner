@@ -6,8 +6,8 @@ import {
 	NotAuthorizedFailure,
 } from "../utils/failure";
 
-type SetUserIsAdminRequest = {
-	id: string;
+type UserIsAdminSetManyRequest = {
+	ids: string[];
 	isAdmin: boolean;
 };
 
@@ -19,21 +19,23 @@ export class UserIsAdminSetManyUseCase {
 	}
 
 	async execute(
-		request: SetUserIsAdminRequest,
+		request: UserIsAdminSetManyRequest,
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) throw new Error();
 		const { user: requester } = requesterResult.val;
-
 		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
-		const userResult = await this.userRepository.get(request.id);
-		if (userResult.err) return userResult;
-		const { user } = userResult.val;
 
-		user.isAdmin = request.isAdmin;
+		const getManyResult = await this.userRepository.getMany(request.ids);
+		if (getManyResult.err) return getManyResult;
+		const users = getManyResult.val.map(({ user }) => user);
 
-		const updateResult = await this.userRepository.update(request.id, user);
+		for (const user of users) {
+			user.isAdmin = request.isAdmin;
+		}
+
+		const updateResult = await this.userRepository.updateMany(users);
 		if (updateResult.err) return updateResult;
 
 		return Ok(None);
@@ -42,15 +44,17 @@ export class UserIsAdminSetManyUseCase {
 
 import { httpFailurePresenter, expressSendHttpFailure } from "../http";
 
-export function jsonSetUserIsAdminController(
+export function jsonUserIsAdminSetManyController(
 	json: any,
-): Result<SetUserIsAdminRequest, BadRequestFailure> {
+): Result<UserIsAdminSetManyRequest, BadRequestFailure> {
 	const isValidJson =
-		typeof json.id === "string" && typeof json.isAdmin === "boolean";
+		Array.isArray(json.ids) &&
+		json.ids.every((id: any) => typeof id === "string") &&
+		typeof json.isAdmin === "boolean";
 	if (!isValidJson) return Err(new BadRequestFailure());
 
 	return Ok({
-		id: json.id,
+		ids: json.ids,
 		isAdmin: json.isAdmin,
 	});
 }
@@ -71,7 +75,7 @@ export class ExpressUserIsAdminSetMany {
 		//@ts-ignore
 		const requesterId = req.session.userId;
 
-		const controllerResult = jsonSetUserIsAdminController(json);
+		const controllerResult = jsonUserIsAdminSetManyController(json);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);
@@ -95,12 +99,12 @@ export class ExpressUserIsAdminSetMany {
 	}
 }
 
-type SetUserBlockedRequest = {
-	id: string;
+type UserBlockedSetManyRequest = {
+	ids: string[];
 	blocked: boolean;
 };
 
-export class SetUserBlockedUseCase {
+export class UserBlockedSetManyUseCase {
 	userRepository: UserRepository;
 
 	constructor(userRepository: UserRepository) {
@@ -108,45 +112,48 @@ export class SetUserBlockedUseCase {
 	}
 
 	async execute(
-		request: SetUserBlockedRequest,
+		request: UserBlockedSetManyRequest,
 		requesterId: string,
 	): Promise<Result<None, Failure>> {
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) throw new Error();
 		const { user: requester } = requesterResult.val;
-
 		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
 
-		const userResult = await this.userRepository.get(request.id);
-		if (userResult.err) return userResult;
-		const { user } = userResult.val;
+		const getManyResult = await this.userRepository.getMany(request.ids);
+		if (getManyResult.err) return getManyResult;
+		const users = getManyResult.val.map(({ user }) => user);
 
-		user.blocked = request.blocked;
+		for (const user of users) {
+			user.blocked = request.blocked;
+		}
 
-		const updateResult = await this.userRepository.update(request.id, user);
+		const updateResult = await this.userRepository.updateMany(users);
 		if (updateResult.err) return updateResult;
 
 		return Ok(None);
 	}
 }
 
-export function jsonSetUserBlockedController(
+export function jsonUserBlockedSetManyController(
 	json: any,
-): Result<SetUserBlockedRequest, BadRequestFailure> {
+): Result<UserBlockedSetManyRequest, BadRequestFailure> {
 	const isValid =
-		typeof json.id === "string" && typeof json.blocked === "boolean";
+		Array.isArray(json.ids) &&
+		json.ids.every((id: any) => typeof id === "string") &&
+		typeof json.blocked === "boolean";
 	if (!isValid) return Err(new BadRequestFailure());
 
 	return Ok({
-		id: json.id,
+		ids: json.ids,
 		blocked: json.blocked,
 	});
 }
 
-export class ExpressSetUserBlocked {
-	setUserBlocked: SetUserBlockedUseCase;
+export class ExpressUserBlockedSetMany {
+	setUserBlocked: UserBlockedSetManyUseCase;
 
-	constructor(setUserBlocked: SetUserBlockedUseCase) {
+	constructor(setUserBlocked: UserBlockedSetManyUseCase) {
 		this.execute = this.execute.bind(this);
 		this.setUserBlocked = setUserBlocked;
 	}
@@ -156,7 +163,7 @@ export class ExpressSetUserBlocked {
 		//@ts-ignore
 		const requesterId = req.session.userId;
 
-		const controllerResult = jsonSetUserBlockedController(json);
+		const controllerResult = jsonUserBlockedSetManyController(json);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);

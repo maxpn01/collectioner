@@ -50,13 +50,19 @@ export interface UserRepository {
 		size: number,
 		pageN: number,
 	): Promise<Result<{ page: User[]; lastPage: number }, Failure>>;
+	getMany<O extends GetUserOptions>(
+		ids: string[],
+		options?: O,
+	): Promise<Result<GetUserResult<O>[], Failure>>;
 	getByEmail<O extends GetUserOptions>(
 		email: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>>;
 	create(user: User): Promise<Result<None, Failure>>;
 	update(id: string, user: User): Promise<Result<None, Failure>>;
+	updateMany(users: User[]): Promise<Result<None, Failure>>;
 	delete(id: string): Promise<Result<None, Failure>>;
+	deleteMany(ids: string[]): Promise<Result<None, Failure>>;
 }
 
 export class PrismaUserRepository implements UserRepository {
@@ -172,6 +178,55 @@ export class PrismaUserRepository implements UserRepository {
 		return Ok({ page: users, lastPage });
 	}
 
+	async getMany<O extends GetUserOptions>(
+		ids: string[],
+		options?: O,
+	): Promise<Result<GetUserResult<O>[], Failure>> {
+		const prismaCollectionsInclude = (options?.include?.collections && {
+			include: {
+				topic: options?.include?.collections,
+			},
+		})!;
+
+		const prismaUsers = await this.prisma.user.findMany({
+			where: { id: { in: ids } },
+			include: {
+				collections: prismaCollectionsInclude,
+			},
+		});
+
+		const users = await Promise.all(
+			prismaUsers.map(async (prismaUser) => {
+				const user: User = prismaUserToEntity(prismaUser);
+				const includables: Partial<GetUserIncludables> = {};
+
+				if (options?.include?.collections) {
+					const prismaCollections = prismaUser.collections;
+					const collections = prismaCollections.map((pc) =>
+						prismaCollectionToEntity(pc, pc.topic, user),
+					);
+					includables.collections = await this.prisma.$transaction(() =>
+						Promise.all(
+							collections.map(async (collection) => ({
+								collection,
+								size: await this.prisma.item.count({
+									where: { collection: { id: collection.id } },
+								}),
+							})),
+						),
+					);
+				}
+
+				return {
+					user,
+					...(includables as GetUserIncludedProperties<O>),
+				};
+			}),
+		);
+
+		return Ok(users);
+	}
+
 	async getByEmail<O extends GetUserOptions>(
 		email: string,
 		options?: O,
@@ -254,8 +309,36 @@ export class PrismaUserRepository implements UserRepository {
 		return Ok(None);
 	}
 
+	async updateMany(users: User[]): Promise<Result<None, Failure>> {
+		try {
+			await this.prisma.$transaction(
+				users.map((user) =>
+					this.prisma.user.update({ where: { id: user.id }, data: user }),
+				),
+			);
+		} catch (e) {
+			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
+			if (!isPrismaError) throw e;
+
+			if (e.code === PrismaErrors.UniqueConstraintFailed) {
+				const target = e.meta?.target as string[];
+
+				if (target.includes("email")) return Err(new EmailIsTakenFailure());
+				if (target.includes("username"))
+					return Err(new UsernameIsTakenFailure());
+			} else throw e;
+		}
+
+		return Ok(None);
+	}
+
 	async delete(id: string): Promise<Result<None, Failure>> {
 		await this.prisma.user.delete({ where: { id } });
+		return Ok(None);
+	}
+
+	async deleteMany(ids: string[]): Promise<Result<None, Failure>> {
+		await this.prisma.user.deleteMany({ where: { id: { in: ids } } });
 		return Ok(None);
 	}
 }

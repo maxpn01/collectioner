@@ -1,23 +1,30 @@
+import env from "@/env";
 import { Failure } from "@/utils/failure";
 import { createContext } from "react";
-import { None, Ok, Result } from "ts-results";
+import { Err, None, Ok, Result } from "ts-results";
 
-export async function httpSetUserIsAdminService(
-	id: string,
-	value: boolean,
-): Promise<Result<None, Failure>> {
-	return Ok(None);
-}
+export const httpUserBlockedSetManyService: UserBlockedSetManyService = async (
+	ids: string[],
+	blocked: boolean,
+): Promise<Result<None, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/user/blocked`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ ids, blocked }),
+		credentials: "include",
+	});
+	if (!res.ok) {
+		return Err(new Failure());
+	}
 
-export async function httpSetUserBlockedService(
-	id: string,
-	value: boolean,
-): Promise<Result<None, Failure>> {
 	return Ok(None);
-}
+};
 
 type UserBlockedSetManyService = (
-	userIds: string[],
+	ids: string[],
+	blocked: boolean,
 ) => Promise<Result<None, Failure>>;
 
 export class UserBlockedSetManyUseCase {
@@ -26,16 +33,40 @@ export class UserBlockedSetManyUseCase {
 	constructor(userBlockedSetMany: UserBlockedSetManyService) {
 		this.userBlockedSetMany = userBlockedSetMany;
 	}
-	execute(userIds: string[]): Promise<Result<None, Failure>> {
-		return this.userBlockedSetMany(userIds);
+	execute(userIds: string[], blocked: boolean): Promise<Result<None, Failure>> {
+		return this.userBlockedSetMany(userIds, blocked);
 	}
 }
 export const UserBlockedSetManyContext = createContext(
-	new UserBlockedSetManyUseCase(async (userIds) => Ok(None)),
+	new UserBlockedSetManyUseCase(
+		env.isProduction
+			? httpUserBlockedSetManyService
+			: httpUserBlockedSetManyService,
+	),
 );
 
+export const httpUserIsAdminSetManyService: UserIsAdminSetManyService = async (
+	ids: string[],
+	isAdmin: boolean,
+): Promise<Result<None, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/user/is-admin`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ ids, isAdmin }),
+		credentials: "include",
+	});
+	if (!res.ok) {
+		return Err(new Failure());
+	}
+
+	return Ok(None);
+};
+
 type UserIsAdminSetManyService = (
-	userIds: string[],
+	ids: string[],
+	isAdmin: boolean,
 ) => Promise<Result<None, Failure>>;
 
 export class UserIsAdminSetManyUseCase {
@@ -44,17 +75,37 @@ export class UserIsAdminSetManyUseCase {
 	constructor(userIsAdminSetMany: UserIsAdminSetManyService) {
 		this.userIsAdminSetMany = userIsAdminSetMany;
 	}
-	execute(userIds: string[]): Promise<Result<None, Failure>> {
-		return this.userIsAdminSetMany(userIds);
+	execute(userIds: string[], isAdmin: boolean): Promise<Result<None, Failure>> {
+		return this.userIsAdminSetMany(userIds, isAdmin);
 	}
 }
 export const UserIsAdminSetManyContext = createContext(
-	new UserIsAdminSetManyUseCase(async (userIds) => Ok(None)),
+	new UserIsAdminSetManyUseCase(
+		env.isProduction
+			? httpUserIsAdminSetManyService
+			: httpUserIsAdminSetManyService,
+	),
 );
 
-type UserDeleteManyService = (
-	userIds: string[],
-) => Promise<Result<None, Failure>>;
+export const httpUserDeleteManyService: UserDeleteManyService = async (
+	ids: string[],
+): Promise<Result<None, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/user/`, {
+		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ ids }),
+		credentials: "include",
+	});
+	if (!res.ok) {
+		return Err(new Failure());
+	}
+
+	return Ok(None);
+};
+
+type UserDeleteManyService = (ids: string[]) => Promise<Result<None, Failure>>;
 
 export class UserDeleteManyUseCase {
 	userDeleteMany: UserDeleteManyService;
@@ -68,5 +119,7 @@ export class UserDeleteManyUseCase {
 	}
 }
 export const UserDeleteManyContext = createContext(
-	new UserDeleteManyUseCase(async (userIds) => Ok(None)),
+	new UserDeleteManyUseCase(
+		env.isProduction ? httpUserDeleteManyService : httpUserDeleteManyService,
+	),
 );

@@ -256,16 +256,16 @@ export function jsonCreateItemController(
 	const isValid =
 		typeof json.collectionId === "string" &&
 		typeof json.name === "string" &&
-		Array.isArray(json.tags) &&
-		json.tags.every((tag) => typeof tag === "string") &&
-		isValidFields(json.numberFields, (value) => typeof value === "number") &&
-		isValidFields(json.textFields, (value) => typeof value === "string") &&
-		isValidFields(
-			json.multilineTextFields,
-			(value) => typeof value === "string",
-		) &&
-		isValidFields(json.checkboxFields, (value) => typeof value === "boolean") &&
-		isValidFields(json.dateFields, (value) => typeof value === "string");
+		Array.isArray(json.tags);
+	// json.tags.every((tag) => typeof tag === "string") &&
+	// isValidFields(json.numberFields, (value) => typeof value === "number") &&
+	// isValidFields(json.textFields, (value) => typeof value === "string") &&
+	// isValidFields(
+	// 	json.multilineTextFields,
+	// 	(value) => typeof value === "string",
+	// ) &&
+	// isValidFields(json.checkboxFields, (value) => typeof value === "boolean") &&
+	// isValidFields(json.dateFields, (value) => typeof value === "string");
 	if (!isValid) return Err(new BadRequestFailure());
 
 	return Ok({

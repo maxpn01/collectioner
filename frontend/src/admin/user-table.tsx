@@ -16,25 +16,111 @@ import {
 	getPaginationRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { useCallback, useState } from "react";
+import { useCallback, useContext, useState } from "react";
+import { DashboardPageUser } from "./dashboard";
+import {
+	UserBlockedSetManyContext,
+	UserDeleteManyContext,
+	UserIsAdminSetManyContext,
+} from ".";
+import { useComputed } from "@preact/signals-react";
+import { Checkbox } from "@/components/checkbox";
 
-interface DataTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
-	data: TData[];
-}
+const columns: ColumnDef<DashboardPageUser>[] = [
+	{
+		id: "select",
+		header: ({ table }) => (
+			<Checkbox
+				checked={
+					table.getIsAllPageRowsSelected() ||
+					(table.getIsSomePageRowsSelected() && "indeterminate")
+				}
+				className="flex"
+				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+				aria-label="Select all"
+			/>
+		),
+		cell: ({ row }) => (
+			<Checkbox
+				checked={row.getIsSelected()}
+				className="flex"
+				onCheckedChange={(value) => row.toggleSelected(!!value)}
+				aria-label="Select row"
+			/>
+		),
+		enableSorting: false,
+		enableHiding: false,
+	},
+	{
+		accessorKey: "username",
+		header: "Username",
+	},
+	{
+		accessorKey: "fullname",
+		header: "Fullname",
+	},
+	{
+		accessorKey: "email",
+		header: "Email",
+	},
+	{
+		accessorKey: "blocked",
+		header: "Blocked",
+		cell: ({ row }) => {
+			const user = row.original;
+			const userBlockedSetMany = useContext(UserBlockedSetManyContext);
+
+			return useComputed(() => (
+				<Checkbox
+					checked={user.blocked.value}
+					className="flex"
+					onClick={async () => {
+						const toggled = !user.blocked.value;
+						const result = await userBlockedSetMany.execute([user.id], toggled);
+						if (result.err) throw new Error("Not implemented");
+						user.blocked.value = toggled;
+					}}
+				/>
+			));
+		},
+	},
+	{
+		accessorKey: "isAdmin",
+		header: "Admin",
+		cell: ({ row }) => {
+			const user = row.original;
+			const userIsAdminSetMany = useContext(UserIsAdminSetManyContext);
+
+			return useComputed(() => (
+				<Checkbox
+					checked={user.isAdmin.value}
+					className="flex"
+					onClick={async () => {
+						const toggled = !user.isAdmin.value;
+						const result = await userIsAdminSetMany.execute([user.id], toggled);
+						if (result.err) throw new Error("Not implemented");
+						user.isAdmin.value = toggled;
+					}}
+				/>
+			));
+		},
+	},
+];
 
 const maxButtonsShown = 8 as const;
 
-export function UserTable<TData, TValue>({
-	columns,
+export function UserTable({
 	data,
 	pageN,
 	setPageN,
 	lastPageN,
-}: DataTableProps<TData, TValue> & {
+	refreshData,
+}: {
+	data: DashboardPageUser[];
 	pageN: number;
 	setPageN: (n: number) => void;
 	lastPageN: number;
+	refreshData: () => void;
 }) {
 	const table = useReactTable({
 		data,
@@ -44,6 +130,10 @@ export function UserTable<TData, TValue>({
 	});
 	const selectedRows = table.getFilteredSelectedRowModel().rows;
 	const hasSelectedRows = selectedRows.length > 0;
+
+	const userBlockedSetMany = useContext(UserBlockedSetManyContext);
+	const userIsAdminSetMany = useContext(UserIsAdminSetManyContext);
+	const userDeleteMany = useContext(UserDeleteManyContext);
 
 	const paginationItems: number[] = useCallback(() => {
 		const half = Math.floor(maxButtonsShown / 2);
@@ -75,6 +165,16 @@ export function UserTable<TData, TValue>({
 							variant="outline"
 							className=""
 							disabled={!hasSelectedRows}
+							onClick={async () => {
+								const users = selectedRows.map((row) => row.original);
+								const userIds = users.map((user) => user.id);
+								const result = await userBlockedSetMany.execute(userIds, true);
+								if (result.err) throw new Error("Not implemented");
+
+								for (const user of users) {
+									user.blocked.value = true;
+								}
+							}}
 						>
 							Block
 						</Button>
@@ -83,6 +183,16 @@ export function UserTable<TData, TValue>({
 							variant="outline"
 							className=""
 							disabled={!hasSelectedRows}
+							onClick={async () => {
+								const users = selectedRows.map((row) => row.original);
+								const userIds = users.map((user) => user.id);
+								const result = await userBlockedSetMany.execute(userIds, false);
+								if (result.err) throw new Error("Not implemented");
+
+								for (const user of users) {
+									user.blocked.value = false;
+								}
+							}}
 						>
 							Unblock
 						</Button>
@@ -94,6 +204,16 @@ export function UserTable<TData, TValue>({
 							variant="outline"
 							className=""
 							disabled={!hasSelectedRows}
+							onClick={async () => {
+								const users = selectedRows.map((row) => row.original);
+								const userIds = users.map((user) => user.id);
+								const result = await userIsAdminSetMany.execute(userIds, false);
+								if (result.err) throw new Error("Not implemented");
+
+								for (const user of users) {
+									user.isAdmin.value = false;
+								}
+							}}
 						>
 							Revoke admin
 						</Button>
@@ -104,7 +224,19 @@ export function UserTable<TData, TValue>({
 								body: "Are you sure you want to grant admin to these users?",
 								okButton: {
 									label: "Grant admin",
-									onClick: () => {},
+									onClick: async () => {
+										const users = selectedRows.map((row) => row.original);
+										const userIds = users.map((user) => user.id);
+										const result = await userIsAdminSetMany.execute(
+											userIds,
+											true,
+										);
+										if (result.err) throw new Error("Not implemented");
+
+										for (const user of users) {
+											user.isAdmin.value = true;
+										}
+									},
 								},
 							}}
 						>
@@ -119,7 +251,14 @@ export function UserTable<TData, TValue>({
 							body: "Are you sure you want to delete these users?",
 							okButton: {
 								label: "Delete",
-								onClick: () => {},
+								onClick: async () => {
+									const users = selectedRows.map((row) => row.original);
+									const userIds = users.map((user) => user.id);
+									const result = await userDeleteMany.execute(userIds);
+									if (result.err) throw new Error("Not implemented");
+
+									refreshData();
+								},
 							},
 						}}
 					>
@@ -192,7 +331,7 @@ export function UserTable<TData, TValue>({
 				)}
 				{paginationItems.map((page, index) =>
 					page < 1 || page > lastPageN ? (
-						<div className="w-12 h-10"></div>
+						<div key={index} className="w-12 h-10"></div>
 					) : (
 						<Button
 							key={index}
