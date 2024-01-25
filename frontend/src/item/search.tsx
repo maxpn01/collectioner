@@ -162,7 +162,8 @@ export function SearchPage() {
 		(async () => {
 			const result = await search.execute(query);
 			if (result.err) {
-				setStatePromise(Loaded(Err(new Failure())));
+				console.error(result);
+				setStatePromise(Loaded(result));
 				return;
 			}
 			const items = result.val;

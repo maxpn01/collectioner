@@ -7,12 +7,17 @@ import {
 	NotFoundFailure,
 } from "../utils/failure";
 
-type ViewUserResponse = {
-	id: string;
-	username: string;
-	fullname: string;
-	collections: ViewUserResponseCollection[];
-};
+type ViewUserResponse =
+	| {
+			blocked: false;
+			id: string;
+			username: string;
+			fullname: string;
+			collections: ViewUserResponseCollection[];
+	  }
+	| {
+			blocked: true;
+	  };
 
 type ViewUserResponseCollection = {
 	id: string;
@@ -33,13 +38,16 @@ export class ViewUserUseCase {
 	}
 
 	async execute(username: string): Promise<Result<ViewUserResponse, Failure>> {
-		const userResult = await this.userRepository.get(username, {
+		const userResult = await this.userRepository.getByUsername(username, {
 			include: { collections: true },
 		});
 		if (userResult.err) return userResult;
 		const { user, collections } = userResult.val;
 
+		if (user.blocked) return Ok({ blocked: true });
+
 		return Ok({
+			blocked: false,
 			id: user.id,
 			username: user.username,
 			fullname: user.fullname,
@@ -78,6 +86,8 @@ export function queryViewUserController(
 }
 
 export function viewUserHttpBodyPresenter(response: ViewUserResponse): any {
+	if (response.blocked) return { blocked: true };
+
 	return {
 		id: response.id,
 		username: response.username,
@@ -149,13 +159,14 @@ export class AdminViewUsersUseCase {
 		request: AdminViewUsersRequest,
 		requesterId: string,
 	): Promise<Result<AdminViewUsersResponse, Failure>> {
+		const allowedSize = request.size > 5 && request.size < 100;
+		if (!allowedSize) return Err(new BadRequestFailure());
+
 		const requesterResult = await this.userRepository.get(requesterId);
 		if (requesterResult.err) return requesterResult;
 		const { user: requester } = requesterResult.val;
 
 		if (!requester.isAdmin) return Err(new NotAuthorizedFailure());
-		if (request.size < 1 || request.pageN < 1)
-			return Err(new BadRequestFailure());
 
 		const usersResult = await this.userRepository.getPage(
 			request.size,
@@ -186,7 +197,9 @@ export function jsonAdminViewUsersController(
 	json: any,
 ): Result<AdminViewUsersRequest, BadRequestFailure> {
 	const isValid =
-		typeof json.size === "number" && typeof json.pageN === "number";
+		typeof json.size === "number" &&
+		typeof json.pageN === "number" &&
+		json.pageN > 0;
 	if (!isValid) return Err(new BadRequestFailure());
 
 	return Ok({
@@ -196,9 +209,7 @@ export function jsonAdminViewUsersController(
 }
 
 export function adminViewUsersJsonPresenter(response: AdminViewUsersResponse) {
-	return {
-		users: response,
-	};
+	return response;
 }
 
 export class ExpressAdminViewUsers {

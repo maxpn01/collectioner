@@ -2,7 +2,7 @@ import { NewCollectionButton } from "@/collection/create-collection";
 import { Failure } from "@/utils/failure";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Err, Ok, Option, Result } from "ts-results";
+import { Err, None, Ok, Option, Result } from "ts-results";
 import { CollectionTopic } from "../collection/view-collection";
 import {
 	ErrorIndicator,
@@ -14,13 +14,23 @@ import {
 import env from "@/env";
 import { userLinkPresenter } from ".";
 import { collectionLinkPresenter } from "@/collection";
-import { AuthenticatedUserRepository, localStorageAuthenticatedUserRepository } from "./auth";
+import {
+	AuthenticatedUserRepository,
+	localStorageAuthenticatedUserRepository,
+} from "./auth";
+import { BlockedUserSvg } from "./blocked-user-svg";
 
 type User = {
 	id: string;
 	username: string;
 	fullname: string;
 	collections: Collection[];
+	blocked: false;
+};
+
+type BlockedUser = {
+	username: string;
+	blocked: true;
 };
 
 type Collection = {
@@ -31,51 +41,61 @@ type Collection = {
 		name: string;
 	};
 	imageOption: Option<string>;
-	itemCount: number;
+	size: number;
 };
 
-type ViewUserService = (username: string) => Promise<Result<User, Failure>>;
+type ViewUserService = (
+	username: string,
+) => Promise<Result<User | BlockedUser, Failure>>;
 
 const httpViewUserService: ViewUserService = async (
 	username: string,
-): Promise<Result<User, Failure>> => {
-	const res = await fetch(`${env.backendUrlBase}/api/user?username=${username}`, {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
+): Promise<Result<User | BlockedUser, Failure>> => {
+	const res = await fetch(
+		`${env.backendUrlBase}/api/user?username=${username}`,
+		{
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+			},
 		},
-	});
-	if (!res.ok) {
-		return Err(new Failure());
-	}
+	);
+	if (!res.ok) return Err(new Failure());
 	const json = await res.json();
+
+	if (json.blocked) return Ok({ username, blocked: true });
 
 	return Ok(json);
 };
 
-type ViewUserResponse = {
-	id: string;
-	username: string;
-	editable: boolean;
-	fullname: string;
-	collections: {
-		id: string;
-		name: string;
-		topic: {
+type ViewUserResponse =
+	| {
 			id: string;
-			name: string;
-		};
-		imageOption: Option<string>;
-		itemCount: number;
-	}[];
-};
+			username: string;
+			editable: boolean;
+			fullname: string;
+			collections: {
+				id: string;
+				name: string;
+				topic: {
+					id: string;
+					name: string;
+				};
+				imageOption: Option<string>;
+				size: number;
+			}[];
+			blocked: false;
+	  }
+	| {
+			username: string;
+			blocked: true;
+	  };
 
 class ViewUserUseCase {
 	viewUser: ViewUserService;
 	repo: AuthenticatedUserRepository;
 
 	constructor(viewUser: ViewUserService, repo: AuthenticatedUserRepository) {
-	
 		this.execute = this.execute.bind(this);
 		this.viewUser = viewUser;
 		this.repo = repo;
@@ -86,13 +106,14 @@ class ViewUserUseCase {
 		if (viewUserResult.err) return viewUserResult;
 		const user = viewUserResult.val;
 
+		if (user.blocked) return Ok(user);
+
 		let editable = false;
 		const authenticatedUserOption = this.repo.get();
 		if (authenticatedUserOption.some) {
 			const authenticatedUser = authenticatedUserOption.val;
 
-			editable = user.id === authenticatedUser.id ||
-			authenticatedUser.isAdmin;
+			editable = user.id === authenticatedUser.id || authenticatedUser.isAdmin;
 		}
 
 		const response: ViewUserResponse = {
@@ -105,12 +126,17 @@ class ViewUserUseCase {
 }
 
 function userPageStatePresenter(user: ViewUserResponse): UserPageState {
+	if (user.blocked) return user;
+
 	return {
 		...user,
 		collections: user.collections.map((collection) => {
 			return {
 				...collection,
-				link: collectionLinkPresenter(collection.id, userLinkPresenter(user.username))
+				link: collectionLinkPresenter(
+					collection.id,
+					userLinkPresenter(user.username),
+				),
 			};
 		}),
 	};
@@ -125,64 +151,66 @@ type UserPageCollection = {
 		name: string;
 	};
 	imageOption: Option<string>;
-	itemCount: number;
+	size: number;
 };
 
-type UserPageState = {
-	id: string;
-	username: string;
-	fullname: string;
-	collections: UserPageCollection[];
-	editable: boolean;
-};
+type UserPageState =
+	| {
+			id: string;
+			username: string;
+			fullname: string;
+			collections: UserPageCollection[];
+			editable: boolean;
+			blocked: false;
+	  }
+	| { username: string; blocked: true };
 
-// const dummyViewUserService: ViewUserService = async () => {
-// 	return Ok({
-// 		id,
-// 		username: "john",
-// 		fullname: "John",
-// 		collections: [
-// 			{
-// 				id: "favbooks",
-// 				name: "My favourite books",
-// 				topic: {
-// 					id: "books",
-// 					name: "Books",
-// 				},
-// 				imageOption: None,
-// 				itemCount: 17,
-// 			},
-// 			{
-// 				id: "coins",
-// 				name: "Coins Wiki",
-// 				topic: {
-// 					id: "coins",
-// 					name: "Coins",
-// 				},
-// 				imageOption: None,
-// 				itemCount: 24,
-// 			},
-// 			{
-// 				id: "paintings",
-// 				name: "Classic Paintings",
-// 				topic: {
-// 					id: "art",
-// 					name: "Art",
-// 				},
-// 				imageOption: None,
-// 				itemCount: 11,
-// 			},
-// 		],
-// 	});
-// }
+const dummyViewUserService: ViewUserService = async (username: string) => {
+	return Ok({
+		username,
+		blocked: true,
+		id: "john",
+		fullname: "John",
+		collections: [
+			{
+				id: "favbooks",
+				name: "My favourite books",
+				topic: {
+					id: "books",
+					name: "Books",
+				},
+				imageOption: None,
+				size: 17,
+			},
+			{
+				id: "coins",
+				name: "Coins Wiki",
+				topic: {
+					id: "coins",
+					name: "Coins",
+				},
+				imageOption: None,
+				size: 24,
+			},
+			{
+				id: "paintings",
+				name: "Classic Paintings",
+				topic: {
+					id: "art",
+					name: "Art",
+				},
+				imageOption: None,
+				size: 11,
+			},
+		],
+	});
+};
 
 const ViewUserContext = createContext<ViewUserUseCase>(
 	new ViewUserUseCase(
-		env.isProduction
-			? httpViewUserService
-			: httpViewUserService,
+		env.isProduction ? httpViewUserService : httpViewUserService,
 		localStorageAuthenticatedUserRepository,
-	)
+	),
 );
 
 export function UserPage() {
@@ -216,6 +244,15 @@ export function UserPage() {
 	const userPageResult = statePromise.val;
 	if (userPageResult.err) return <ErrorIndicator />;
 	const user = userPageResult.val;
+
+	if (user.blocked) {
+		return (
+			<div className="flex flex-col items-center">
+				<BlockedUserSvg className="w-20 h-20 text-gray-500" />@{user.username}{" "}
+				is blocked.
+			</div>
+		);
+	}
 
 	return (
 		<>
@@ -254,7 +291,7 @@ function CollectionTile(props: { collection: UserPageCollection }) {
 			<h3 className="mb-2 font-semibold">
 				<Link to={props.collection.link}>{props.collection.name}</Link>{" "}
 				<span className="text-base font-normal text-slate-600">
-					({props.collection.itemCount})
+					({props.collection.size})
 				</span>
 			</h3>
 

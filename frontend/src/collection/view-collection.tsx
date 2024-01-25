@@ -11,6 +11,10 @@ import {
 	LoadingIndicator,
 	StatePromise,
 } from "../utils/state-promise";
+import env from "@/env";
+import { userLinkPresenter } from "@/user";
+import { CollectionFieldType, collectionLinkPresenter } from ".";
+import { AuthenticatedUserRepository, localStorageAuthenticatedUserRepository } from "@/user/auth";
 
 type Item = {
 	id: string;
@@ -19,12 +23,18 @@ type Item = {
 	createdAt: string;
 };
 
+type CollectionField = {
+	id: string;
+	name: string;
+	type: CollectionFieldType;
+};
+
 type Collection = {
 	editable: boolean;
 	id: string;
 	name: string;
 	imageOption: Option<string>;
-	itemCount: number;
+	size: number;
 	owner: {
 		id: string;
 		username: string;
@@ -34,6 +44,7 @@ type Collection = {
 		id: string;
 		name: string;
 	};
+	fields: CollectionField[];
 	items: Item[];
 };
 
@@ -42,12 +53,75 @@ type ViewCollectionService = (
 ) => Promise<Result<Collection, Failure>>;
 
 const httpViewCollectionService: ViewCollectionService = async (id) => {
+	const res = await fetch(
+		`${env.backendApiBase}/collection?id=${id}`,
+		{
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+			},
+		},
+	);
+	if (!res.ok) return Err(new Failure());
+	const json = await res.json();
+
+	return Ok(json);
+};
+
+export type ViewCollectionResponse = {
+	editable: boolean;
+	id: string;
+	name: string;
+	imageOption: Option<string>;
+	size: number;
+	owner: {
+		id: string;
+		username: string;
+		fullname: string;
+	};
+	topic: {
+		id: string;
+		name: string;
+	};
+	fields: CollectionField[];
+	items: Item[];
+};
+
+export class ViewCollectionUseCase {
+	viewCollection: ViewCollectionService;
+	repo: AuthenticatedUserRepository;
+
+	constructor(viewCollection: ViewCollectionService, repo: AuthenticatedUserRepository) {
+		this.viewCollection = viewCollection;
+		this.repo = repo;
+	}
+
+	async execute(id: string): Promise<Result<ViewCollectionResponse, Failure>> {
+		const collectionResult = await this.viewCollection(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		 let editable = false;
+		 const authenticatedUserResult = this.repo.get();
+		if (authenticatedUserResult.some) {
+			const authenticatedUser = authenticatedUserResult.val;
+			editable = collection.owner.id === authenticatedUser.id || authenticatedUser.isAdmin;
+		}
+
+		return Ok({
+			...collection,
+			editable,
+		});
+	}
+}
+
+const dummyViewCollectionService: ViewCollectionService = async (id: string) => {
 	return Ok({
 		id,
 		editable: true,
 		name: "My favourite books",
 		imageOption: None,
-		itemCount: 17,
+		size: 17,
 		owner: {
 			id: "john",
 			fullname: "John",
@@ -57,6 +131,7 @@ const httpViewCollectionService: ViewCollectionService = async (id) => {
 			id: "books",
 			name: "Books",
 		},
+		fields: [],
 		items: [
 			{
 				id: "lordoftherings",
@@ -120,66 +195,26 @@ const httpViewCollectionService: ViewCollectionService = async (id) => {
 			},
 		],
 	});
-};
-
-type ViewCollectionResponse = {
-	editable: boolean;
-	id: string;
-	name: string;
-	imageOption: Option<string>;
-	itemCount: number;
-	owner: {
-		id: string;
-		username: string;
-		fullname: string;
-	};
-	topic: {
-		id: string;
-		name: string;
-	};
-	items: Item[];
-};
-
-class ViewCollectionUseCase {
-	viewCollection: ViewCollectionService;
-
-	constructor(viewCollection: ViewCollectionService) {
-		this.viewCollection = viewCollection;
-	}
-
-	async execute(id: string): Promise<Result<ViewCollectionResponse, Failure>> {
-		const collectionResult = await this.viewCollection(id);
-		if (collectionResult.err) return collectionResult;
-		const collection = collectionResult.val;
-
-		const editable =
-			collection.owner.id === localStorage.getItem("userId") ||
-			localStorage.getItem("isAdmin") === "true";
-
-		return Ok({
-			...collection,
-			editable,
-		});
-	}
 }
 
-const ViewCollectionContext = createContext(
-	new ViewCollectionUseCase(httpViewCollectionService),
+export const ViewCollectionContext = createContext(
+	new ViewCollectionUseCase(httpViewCollectionService, localStorageAuthenticatedUserRepository),
 );
 
 function collectionPageStatePresenter(
 	collection: ViewCollectionResponse,
 ): CollectionPageState {
-	const ownerLink = `/${collection.owner.username}`;
+	const ownerLink = userLinkPresenter(collection.owner.username);
+	const collectionLink = collectionLinkPresenter(collection.id, ownerLink);
 	const itemsWithLinks = collection.items.map((item) => ({
 		...item,
-		link: `${ownerLink}/${collection.id}/items/${item.id}`,
+		link: `${collectionLink}/items/${item.id}`,
 	}));
 
 	return {
 		...collection,
-		editLink: `${ownerLink}/${collection.id}/edit`,
-		newItemLink: `${ownerLink}/${collection.id}/new-item`,
+		editLink: `${collectionLink}/edit`,
+		newItemLink: `${collectionLink}/new-item`,
 		owner: {
 			...collection.owner,
 			link: ownerLink,
@@ -203,7 +238,7 @@ type CollectionPageState = {
 	newItemLink: string;
 	name: string;
 	imageOption: Option<string>;
-	itemCount: number;
+	size: number;
 	owner: {
 		id: string;
 		username: string;
@@ -279,7 +314,7 @@ function CollectionHeader({ collection }: { collection: CollectionPageState }) {
 	return (
 		<div className="mb-4">
 			<Link
-				to={collection.owner.username}
+				to={collection.owner.link}
 				className="font-medium underline text-slate-700 text"
 			>
 				@{collection.owner.username}
@@ -288,7 +323,7 @@ function CollectionHeader({ collection }: { collection: CollectionPageState }) {
 				<h1 className="mb-2 text-xl font-bold leading-tight text-slate-700">
 					{collection.name}{" "}
 					<span className="text-base font-normal text-slate-600">
-						({collection.itemCount})
+						({collection.size})
 					</span>
 				</h1>
 
@@ -376,15 +411,15 @@ export const TopicsStateContext = createContext<StatePromise<TopicsState>>(
 	Loaded(
 		Ok([
 			{
-				id: "books",
+				id: "topic_books",
 				name: "Books",
 			},
 			{
-				id: "coins",
+				id: "topic_coins",
 				name: "Coins",
 			},
 			{
-				id: "art",
+				id: "topic_art",
 				name: "Art",
 			},
 		]),

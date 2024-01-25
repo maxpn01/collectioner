@@ -8,13 +8,18 @@ type ViewCollectionResponse = {
 	imageOption: Option<string>;
 	owner: {
 		id: string;
+		username: string;
 		fullname: string;
-		blocked: boolean;
 	};
 	topic: {
 		id: string;
 		name: string;
 	};
+	fields: {
+		id: string;
+		name: string;
+		type: CollectionFieldType;
+	}[];
 	items: {
 		id: string;
 		name: string;
@@ -33,10 +38,10 @@ export class ViewCollectionUseCase {
 
 	async execute(id: string): Promise<Result<ViewCollectionResponse, Failure>> {
 		const collectionResult = await this.collectionRepository.get(id, {
-			include: { items: true },
+			include: { items: true, fields: true },
 		});
 		if (collectionResult.err) return collectionResult;
-		const { collection, items } = collectionResult.val;
+		const { collection, items, fields } = collectionResult.val;
 
 		const itemsResponse = items.map((item) => ({
 			id: item.id,
@@ -50,9 +55,10 @@ export class ViewCollectionUseCase {
 			id: collection.id,
 			owner: {
 				id: collection.owner.id,
+				username: collection.owner.username,
 				fullname: collection.owner.fullname,
-				blocked: collection.owner.blocked,
 			},
+			fields,
 			name: collection.name,
 			topic: collection.topic,
 			imageOption: collection.imageOption,
@@ -70,6 +76,7 @@ export function viewCollectionHttpBodyPresenter(
 		imageOption: response.imageOption,
 		owner: response.owner,
 		topic: response.topic,
+		fields: response.fields,
 		items: response.items.map((item) => ({
 			id: item.id,
 			name: item.name,
@@ -83,6 +90,7 @@ export function viewCollectionHttpBodyPresenter(
 import { Request, Response } from "express";
 import { idController } from "../utils/id";
 import { expressSendHttpFailure, httpFailurePresenter } from "../http";
+import { CollectionFieldType } from ".";
 
 export class ExpressViewCollection {
 	viewCollection: ViewCollectionUseCase;

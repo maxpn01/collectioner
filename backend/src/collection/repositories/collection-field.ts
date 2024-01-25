@@ -175,15 +175,15 @@ export class PrismaCollectionFieldRepository
 		try {
 			await this.prisma.$transaction(() => {
 				return Promise.all(
-					updatedFields.map((uf) => {
+					updatedFields.map((uf) =>
 						this.prisma.collectionField.update({
 							where: { id: uf.id },
 							data: {
 								name: uf.field.name,
 								type: uf.field.type,
 							},
-						});
-					}),
+						}),
+					),
 				);
 			});
 		} catch (e) {

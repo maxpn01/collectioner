@@ -127,46 +127,46 @@ export function ItemForm({
 					)}
 				/>
 
-				{textFields.map((field, index) => (
+				{textFields.map((_, index) => (
 					<TextItemField
-						key={field.collectionFieldId}
-						label={field.name}
+						key={defaultValues.textFields![index]!.collectionFieldId!}
+						label={defaultValues.textFields![index]!.name!}
 						index={index}
 					/>
 				))}
-				{dateFields.map((field, index) => (
+				{dateFields.map((_, index) => (
 					<DateItemField
-						key={field.collectionFieldId}
-						label={field.name}
+						key={defaultValues.dateFields![index]!.collectionFieldId!}
+						label={defaultValues.dateFields![index]!.name!}
 						index={index}
 						form={form}
 					/>
 				))}
-				{numberFields.map((field, index) => (
+				{numberFields.map((_, index) => (
 					<NumberItemField
-						key={field.collectionFieldId}
-						label={field.name}
+						key={defaultValues.numberFields![index]!.collectionFieldId!}
+						label={defaultValues.numberFields![index]!.name!}
 						index={index}
 					/>
 				))}
-				{checkboxFields.length && (
+				{checkboxFields.length > 0 && (
 					<div>
 						<h4 className="pl-2 mb-4 text-sm font-bold text-slate-600">
 							Checkbox fields
 						</h4>
-						{checkboxFields.map((field, index) => (
+						{checkboxFields.map((_, index) => (
 							<CheckboxItemField
-								key={field.collectionFieldId}
-								label={field.name}
+								key={defaultValues.checkboxFields![index]!.collectionFieldId!}
+								label={defaultValues.checkboxFields![index]!.name!}
 								index={index}
 							/>
 						))}
 					</div>
 				)}
-				{multilineTextFields.map((field, index) => (
+				{multilineTextFields.map((_, index) => (
 					<MultilineTextItemField
-						key={field.collectionFieldId}
-						label={field.name}
+						key={defaultValues.multilineTextFields![index]!.collectionFieldId!}
+						label={defaultValues.multilineTextFields![index]!.name!}
 						index={index}
 					/>
 				))}

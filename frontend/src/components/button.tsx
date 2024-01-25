@@ -3,6 +3,14 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/utils/ui";
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "./dialog";
 
 const buttonVariants = cva(
 	"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
@@ -59,3 +67,49 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
+
+export function DangerButton({
+	dialog,
+	...buttonProps
+}: Omit<ButtonProps, "onClick"> & {
+	dialog: {
+		title: React.ReactNode;
+		body: React.ReactNode;
+		okButton: {
+			label: string;
+			onClick: () => void;
+		};
+	};
+}) {
+	const [isOpen, setIsOpen] = React.useState(false);
+
+	return (
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+			<DialogTrigger asChild>
+				<Button
+					size="sm"
+					variant="outline"
+					{...buttonProps}
+					className={cn(
+						"text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50",
+						buttonProps.className,
+					)}
+				/>
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>{dialog.title}</DialogTitle>
+				</DialogHeader>
+				{dialog.body}
+				<DialogFooter>
+					<Button variant="secondary" onClick={() => setIsOpen(false)}>
+						Cancel
+					</Button>
+					<Button variant="destructive" onClick={dialog.okButton.onClick}>
+						{dialog.okButton.label}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

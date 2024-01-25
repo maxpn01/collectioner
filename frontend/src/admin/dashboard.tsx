@@ -1,57 +1,112 @@
 import {
 	ErrorIndicator,
 	Loaded,
+	Loading,
 	LoadingIndicator,
 	StatePromise,
 } from "@/utils/state-promise";
-import { createContext, useContext } from "react";
-import { Ok } from "ts-results";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Ok, Result } from "ts-results";
 
 import { ColumnDef } from "@tanstack/react-table";
 
+import { DangerButton } from "@/components/button";
 import { Checkbox } from "@/components/checkbox";
-import { Button } from "@/components/button";
-import { UserTable } from "./user-table";
-import { httpSetUserBlockedService, httpSetUserIsAdminService } from ".";
+import { Failure } from "@/utils/failure";
 import { Signal, signal, useComputed } from "@preact/signals-react";
+import { httpSetUserBlockedService, httpSetUserIsAdminService } from ".";
+import { UserTable } from "./user-table";
 
-type DashboardPageUser = {
-	id: string;
-	username: string;
-	email: string;
-	fullname: string;
-	blocked: Signal<boolean>;
-	isAdmin: Signal<boolean>;
-};
-type DashboardPageState = {
-	users: DashboardPageUser[];
+type ViewDashboardService = (
+	pageN: number,
+	size: number,
+) => Promise<Result<Dashboard, Failure>>;
+
+type Dashboard = {
+	page: {
+		id: string;
+		username: string;
+		email: string;
+		fullname: string;
+		blocked: boolean;
+		isAdmin: boolean;
+	}[];
+	lastPage: number;
 };
 
-const DashboardPageStateContext = createContext<
-	StatePromise<DashboardPageState>
->(
-	Loaded(
-		Ok({
-			users: [
-				{
-					id: "john",
-					username: "john",
-					email: "john@example.com",
-					fullname: "John",
-					blocked: signal(false),
-					isAdmin: signal(false),
-				},
-				{
-					id: "tyler",
-					username: "tyler",
-					email: "tyler@example.com",
-					fullname: "Tyler",
-					blocked: signal(false),
-					isAdmin: signal(true),
-				},
-			],
+class ViewDashboardUseCase {
+	viewDashboard: ViewDashboardService;
+
+	constructor(viewDashboard: ViewDashboardService) {
+		this.execute = this.execute.bind(this);
+		this.viewDashboard = viewDashboard;
+	}
+
+	async execute(
+		pageN: number,
+		size: number,
+	): Promise<Result<Dashboard, Failure>> {
+		return this.viewDashboard(pageN, size);
+	}
+}
+
+const dummyViewDashboardService: ViewDashboardService = async (
+	pageN: number,
+) => {
+	return Ok({
+		page: [
+			{
+				id: "john",
+				username: "john from page " + pageN,
+				email: "john@example.com",
+				fullname: "John",
+				blocked: false,
+				isAdmin: false,
+			},
+			{
+				id: "tyler",
+				username: "tyler",
+				email: "tyler@example.com",
+				fullname: "Tyler",
+				blocked: false,
+				isAdmin: true,
+			},
+			{
+				id: "john",
+				username: "john",
+				email: "john@example.com",
+				fullname: "John",
+				blocked: false,
+				isAdmin: false,
+			},
+			{
+				id: "tyler",
+				username: "tyler",
+				email: "tyler@example.com",
+				fullname: "Tyler",
+				blocked: false,
+				isAdmin: true,
+			},
+		],
+		lastPage: 50,
+	});
+};
+
+function dashboardPresenter(dashboard: Dashboard): DashboardPageState {
+	return {
+		users: dashboard.page.map((user) => {
+			return {
+				...user,
+				blocked: signal(user.blocked),
+				isAdmin: signal(user.isAdmin),
+			};
 		}),
-	),
+		lastPageN: dashboard.lastPage,
+	};
+}
+
+export const ViewDashboardContext = createContext(
+	new ViewDashboardUseCase(dummyViewDashboardService),
 );
 
 export const userTableColumns: ColumnDef<DashboardPageUser>[] = [
@@ -133,9 +188,41 @@ export const userTableColumns: ColumnDef<DashboardPageUser>[] = [
 	},
 ];
 
+type DashboardPageUser = {
+	id: string;
+	username: string;
+	email: string;
+	fullname: string;
+	blocked: Signal<boolean>;
+	isAdmin: Signal<boolean>;
+};
+type DashboardPageState = {
+	users: DashboardPageUser[];
+	lastPageN: number;
+};
+
 export const dashboardPageRoute = "/dashboard" as const;
 export function DashboardPage() {
-	const statePromise = useContext(DashboardPageStateContext);
+	const viewDashboard = useContext(ViewDashboardContext);
+	const [statePromise, setStatePromise] =
+		useState<StatePromise<DashboardPageState>>(Loading);
+	const [pageN, setPageN] = useState(1);
+
+	useEffect(() => {
+		(async () => {
+			setStatePromise(Loading);
+			const result = await viewDashboard.execute(pageN, 50);
+			if (result.err) {
+				console.error(result);
+				setStatePromise(Loaded(result));
+				return;
+			}
+			const dashboard = result.val;
+			const state = dashboardPresenter(dashboard);
+			setStatePromise(Loaded(Ok(state)));
+		})();
+	}, [pageN]);
+
 	if (statePromise.loading) return <LoadingIndicator />;
 	const statePromiseResult = statePromise.val;
 	if (statePromiseResult.err) return <ErrorIndicator />;
@@ -146,14 +233,26 @@ export function DashboardPage() {
 			<h1 className="mb-8 text-lg font-semibold text-slate-700">
 				Admin Dashboard
 			</h1>
-			<UserTable columns={userTableColumns} data={state.users} />
+			<UserTable
+				columns={userTableColumns}
+				data={state.users}
+				pageN={pageN}
+				setPageN={setPageN}
+				lastPageN={state.lastPageN}
+			/>
 			<h3 className="mt-8 mb-4 font-semibold text-slate-700">Danger zone</h3>
-			<Button
-				variant="outline"
-				className="text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50"
+			<DangerButton
+				dialog={{
+					title: "Give up admin privileges",
+					body: "Are you sure you want to give up your admin privileges?",
+					okButton: {
+						label: "Give up privileges",
+						onClick: () => {},
+					},
+				}}
 			>
 				Give up admin privileges
-			</Button>
+			</DangerButton>
 		</>
 	);
 }

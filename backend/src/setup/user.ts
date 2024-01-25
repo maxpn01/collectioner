@@ -1,9 +1,9 @@
 import { PrismaUserRepository } from "../user";
 import {
 	ExpressSetUserBlocked,
-	ExpressSetUserIsAdmin,
+	ExpressUserIsAdminSetMany,
 	SetUserBlockedUseCase,
-	SetUserIsAdminUseCase,
+	UserIsAdminSetManyUseCase,
 } from "../user/admin";
 import { DeleteUserUseCase, ExpressDeleteUser } from "../user/delete-user";
 import { SignInWithEmailUseCase, ExpressSignInWithEmail } from "../user/signin";
@@ -32,8 +32,8 @@ expressApp.post("/api/signin/email", expressSignInWithEmail.execute);
 const expressSignOut = new ExpressSignOut();
 expressApp.post("/api/signout", requireAuth, expressSignOut.execute);
 
-const setUserIsAdmin = new SetUserIsAdminUseCase(prismaUserRepository);
-const expressSetUserIsAdmin = new ExpressSetUserIsAdmin(setUserIsAdmin);
+const setUserIsAdmin = new UserIsAdminSetManyUseCase(prismaUserRepository);
+const expressSetUserIsAdmin = new ExpressUserIsAdminSetMany(setUserIsAdmin);
 expressApp.put(
 	"/api/user/is-admin",
 	requireAuth,

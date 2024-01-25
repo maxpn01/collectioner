@@ -1,4 +1,5 @@
-import { Button } from "@/components/button";
+import { Button, DangerButton } from "@/components/button";
+import { Input } from "@/components/input";
 import {
 	Table,
 	TableBody,
@@ -15,16 +16,26 @@ import {
 	getPaginationRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
+import { useCallback, useState } from "react";
 
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[];
 	data: TData[];
 }
 
+const maxButtonsShown = 8 as const;
+
 export function UserTable<TData, TValue>({
 	columns,
 	data,
-}: DataTableProps<TData, TValue>) {
+	pageN,
+	setPageN,
+	lastPageN,
+}: DataTableProps<TData, TValue> & {
+	pageN: number;
+	setPageN: (n: number) => void;
+	lastPageN: number;
+}) {
 	const table = useReactTable({
 		data,
 		columns,
@@ -33,6 +44,16 @@ export function UserTable<TData, TValue>({
 	});
 	const selectedRows = table.getFilteredSelectedRowModel().rows;
 	const hasSelectedRows = selectedRows.length > 0;
+
+	const paginationItems: number[] = useCallback(() => {
+		const half = Math.floor(maxButtonsShown / 2);
+		let pages: any[] = Array.from(
+			{ length: maxButtonsShown },
+			(_, i) => pageN - half + i,
+		);
+
+		return pages;
+	}, [pageN, lastPageN])();
 
 	return (
 		<div>
@@ -76,24 +97,34 @@ export function UserTable<TData, TValue>({
 						>
 							Revoke admin
 						</Button>
-						<Button
-							size="sm"
-							variant="outline"
-							className="text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50"
+						<DangerButton
 							disabled={!hasSelectedRows}
+							dialog={{
+								title: "Grant admin",
+								body: "Are you sure you want to grant admin to these users?",
+								okButton: {
+									label: "Grant admin",
+									onClick: () => {},
+								},
+							}}
 						>
 							Grant admin
-						</Button>
+						</DangerButton>
 					</div>
 
-					<Button
-						size="sm"
-						variant="outline"
-						className="text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50"
+					<DangerButton
 						disabled={!hasSelectedRows}
+						dialog={{
+							title: "Delete",
+							body: "Are you sure you want to delete these users?",
+							okButton: {
+								label: "Delete",
+								onClick: () => {},
+							},
+						}}
 					>
 						Delete
-					</Button>
+					</DangerButton>
 				</div>
 			</div>
 			<div className="border rounded-md">
@@ -146,24 +177,85 @@ export function UserTable<TData, TValue>({
 					</TableBody>
 				</Table>
 			</div>
-			<div className="flex items-center justify-end py-4 space-x-2">
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => table.previousPage()}
-					disabled={!table.getCanPreviousPage()}
-				>
-					Previous
-				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => table.nextPage()}
-					disabled={!table.getCanNextPage()}
-				>
-					Next
-				</Button>
+			<div className="flex items-center mx-auto mt-2 space-x-2">
+				{paginationItems.includes(1) ? (
+					<div className="w-12 h-10"></div>
+				) : (
+					<Button
+						size="icon"
+						variant="ghost"
+						disabled={pageN === 1}
+						onClick={() => setPageN(1)}
+					>
+						1
+					</Button>
+				)}
+				{paginationItems.map((page, index) =>
+					page < 1 || page > lastPageN ? (
+						<div className="w-12 h-10"></div>
+					) : (
+						<Button
+							key={index}
+							variant={pageN === page ? "secondary" : "ghost"}
+							size="icon"
+							onClick={() => setPageN(page as number)}
+							disabled={page === pageN}
+						>
+							{page}
+						</Button>
+					),
+				)}
+				{paginationItems.includes(lastPageN) ? (
+					<div className="w-12 h-10"></div>
+				) : (
+					<Button
+						size="icon"
+						variant="ghost"
+						disabled={pageN === lastPageN}
+						onClick={() => setPageN(lastPageN)}
+					>
+						{lastPageN}
+					</Button>
+				)}
+
+				<GoToPage setPageN={setPageN} lastPageN={lastPageN} />
 			</div>
 		</div>
+	);
+}
+
+function GoToPage({
+	setPageN,
+	lastPageN,
+}: {
+	lastPageN: number;
+	setPageN: (n: number) => void;
+}) {
+	const [input, setInput] = useState("");
+
+	return (
+		<form
+			className="flex space-x-2"
+			onSubmit={(e) => {
+				e.preventDefault();
+				const n = parseInt(input);
+				const isValid = !isNaN(n) && n >= 1 && n <= lastPageN;
+				if (!isValid) {
+					alert("Please input a number between 1 and " + lastPageN);
+					return;
+				}
+
+				setPageN(n);
+			}}
+		>
+			<Input
+				placeholder="Page"
+				className="px-1 w-14"
+				required
+				value={input}
+				onChange={(e) => setInput(e.target.value)}
+			/>
+			<Button variant="secondary">Go</Button>
+		</form>
 	);
 }

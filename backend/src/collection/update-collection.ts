@@ -52,11 +52,11 @@ function updateCollection(
 	{
 		name,
 		topic,
-		imageOption,
-	}: {
+	}: // imageOption,
+	{
 		name: string;
 		topic: Topic;
-		imageOption: Option<string>;
+		// imageOption: Option<string>;
 	},
 ): Result<Collection, Failure> {
 	const validateCollectionNameResult = validateCollectionName(name);
@@ -66,7 +66,7 @@ function updateCollection(
 
 	collection.name = name;
 	collection.topic = topic;
-	collection.imageOption = imageOption;
+	// collection.imageOption = imageOption;
 
 	return Ok(collection);
 }
@@ -109,7 +109,7 @@ export type UpdateCollectionRequest = {
 	id: string;
 	name: string;
 	topicId: string;
-	imageOption: Option<string>;
+	// imageOption: Option<string>;
 	updatedFields: UpdateCollectionRequestField[];
 	createdFields: UpdateCollectionRequestNewField[];
 };
@@ -186,7 +186,7 @@ export class UpdateCollectionUseCase {
 		const updatedCollectionResult = updateCollection(collection, {
 			name: request.name,
 			topic,
-			imageOption: request.imageOption,
+			// imageOption: request.imageOption,
 		});
 		if (updatedCollectionResult.err) return updatedCollectionResult;
 		const updatedCollection = updatedCollectionResult.val;
@@ -237,7 +237,6 @@ export class UpdateCollectionUseCase {
 		const updateResult = await this.collectionFieldRepository.updateMany(
 			updatedFields,
 		);
-
 		if (updateResult.err) return updateResult;
 
 		const createdFields: CollectionField[] = [];
@@ -310,7 +309,7 @@ export function jsonUpdateCollectionController(
 		typeof json.id === "string" &&
 		typeof json.name === "string" &&
 		typeof json.topicId === "string" &&
-		typeof json.imageOption === "string" &&
+		// typeof json.imageOption === "string" &&
 		isValidUpdatedFields &&
 		isValidCreatedFields;
 	if (!isValid) return Err(new BadRequestFailure());
@@ -319,7 +318,7 @@ export function jsonUpdateCollectionController(
 		id: json.id,
 		name: json.name,
 		topicId: json.topicId,
-		imageOption: json.imageOption,
+		// imageOption: json.imageOption,
 		updatedFields: json.updatedFields,
 		createdFields: json.createdFields,
 	});

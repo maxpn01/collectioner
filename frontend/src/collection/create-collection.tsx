@@ -16,9 +16,10 @@ import {
 import { Form } from "../components/form";
 import { ErrorIndicator, LoadingIndicator } from "../utils/state-promise";
 import { CollectionNameField, CollectionTopicField } from "./form";
-import { None, Ok, Result } from "ts-results";
+import { Err, Ok, Result } from "ts-results";
 import { Failure } from "@/utils/failure";
 import { useNavigate } from "react-router-dom";
+import env from "@/env";
 
 type CreateCollectionServiceRequest = {
 	ownerId: string;
@@ -49,8 +50,35 @@ class CreateCollectionUseCase {
 	}
 }
 
+const httpCreateCollectionService: CreateCollectionService = async (
+	req: CreateCollectionRequest,
+): Promise<Result<NewCollectionId, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/collection`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(req),
+		credentials: "include",
+	});
+	if (!res.ok) {
+		return Err(new Failure());
+	}
+	const json = await res.json();
+
+	return Ok(json.id);
+};
+
+const dummyCreateCollectionService: CreateCollectionService = async () => {
+	return Ok("newcollectionid");
+}
+
 const CreateCollectionUseCaseContext = createContext(
-	new CreateCollectionUseCase(async () => Ok("newcollectionid")),
+	new CreateCollectionUseCase(
+		env.isProduction
+			? httpCreateCollectionService
+			: httpCreateCollectionService,
+	),
 );
 
 const createCollectionSchema = z.object({
@@ -68,13 +96,14 @@ export function NewCollectionButton(props: { ownerId: string }) {
 			...form,
 			ownerId: props.ownerId,
 		});
-		if (createCollectionResult.err) throw new Error("Not implemented");
+		if (createCollectionResult.err) throw createCollectionResult;
 		const collectionId = createCollectionResult.val;
 
 		setIsOpen(false);
 		navigate(collectionId);
 	};
-
+        
+        
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>

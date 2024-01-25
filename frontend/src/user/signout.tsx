@@ -1,10 +1,11 @@
 import { Failure } from "@/utils/failure";
 import { createContext } from "react";
-import { None, Ok, Result } from "ts-results";
+import { Err, None, Ok, Result } from "ts-results";
 import {
 	AuthenticatedUserRepository,
 	localStorageAuthenticatedUserRepository,
 } from "./auth";
+import env from "@/env";
 
 type SignOutService = () => Promise<Result<None, Failure>>;
 
@@ -25,9 +26,28 @@ class SignOutUseCase {
 	}
 }
 
+const httpSignOutService: SignOutService = async (): Promise<Result<None, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/signout`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	});
+	if (!res.ok) return Err(new Failure());
+	
+	return Ok(None);
+};
+
+const dummySignOutService: SignOutService = async () => {
+	return Ok(None);
+}
+
 export const SignOutUseCaseContext = createContext(
 	new SignOutUseCase(
-		async () => Ok(None),
+		env.isProduction
+			? httpSignOutService
+			: httpSignOutService,
 		localStorageAuthenticatedUserRepository,
 	),
 );

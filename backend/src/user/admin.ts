@@ -11,7 +11,7 @@ type SetUserIsAdminRequest = {
 	isAdmin: boolean;
 };
 
-export class SetUserIsAdminUseCase {
+export class UserIsAdminSetManyUseCase {
 	userRepository: UserRepository;
 
 	constructor(userRepository: UserRepository) {
@@ -58,12 +58,12 @@ export function jsonSetUserIsAdminController(
 import { Request, Response } from "express";
 import session from "express-session";
 
-export class ExpressSetUserIsAdmin {
-	setUserIsAdmin: SetUserIsAdminUseCase;
+export class ExpressUserIsAdminSetMany {
+	userIsAdminSetMany: UserIsAdminSetManyUseCase;
 
-	constructor(setUserIsAdmin: SetUserIsAdminUseCase) {
+	constructor(userIsAdminSetMany: UserIsAdminSetManyUseCase) {
 		this.execute = this.execute.bind(this);
-		this.setUserIsAdmin = setUserIsAdmin;
+		this.userIsAdminSetMany = userIsAdminSetMany;
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
@@ -80,7 +80,7 @@ export class ExpressSetUserIsAdmin {
 		}
 		const request = controllerResult.val;
 
-		const setUserIsAdminResult = await this.setUserIsAdmin.execute(
+		const setUserIsAdminResult = await this.userIsAdminSetMany.execute(
 			request,
 			requesterId,
 		);

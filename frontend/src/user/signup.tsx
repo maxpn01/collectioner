@@ -60,7 +60,7 @@ class SignUpWithEmailUseCase {
 const httpSignUpWithEmailService: SignUpWithEmailService = async (
 	credentials: SignUpWithEmailCredentials,
 ): Promise<Result<AuthenticatedUser, Failure>> => {
-	const res = await fetch(`${env.backendUrlBase}/api/signup/email`, {
+	const res = await fetch(`${env.backendApiBase}/signup/email`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -76,9 +76,9 @@ const httpSignUpWithEmailService: SignUpWithEmailService = async (
 	return Ok(authenticatedUser);
 };
 
-// const dummySignInWithEmailService: SignUpWithEmailService = async () => {
-// 	return Ok({ id: "john", username: "john", isAdmin: true })
-// }
+const dummySignInWithEmailService: SignUpWithEmailService = async () => {
+	return Ok({ id: "john", username: "john", isAdmin: true })
+}
 
 const SignUpWithEmailUseCaseContext = createContext(
 	new SignUpWithEmailUseCase(
@@ -140,7 +140,6 @@ const signUpSchema = z.object({
 });
 
 function SignUpForm() {
-	// const navigate = useNavigate();
 	const signUpWithEmail = useContext(SignUpWithEmailUseCaseContext);
 
 	const form = useForm({
@@ -148,16 +147,6 @@ function SignUpForm() {
 	});
 
 	const onSubmit = async (form: any) => {
-		// await fetch(`${env.backendUrlBase}/api/signup`, {
-		// 	method: "POST",
-		// 	headers: {
-		// 		"Content-Type": "application/json",
-		// 	},
-		// 	body: JSON.stringify(form),
-		// });
-
-		// navigate(homePageRoute);
-
 		const result = await signUpWithEmail.execute(form);
 		if (result.err) throw result;
 		const authenticatedUser = result.val;

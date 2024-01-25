@@ -6,12 +6,13 @@ import env from "./env";
 
 export const expressApp = express();
 
-const corsOptions = {
-	origin: "http://localhost:5173",
-	optionsSuccessStatus: 200,
-};
-
-expressApp.use(cors(corsOptions));
+expressApp.use(
+	cors({
+		origin: "http://localhost:5173",
+		optionsSuccessStatus: 200,
+		credentials: true,
+	}),
+);
 expressApp.use(express.json());
 expressApp.use(express.urlencoded({ extended: false }));
 
@@ -34,14 +35,12 @@ expressApp.use(
 		cookie: {
 			secure: env.isProduction,
 			httpOnly: true,
-			sameSite: "strict",
+			sameSite: env.isProduction ? "strict" : undefined,
 			maxAge: 1000 * 60 * 60 * 24 * 30,
 		},
 	}),
 );
 
-if (env.isProduction) {
-	expressApp.set("trust proxy", 1);
-}
+expressApp.set("trust proxy", 1);
 
 expressApp.get("/", (req, res) => res.send("Server is running ..."));

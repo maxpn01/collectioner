@@ -39,6 +39,10 @@ type GetUserResult<O extends GetUserOptions> = {
 
 export interface UserRepository {
 	get<O extends GetUserOptions>(
+		id: string,
+		options?: O,
+	): Promise<Result<GetUserResult<O>, Failure>>;
+	getByUsername<O extends GetUserOptions>(
 		username: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>>;
@@ -63,6 +67,50 @@ export class PrismaUserRepository implements UserRepository {
 	}
 
 	async get<O extends GetUserOptions>(
+		id: string,
+		options?: O,
+	): Promise<Result<GetUserResult<O>, Failure>> {
+		const prismaCollectionsInclude = (options?.include?.collections && {
+			include: {
+				topic: options?.include?.collections,
+			},
+		})!;
+
+		const prismaUser = await this.prisma.user.findUnique({
+			where: { id },
+			include: {
+				collections: prismaCollectionsInclude,
+			},
+		});
+		if (!prismaUser) return Err(new NotFoundFailure());
+
+		const user: User = prismaUserToEntity(prismaUser);
+		const includables: Partial<GetUserIncludables> = {};
+
+		if (options?.include?.collections) {
+			const prismaCollections = prismaUser.collections;
+			const collections = prismaCollections.map((pc) =>
+				prismaCollectionToEntity(pc, pc.topic, user),
+			);
+			includables.collections = await this.prisma.$transaction(() =>
+				Promise.all(
+					collections.map(async (collection) => ({
+						collection,
+						size: await this.prisma.item.count({
+							where: { collection: { id: collection.id } },
+						}),
+					})),
+				),
+			);
+		}
+
+		return Ok({
+			user,
+			...(includables as GetUserIncludedProperties<O>),
+		});
+	}
+
+	async getByUsername<O extends GetUserOptions>(
 		username: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>> {

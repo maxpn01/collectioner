@@ -28,6 +28,9 @@ import {
 } from "./auth";
 import { signUpPageRoute } from "./signup";
 
+export const signInPageRoute = "/sign-in" as const;
+
+
 type SignInWithEmailService = ({
 	email,
 	password,
@@ -69,10 +72,10 @@ const httpSignInWithEmailService: SignInWithEmailService = async (
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify(credentials),
+		credentials: "include",
 	});
-	if (!res.ok) {
-		return Err(new Failure());
-	}
+	if (!res.ok) return Err(new Failure());
+	
 	const json = await res.json();
 
 	const authenticatedUser: AuthenticatedUser = json;
@@ -98,7 +101,6 @@ const redirectLinkOption = computed<Option<string>>(() => {
 	return Some(homePageRoute);
 });
 
-export const signInPageRoute = "/sign-in" as const;
 export function SignInPage() {
 	const navigate = useNavigate();
 

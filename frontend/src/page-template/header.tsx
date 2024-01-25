@@ -239,6 +239,7 @@ function ProfileButton({ profileLink, showsDashboardLink }: UiProfileButton) {
 }
 
 function SignOutDropdownMenuItem() {
+	const navigate = useNavigate();
 	const signOut = useContext(SignOutUseCaseContext);
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -248,11 +249,9 @@ function SignOutDropdownMenuItem() {
 				e.preventDefault();
 				setIsLoading(true);
 				const result = await signOut.execute();
-				if (result.err) {
-					console.error(result);
-					return;
-				}
+				if (result.err) throw result;
 				authenticatedUserState.value = None;
+				navigate(homePageRoute);
 			}}
 			className={cn(isLoading && "pl-2 bg-gray-200")}
 			disabled={isLoading}

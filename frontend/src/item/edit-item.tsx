@@ -1,4 +1,4 @@
-import { Button } from "@/components/button";
+import { DangerButton } from "@/components/button";
 import { Failure } from "@/utils/failure";
 import {
 	ErrorIndicator,
@@ -206,15 +206,21 @@ function DangerZone({ itemId }: { itemId: string }) {
 	return (
 		<>
 			<h3 className="mt-8 mb-4 font-semibold text-slate-700">Danger zone</h3>
-			<Button
-				variant="outline"
-				onClick={async () => {
-					setIsLoading(true);
-					await httpDeleteItemService(itemId);
-					navigate("../../..", { relative: "path" });
+			<DangerButton
+				dialog={{
+					title: "Delete collection",
+					body: "Are you sure you want to delete this collection?",
+					okButton: {
+						label: "Delete collection",
+						onClick: async () => {
+							setIsLoading(true);
+							await httpDeleteItemService(itemId);
+							navigate("../../..", { relative: "path" });
+						},
+					},
 				}}
+				variant="outline"
 				className={cn(
-					"text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50",
 					isLoading && "pl-2 bg-red-200",
 				)}
 				disabled={isLoading}
@@ -226,7 +232,7 @@ function DangerZone({ itemId }: { itemId: string }) {
 					)}
 				/>
 				Delete Item
-			</Button>
+			</DangerButton>
 		</>
 	);
 }

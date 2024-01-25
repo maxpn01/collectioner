@@ -18,26 +18,125 @@ import {
 import {
 	ErrorIndicator,
 	Loaded,
+	Loading,
 	LoadingIndicator,
 	StatePromise,
 } from "@/utils/state-promise";
 import { Plus } from "iconoir-react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { None, Ok, Option } from "ts-results";
+import { Err, None, Ok, Option, Result } from "ts-results";
 import { CollectionFieldType, collectionFieldTypes } from ".";
 import { CollectionNameField, CollectionTopicField } from "./form";
-import { TopicsStateContext } from "./view-collection";
+import {
+	TopicsStateContext,
+	ViewCollectionContext,
+	ViewCollectionResponse,
+} from "./view-collection";
 import { httpDeleteCollectionService } from "./delete-collection";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/utils/ui";
 import { CircleDashed } from "lucide-react";
+import { DangerButton } from "@/components/button";
+import { Failure } from "@/utils/failure";
+import env from "@/env";
+
+type EditCollectionRequest = {
+	id: string;
+	name: string;
+	topicId: string;
+	imageOption: Option<string>;
+	updatedFields: EditCollectionRequestField[];
+	createdFields: EditCollectionRequestNewField[];
+};
+
+type EditCollectionRequestField = {
+	id: string;
+	name: string;
+	type: CollectionFieldType;
+};
+
+type EditCollectionRequestNewField = {
+	name: string;
+	type: CollectionFieldType;
+};
+
+type EditCollectionService = (
+	req: EditCollectionRequest,
+) => Promise<Result<None, Failure>>;
+
+class EditCollectionUseCase {
+	editCollection: EditCollectionService;
+
+	constructor(editCollection: EditCollectionService) {
+		this.execute = this.execute.bind(this);
+		this.editCollection = editCollection;
+	}
+
+	async execute(req: EditCollectionRequest): Promise<Result<None, Failure>> {
+		return this.editCollection(req);
+	}
+}
+
+const httpEditCollectionService: EditCollectionService = async (
+	req: EditCollectionRequest,
+): Promise<Result<None, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/collection`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(req),
+		credentials: "include",
+	});
+	if (!res.ok) return Err(new Failure());
+
+	return Ok(None);
+};
+
+const dummyEditCollectionService: EditCollectionService = async () => {
+	return Ok(None);
+};
+
+const EditCollectionUseCaseContext = createContext(
+	new EditCollectionUseCase(
+		env.isProduction ? httpEditCollectionService : httpEditCollectionService,
+	),
+);
+
+type UiEditCollectionForm = {
+	id: string;
+	name: string;
+	topicId: string;
+	updatedFields: { id: string; name: string; type: CollectionFieldType }[];
+	createdFields: { name: string; type: CollectionFieldType }[];
+};
+
+function editCollectionPageStatePresenter(
+	collection: ViewCollectionResponse,
+): EditCollectionPageState {
+	return {
+		id: collection.id,
+		name: collection.name,
+		imageOption: collection.imageOption,
+		size: collection.size,
+		topic: {
+			id: collection.topic.id,
+			name: collection.topic.name,
+		},
+		fields: collection.fields.map((field) => {
+			return {
+				...field,
+			};
+		}),
+	};
+}
 
 type EditCollectionPageState = {
 	id: string;
 	name: string;
 	imageOption: Option<string>;
-	itemCount: number;
+	size: number;
 	topic: {
 		id: string;
 		name: string;
@@ -49,39 +148,34 @@ type EditCollectionPageState = {
 	}[];
 };
 
-const EditCollectionPageStateContext = createContext<
-	StatePromise<EditCollectionPageState>
->(
-	Loaded(
-		Ok({
-			id: "favbooks",
-			name: "My favourite books",
-			imageOption: None,
-			itemCount: 17,
-			topic: {
-				id: "books",
-				name: "Books",
-			},
-			fields: [
-				{
-					id: "pages",
-					name: "Pages",
-					type: CollectionFieldType.Number,
-				},
-			],
-		}),
-	),
-);
-
-type UiEditCollectionForm = {
-	name: string;
-	topicId: string;
-	updatedFields: { id: string; name: string; type: CollectionFieldType }[];
-	createdFields: { name: string; type: CollectionFieldType }[];
-};
-
 export function EditCollectionPage() {
-	const statePromise = useContext(EditCollectionPageStateContext);
+	const params = useParams();
+	const viewCollection = useContext(ViewCollectionContext);
+	const [statePromise, setStatePromise] =
+		useState<StatePromise<EditCollectionPageState>>(Loading);
+
+	useEffect(() => {
+		(async () => {
+			const collectionId = params.collectionId;
+			if (!collectionId) {
+				console.error("No collection id");
+				setStatePromise(Loaded(Err(new Failure())));
+				return;
+			}
+
+			const result = await viewCollection.execute(collectionId);
+			if (result.err) {
+				console.error(result);
+				setStatePromise(Loaded(result));
+				return;
+			}
+			const collection = result.val;
+			const state = editCollectionPageStatePresenter(collection);
+
+			setStatePromise(Loaded(Ok(state)));
+		})();
+	}, []);
+
 	if (statePromise.loading) return <LoadingIndicator />;
 	const statePromiseResult = statePromise.val;
 	if (statePromiseResult.err) return <ErrorIndicator />;
@@ -102,9 +196,12 @@ function EditCollectionForm(props: EditCollectionPageState) {
 	const topicsPromiseResult = topicsPromise.val;
 	if (topicsPromiseResult.err) return <ErrorIndicator />;
 	const topics = topicsPromiseResult.val;
+	const navigate = useNavigate();
+	const editCollection = useContext(EditCollectionUseCaseContext);
 
 	const form = useForm<UiEditCollectionForm>({
 		defaultValues: {
+			id: props.id,
 			name: props.name,
 			topicId: props.topic.id,
 			updatedFields: props.fields,
@@ -120,14 +217,24 @@ function EditCollectionForm(props: EditCollectionPageState) {
 		control: form.control,
 	});
 
+	const onSubmit = async (form: any) => {
+		const editCollectionResult = await editCollection.execute({
+			...form,
+		});
+		if (editCollectionResult.err) throw editCollectionResult;
+
+		navigate("..", { relative: "path" });
+	};
+
 	return (
 		<Form {...form}>
-			<div className="flex items-center justify-between mb-8">
-				<h1 className="text-xl font-bold text-slate-800">Collection edit</h1>
+			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+				<div className="flex items-center justify-between">
+					<h1 className="text-xl font-bold text-slate-800">Collection edit</h1>
 
-				<Button>Save</Button>
-			</div>
-			<form className="space-y-8">
+					<Button type="submit">Save</Button>
+				</div>
+
 				<CollectionNameField form={form} />
 				<CollectionTopicField
 					form={form}
@@ -248,17 +355,21 @@ function DangerZone({ collectionId }: { collectionId: string }) {
 	return (
 		<>
 			<h3 className="mt-8 mb-4 font-semibold text-slate-700">Danger zone</h3>
-			<Button
-				variant="outline"
-				onClick={async () => {
-					setIsLoading(true);
-					await httpDeleteCollectionService(collectionId);
-					navigate("../..", { relative: "path" });
+			<DangerButton
+				dialog={{
+					title: "Delete collection",
+					body: "Are you sure you want to delete this collection?",
+					okButton: {
+						label: "Delete collection",
+						onClick: async () => {
+							setIsLoading(true);
+							await httpDeleteCollectionService(collectionId);
+							navigate("../..", { relative: "path" });
+						},
+					},
 				}}
-				className={cn(
-					"text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50",
-					isLoading && "pl-2 bg-red-200",
-				)}
+				variant="outline"
+				className={cn(isLoading && "pl-2 bg-red-200")}
 				disabled={isLoading}
 			>
 				<CircleDashed
@@ -268,7 +379,7 @@ function DangerZone({ collectionId }: { collectionId: string }) {
 					)}
 				/>
 				Delete collection
-			</Button>
+			</DangerButton>
 		</>
 	);
 }

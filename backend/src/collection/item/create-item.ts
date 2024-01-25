@@ -326,6 +326,7 @@ export class ExpressCreateItem {
 
 	async execute(req: Request, res: Response): Promise<void> {
 		const controllerResult = jsonCreateItemController(req.body);
+		console.log(controllerResult);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);
