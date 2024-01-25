@@ -17,7 +17,9 @@ import { DeepPartial } from "@/utils/generics";
 import { cn } from "@/utils/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
+import { Plus, Xmark } from "iconoir-react";
 import { CalendarIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 import { UseFormReturn, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -27,31 +29,9 @@ export type FormItemField<T extends number | string | boolean | Date> = {
 	value: T;
 };
 
-type TagInputProps = {
-	tags: string[];
-	setTags: (tags: string[]) => void;
-};
-
-const TagInput: React.FC<TagInputProps> = ({ tags, setTags }) => {
-	const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-		// Split the input by commas and trim whitespace
-		const newTags = event.target.value.split(",").map((tag) => tag.trim());
-		setTags(newTags);
-	};
-
-	return (
-		<Input
-			className="w-60"
-			type="text"
-			value={tags?.join(", ") || ""}
-			onChange={handleInputChange}
-		/>
-	);
-};
-
 export type UiItemForm = {
 	name: string;
-	tags: string[];
+	tags: { value: string }[];
 	numberFields: FormItemField<number>[];
 	textFields: FormItemField<string>[];
 	multilineTextFields: FormItemField<string>[];
@@ -61,7 +41,6 @@ export type UiItemForm = {
 
 const itemSchema = z.object({
 	name: z.string(),
-	tags: z.array(z.string().min(1, "Tag cannot be empty")),
 	textFields: z.array(
 		z.object({
 			value: z.string(),
@@ -102,8 +81,13 @@ export function ItemForm({
 		resolver: zodResolver(itemSchema),
 		defaultValues,
 	});
-	const { register, handleSubmit, setValue, watch } = useForm<UiItemForm>();
-	const tags = watch("tags");
+	const [tags, setTagsState] = useState<string[]>(
+		(defaultValues.tags ?? []).map((t) => t!.value!),
+	);
+	const setTags = useCallback((tags: string[]) => {
+		setTagsState(tags);
+	}, []);
+	const [tagInput, setTagInput] = useState("");
 	const { fields: textFields } = useFieldArray({
 		name: "textFields",
 		control: form.control,
@@ -127,7 +111,12 @@ export function ItemForm({
 
 	return (
 		<Form {...form}>
-			<form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+			<form
+				className="space-y-8"
+				onSubmit={form.handleSubmit((form) =>
+					onSubmit({ ...form, tags: tags.map((tag) => ({ value: tag })) }),
+				)}
+			>
 				<div className="flex items-center justify-between">
 					<h1 className="text-xl font-bold text-slate-800">Item</h1>
 
@@ -153,28 +142,48 @@ export function ItemForm({
 					)}
 				/>
 
-				<FormField
-					name="tags"
-					render={({ field, fieldState }) => (
-						<FormItem className="mb-4">
-							<FormLabel className="pl-2 font-bold text-slate-600">
-								Tags
-							</FormLabel>
-							<FormControl>
-								{/* <Input className="w-60" {...field} value={field.value ?? ""} /> */}
-								<TagInput
-									tags={tags}
-									setTags={(newTags) => setValue("tags", newTags)}
-								/>
-							</FormControl>
-							{fieldState.error && (
-								<FormMessage className="pl-2">
-									{fieldState.error.message}
-								</FormMessage>
-							)}
-						</FormItem>
-					)}
-				/>
+				<div>
+					<h4 className="mb-2 text-sm font-semibold text-slate-600">Tags</h4>
+
+					<div className="flex gap-2">
+						{tags.map((tag) => (
+							<Button
+								key={tag}
+								variant="outline"
+								size="sm"
+								className="pr-2"
+								type="button"
+								onClick={() => {
+									setTags(tags.filter((t) => t !== tag));
+								}}
+							>
+								{tag}
+								<Xmark className="ml-2" />
+							</Button>
+						))}
+					</div>
+
+					<div className="flex gap-2 mt-2">
+						<Input
+							className="inline-block w-40"
+							value={tagInput}
+							onChange={(e) => setTagInput(e.target.value.trim())}
+						/>
+						<Button
+							type="button"
+							variant="secondary"
+							withIcon
+							onClick={() => {
+								setTags([...tags, tagInput]);
+								setTagInput("");
+							}}
+							disabled={tagInput.length === 0 || tags.includes(tagInput)}
+						>
+							<Plus className="mr-2" />
+							Add tag
+						</Button>
+					</div>
+				</div>
 
 				{textFields.map((_, index) => (
 					<TextItemField
@@ -270,7 +279,7 @@ function DateItemField({
 							onSelect={(date) => {
 								if (!date) return;
 								form.setValue(`dateFields.${index}.value`, date);
-								form.trigger();
+								form.trigger(`dateFields.${index}.value`);
 							}}
 						/>
 					</FormControl>

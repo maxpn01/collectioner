@@ -13,7 +13,8 @@ import { Err, Ok, Result } from "ts-results";
 import { itemLinkPresenter } from ".";
 import { collectionLinkPresenter } from "@/collection";
 import { userLinkPresenter } from "@/user";
-import { formatDateRelative } from "@/utils/date";
+import { formatDateRelative, unixTimeToDate } from "@/utils/date";
+import env from "@/env";
 
 type Item = {
 	id: string;
@@ -31,6 +32,25 @@ type Item = {
 };
 
 type SearchService = (q: string) => Promise<Result<Item[], Failure>>;
+
+const httpSearchService: SearchService = async (q: string) => {
+	const res = await fetch(`${env.backendApiBase}/item/search?q=${q}`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+	if (!res.ok) return Err(new Failure());
+
+	const json = await res.json();
+
+	return Ok(
+		json.map((jsonItem: any) => ({
+			...jsonItem,
+			createdAt: unixTimeToDate(jsonItem.createdAt),
+		})),
+	);
+};
 
 class SearchUseCase {
 	search: SearchService;
@@ -94,53 +114,55 @@ type SearchPageState = {
 	items: SearchPageItem[];
 };
 
+// const dummySearchService: SearchService = async (q: string) => {
+// 	Ok([
+// 			{
+// 				id: "lordoftherings",
+// 				name: "The Lord of the Rings",
+// 				tags: ["fantasy", "epic"],
+// 				createdAt: new Date("2024-01-20T12:12:12"),
+// 				collection: {
+// 					id: "myfavouritebooks",
+// 					name: "My favourite books",
+// 					owner: {
+// 						id: "john",
+// 						username: "john",
+// 					},
+// 				},
+// 			},
+// 			{
+// 				id: "gameofthrones",
+// 				name: "A Game of Thrones",
+// 				tags: ["fantasy", "adventure"],
+// 				createdAt: new Date(),
+// 				collection: {
+// 					id: "myfavouritebooks",
+// 					name: "My favourite books",
+// 					owner: {
+// 						id: "john",
+// 						username: "john",
+// 					},
+// 				},
+// 			},
+// 			{
+// 				id: "tokillamockingbird",
+// 				name: "To Kill a Mockingbird",
+// 				tags: ["classic", "literary fiction"],
+// 				createdAt: new Date(),
+// 				collection: {
+// 					id: "myfavouritebooks",
+// 					name: "My favourite books",
+// 					owner: {
+// 						id: "john",
+// 						username: "john",
+// 					},
+// 				},
+// 			},
+// 		]),
+// };
+
 const SearchContext = createContext(
-	new SearchUseCase(async () =>
-		Ok([
-			{
-				id: "lordoftherings",
-				name: "The Lord of the Rings",
-				tags: ["fantasy", "epic"],
-				createdAt: new Date("2024-01-20T12:12:12"),
-				collection: {
-					id: "myfavouritebooks",
-					name: "My favourite books",
-					owner: {
-						id: "john",
-						username: "john",
-					},
-				},
-			},
-			{
-				id: "gameofthrones",
-				name: "A Game of Thrones",
-				tags: ["fantasy", "adventure"],
-				createdAt: new Date(),
-				collection: {
-					id: "myfavouritebooks",
-					name: "My favourite books",
-					owner: {
-						id: "john",
-						username: "john",
-					},
-				},
-			},
-			{
-				id: "tokillamockingbird",
-				name: "To Kill a Mockingbird",
-				tags: ["classic", "literary fiction"],
-				createdAt: new Date(),
-				collection: {
-					id: "myfavouritebooks",
-					name: "My favourite books",
-					owner: {
-						id: "john",
-						username: "john",
-					},
-				},
-			},
-		]),
-	),
+	new SearchUseCase(env.isProduction ? httpSearchService : httpSearchService),
 );
 
 export const searchPageRoute = "/search" as const;
@@ -167,6 +189,8 @@ export function SearchPage() {
 				return;
 			}
 			const items = result.val;
+			console.log(items);
+
 			const state = searchPageStatePresenter(items);
 
 			setStatePromise(Loaded(Ok(state)));

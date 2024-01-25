@@ -2,7 +2,7 @@ import { Failure } from "@/utils/failure";
 import { EditPencil, MultiplePages, Page, Plus } from "iconoir-react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Err, None, Ok, Option, Result } from "ts-results";
+import { Err, None, Ok, Option, Result, Some } from "ts-results";
 import { Button } from "../components/button";
 import {
 	ErrorIndicator,
@@ -14,13 +14,17 @@ import {
 import env from "@/env";
 import { userLinkPresenter } from "@/user";
 import { CollectionFieldType, collectionLinkPresenter } from ".";
-import { AuthenticatedUserRepository, localStorageAuthenticatedUserRepository } from "@/user/auth";
+import {
+	AuthenticatedUserRepository,
+	localStorageAuthenticatedUserRepository,
+} from "@/user/auth";
+import { formatDateRelative } from "@/utils/date";
 
 type Item = {
 	id: string;
 	name: string;
 	tags: string[];
-	createdAt: string;
+	createdAt: Date;
 };
 
 type CollectionField = {
@@ -53,19 +57,25 @@ type ViewCollectionService = (
 ) => Promise<Result<Collection, Failure>>;
 
 const httpViewCollectionService: ViewCollectionService = async (id) => {
-	const res = await fetch(
-		`${env.backendApiBase}/collection?id=${id}`,
-		{
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
+	const res = await fetch(`${env.backendApiBase}/collection?id=${id}`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
 		},
-	);
+	});
 	if (!res.ok) return Err(new Failure());
 	const json = await res.json();
 
-	return Ok(json);
+	return Ok({
+		...json,
+		imageOption: json.imageOption === null ? None : Some(json.imageOption),
+		items: json.items.map((item: any) => {
+			return {
+				...item,
+				createdAt: new Date(item.createdAt),
+			};
+		}),
+	});
 };
 
 export type ViewCollectionResponse = {
@@ -91,7 +101,10 @@ export class ViewCollectionUseCase {
 	viewCollection: ViewCollectionService;
 	repo: AuthenticatedUserRepository;
 
-	constructor(viewCollection: ViewCollectionService, repo: AuthenticatedUserRepository) {
+	constructor(
+		viewCollection: ViewCollectionService,
+		repo: AuthenticatedUserRepository,
+	) {
 		this.viewCollection = viewCollection;
 		this.repo = repo;
 	}
@@ -101,11 +114,13 @@ export class ViewCollectionUseCase {
 		if (collectionResult.err) return collectionResult;
 		const collection = collectionResult.val;
 
-		 let editable = false;
-		 const authenticatedUserResult = this.repo.get();
+		let editable = false;
+		const authenticatedUserResult = this.repo.get();
 		if (authenticatedUserResult.some) {
 			const authenticatedUser = authenticatedUserResult.val;
-			editable = collection.owner.id === authenticatedUser.id || authenticatedUser.isAdmin;
+			editable =
+				collection.owner.id === authenticatedUser.id ||
+				authenticatedUser.isAdmin;
 		}
 
 		return Ok({
@@ -115,7 +130,9 @@ export class ViewCollectionUseCase {
 	}
 }
 
-const dummyViewCollectionService: ViewCollectionService = async (id: string) => {
+const dummyViewCollectionService: ViewCollectionService = async (
+	id: string,
+) => {
 	return Ok({
 		id,
 		editable: true,
@@ -137,68 +154,71 @@ const dummyViewCollectionService: ViewCollectionService = async (id: string) => 
 				id: "lordoftherings",
 				name: "The Lord of the Rings",
 				tags: ["fantasy", "epic"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "gameofthrones",
 				name: "A Game of Thrones",
 				tags: ["fantasy", "adventure"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "tokillamockingbird",
 				name: "To Kill a Mockingbird",
 				tags: ["classic", "literary fiction"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "prideandprejudice",
 				name: "Pride and Prejudice",
 				tags: ["classic", "romance"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "thegreatgatsby",
 				name: "The Great Gatsby",
 				tags: ["classic", "tragedy"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "thecatcherintheRY",
 				name: "The Catcher in the Rye",
 				tags: ["classic", "coming-of-age"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "thehobbit",
 				name: "The Hobbit",
 				tags: ["fantasy", "adventure"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "thepictureofdoriangray",
 				name: "The Picture of Dorian Gray",
 				tags: ["classic", "horror"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "1984",
 				name: "1984",
 				tags: ["dystopia", "science fiction"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 			{
 				id: "animalfarm",
 				name: "Animal Farm",
 				tags: ["allegory", "political satire"],
-				createdAt: "Today",
+				createdAt: new Date(),
 			},
 		],
 	});
-}
+};
 
 export const ViewCollectionContext = createContext(
-	new ViewCollectionUseCase(httpViewCollectionService, localStorageAuthenticatedUserRepository),
+	new ViewCollectionUseCase(
+		httpViewCollectionService,
+		localStorageAuthenticatedUserRepository,
+	),
 );
 
 function collectionPageStatePresenter(
@@ -208,6 +228,7 @@ function collectionPageStatePresenter(
 	const collectionLink = collectionLinkPresenter(collection.id, ownerLink);
 	const itemsWithLinks = collection.items.map((item) => ({
 		...item,
+		createdAt: formatDateRelative(item.createdAt),
 		link: `${collectionLink}/items/${item.id}`,
 	}));
 

@@ -68,12 +68,12 @@ export function formCreateItemController(
 ): CreateItemRequest {
 	return {
 		collectionId,
-		tags: form.tags,
+		tags: form.tags.map((t) => t.value),
 		name: form.name,
 		numberFields: form.numberFields.map((field, i) => {
 			return {
 				collectionFieldId: collectionFields.numberFields[i].collectionFieldId,
-				value: field.value,
+				value: parseInt(`${field.value}`),
 			};
 		}),
 		textFields: form.textFields.map((field, i) => {
@@ -107,6 +107,7 @@ export function formCreateItemController(
 const httpCreateItemService: CreateItemService = async (
 	req: CreateItemServiceRequest,
 ): Promise<Result<NewItemId, Failure>> => {
+	console.log(req);
 	const res = await fetch(`${env.backendApiBase}/item`, {
 		method: "POST",
 		headers: {
@@ -129,7 +130,7 @@ const dummyCreateCollectionService: CreateItemService = async () => {
 
 const CreateItemUseCaseContext = createContext(
 	new CreateItemUseCase(
-		env.isProduction ? httpCreateItemService : httpCreateItemService,
+		env.isProduction ? httpCreateItemService : dummyCreateCollectionService,
 	),
 );
 
@@ -270,7 +271,6 @@ export function CreateItemPage() {
 	return (
 		<ItemForm
 			defaultValues={{
-				tags: [],
 				numberFields: collectionFields.numberFields,
 				textFields: collectionFields.textFields,
 				multilineTextFields: collectionFields.multilineTextFields,

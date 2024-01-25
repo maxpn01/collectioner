@@ -89,8 +89,8 @@ export function validateItemName(
 export function validateItemTagsLength(
 	itemTags: Set<string>,
 ): Result<None, ValidateItemTagsLengthFailure> {
-	const satisfiesMinLength = itemTags.size >= 1;
-	const satisfiesMaxLength = itemTags.size <= 20;
+	const satisfiesMinLength = itemTags.size >= 0;
+	const satisfiesMaxLength = itemTags.size <= 100;
 
 	const isValid = satisfiesMinLength && satisfiesMaxLength;
 	if (!isValid)
@@ -169,17 +169,10 @@ export function itemHttpFailurePresenter(failure: Failure): HttpFailure {
 		});
 	}
 
-	if (failure instanceof ItemTagIsTakenFailure) {
-		return new JsonHttpFailure(409, {
-			itemTagIsTaken: true,
-		});
-	}
-
 	return httpFailurePresenter(failure);
 }
 
 export class ItemNameIsTakenFailure extends Failure {}
-export class ItemTagIsTakenFailure extends Failure {}
 
 export function generateItemFieldId(itemId: string, collectionFieldId: string) {
 	return `${itemId}->${collectionFieldId}`;
@@ -462,7 +455,6 @@ export class PrismaItemRepository implements ItemRepository {
 				const target = e.meta?.target as string[];
 
 				if (target.includes("name")) return Err(new ItemNameIsTakenFailure());
-				if (target.includes("tag")) return Err(new ItemTagIsTakenFailure());
 			} else throw e;
 		}
 

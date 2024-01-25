@@ -90,7 +90,7 @@ model Item {
 
 model ItemTag {
     item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
-    tag    String @unique
+    tag    String
     itemId String
 
     @@unique([itemId, tag])

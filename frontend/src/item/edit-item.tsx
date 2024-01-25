@@ -59,7 +59,7 @@ class EditItemUseCase {
 type EditItemPageState = {
 	id: string;
 	name: string;
-	tags: string[];
+	tags: { value: string }[];
 	numberFields: FormItemField<number>[];
 	textFields: FormItemField<string>[];
 	multilineTextFields: FormItemField<string>[];
@@ -72,7 +72,7 @@ const EditItemPageStateContext = createContext<StatePromise<EditItemPageState>>(
 		Ok({
 			id: "thelordoftherings",
 			name: "The Lord of the Rings",
-			tags: [""],
+			tags: [{ value: "fantasyorsmt" }],
 			numberFields: [
 				{
 					collectionFieldId: "pages",
@@ -131,7 +131,7 @@ export function formEditItemController(
 		numberFields: form.numberFields.map((field, i) => {
 			return {
 				collectionFieldId: item.numberFields[i].collectionFieldId,
-				value: field.value,
+				value: parseInt(`${field.value}`),
 			};
 		}),
 		textFields: form.textFields.map((field, i) => {
@@ -220,9 +220,7 @@ function DangerZone({ itemId }: { itemId: string }) {
 					},
 				}}
 				variant="outline"
-				className={cn(
-					isLoading && "pl-2 bg-red-200",
-				)}
+				className={cn(isLoading && "pl-2 bg-red-200")}
 				disabled={isLoading}
 			>
 				<CircleDashed
