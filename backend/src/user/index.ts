@@ -39,7 +39,7 @@ type GetUserResult<O extends GetUserOptions> = {
 
 export interface UserRepository {
 	get<O extends GetUserOptions>(
-		id: string,
+		username: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>>;
 	getPage(
@@ -63,7 +63,7 @@ export class PrismaUserRepository implements UserRepository {
 	}
 
 	async get<O extends GetUserOptions>(
-		id: string,
+		username: string,
 		options?: O,
 	): Promise<Result<GetUserResult<O>, Failure>> {
 		const prismaCollectionsInclude = (options?.include?.collections && {
@@ -73,7 +73,7 @@ export class PrismaUserRepository implements UserRepository {
 		})!;
 
 		const prismaUser = await this.prisma.user.findUnique({
-			where: { id },
+			where: { username },
 			include: {
 				collections: prismaCollectionsInclude,
 			},

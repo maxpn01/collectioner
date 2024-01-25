@@ -1,21 +1,125 @@
 import { NewCollectionButton } from "@/collection/create-collection";
-import { createContext, useContext } from "react";
-import { Link } from "react-router-dom";
-import { None, Ok, Option } from "ts-results";
-import {
-	collectionPageRoute,
-	CollectionTopic,
-} from "../collection/view-collection";
+import { Failure } from "@/utils/failure";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Err, Ok, Option, Result } from "ts-results";
+import { CollectionTopic } from "../collection/view-collection";
 import {
 	ErrorIndicator,
 	Loaded,
+	Loading,
 	LoadingIndicator,
 	StatePromise,
 } from "../utils/state-promise";
+import env from "@/env";
+import { userLinkPresenter } from ".";
+import { collectionLinkPresenter } from "@/collection";
+import { AuthenticatedUserRepository, localStorageAuthenticatedUserRepository } from "./auth";
+
+type User = {
+	id: string;
+	username: string;
+	fullname: string;
+	collections: Collection[];
+};
+
+type Collection = {
+	id: string;
+	name: string;
+	topic: {
+		id: string;
+		name: string;
+	};
+	imageOption: Option<string>;
+	itemCount: number;
+};
+
+type ViewUserService = (username: string) => Promise<Result<User, Failure>>;
+
+const httpViewUserService: ViewUserService = async (
+	username: string,
+): Promise<Result<User, Failure>> => {
+	const res = await fetch(`${env.backendUrlBase}/api/user?username=${username}`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+	if (!res.ok) {
+		return Err(new Failure());
+	}
+	const json = await res.json();
+
+	return Ok(json);
+};
+
+type ViewUserResponse = {
+	id: string;
+	username: string;
+	editable: boolean;
+	fullname: string;
+	collections: {
+		id: string;
+		name: string;
+		topic: {
+			id: string;
+			name: string;
+		};
+		imageOption: Option<string>;
+		itemCount: number;
+	}[];
+};
+
+class ViewUserUseCase {
+	viewUser: ViewUserService;
+	repo: AuthenticatedUserRepository;
+
+	constructor(viewUser: ViewUserService, repo: AuthenticatedUserRepository) {
+	
+		this.execute = this.execute.bind(this);
+		this.viewUser = viewUser;
+		this.repo = repo;
+	}
+
+	async execute(username: string): Promise<Result<ViewUserResponse, Failure>> {
+		const viewUserResult = await this.viewUser(username);
+		if (viewUserResult.err) return viewUserResult;
+		const user = viewUserResult.val;
+
+		let editable = false;
+		const authenticatedUserOption = this.repo.get();
+		if (authenticatedUserOption.some) {
+			const authenticatedUser = authenticatedUserOption.val;
+
+			editable = user.id === authenticatedUser.id ||
+			authenticatedUser.isAdmin;
+		}
+
+		const response: ViewUserResponse = {
+			...user,
+			editable,
+		};
+
+		return Ok(response);
+	}
+}
+
+function userPageStatePresenter(user: ViewUserResponse): UserPageState {
+	return {
+		...user,
+		collections: user.collections.map((collection) => {
+			return {
+				...collection,
+				link: collectionLinkPresenter(collection.id, userLinkPresenter(user.username))
+			};
+		}),
+	};
+}
 
 type UserPageCollection = {
 	id: string;
 	name: string;
+	link: string;
 	topic: {
 		id: string;
 		name: string;
@@ -32,73 +136,103 @@ type UserPageState = {
 	editable: boolean;
 };
 
-const UserPageStateContext = createContext<StatePromise<UserPageState>>(
-	Loaded(
-		Ok({
-			id: "john",
-			username: "john",
-			fullname: "John",
-			editable: true,
-			collections: [
-				{
-					id: "favbooks",
-					name: "My favourite books",
-					topic: {
-						id: "books",
-						name: "Books",
-					},
-					imageOption: None,
-					itemCount: 17,
-				},
-				{
-					id: "coins",
-					name: "Coins Wiki",
-					topic: {
-						id: "coins",
-						name: "Coins",
-					},
-					imageOption: None,
-					itemCount: 24,
-				},
-				{
-					id: "paintings",
-					name: "Classic Paintings",
-					topic: {
-						id: "art",
-						name: "Art",
-					},
-					imageOption: None,
-					itemCount: 11,
-				},
-			],
-		}),
-	),
+// const dummyViewUserService: ViewUserService = async () => {
+// 	return Ok({
+// 		id,
+// 		username: "john",
+// 		fullname: "John",
+// 		collections: [
+// 			{
+// 				id: "favbooks",
+// 				name: "My favourite books",
+// 				topic: {
+// 					id: "books",
+// 					name: "Books",
+// 				},
+// 				imageOption: None,
+// 				itemCount: 17,
+// 			},
+// 			{
+// 				id: "coins",
+// 				name: "Coins Wiki",
+// 				topic: {
+// 					id: "coins",
+// 					name: "Coins",
+// 				},
+// 				imageOption: None,
+// 				itemCount: 24,
+// 			},
+// 			{
+// 				id: "paintings",
+// 				name: "Classic Paintings",
+// 				topic: {
+// 					id: "art",
+// 					name: "Art",
+// 				},
+// 				imageOption: None,
+// 				itemCount: 11,
+// 			},
+// 		],
+// 	});
+// }
+
+const ViewUserContext = createContext<ViewUserUseCase>(
+	new ViewUserUseCase(
+		env.isProduction
+			? httpViewUserService
+			: httpViewUserService,
+		localStorageAuthenticatedUserRepository,
+	)
 );
 
-export const userPageRoute = "/user" as const;
 export function UserPage() {
-	const userPagePromise = useContext(UserPageStateContext);
-	if (userPagePromise.loading) return <LoadingIndicator />;
-	const userPageResult = userPagePromise.val;
+	const viewUser = useContext(ViewUserContext);
+	const [statePromise, setStatePromise] =
+		useState<StatePromise<UserPageState>>(Loading);
+
+	const params = useParams();
+
+	useEffect(() => {
+		(async () => {
+			const username = params.username;
+			if (!username) {
+				console.error("Username not specified");
+				setStatePromise(Loaded(Err(new Failure())));
+				return;
+			}
+			setStatePromise(Loading);
+			const viewUserResult = await viewUser.execute(username);
+			if (viewUserResult.err) {
+				setStatePromise(Loaded(viewUserResult));
+				return;
+			}
+			const response = viewUserResult.val;
+			const userPageState = userPageStatePresenter(response);
+			setStatePromise(Loaded(Ok(userPageState)));
+		})();
+	}, [params.userId]);
+
+	if (statePromise.loading) return <LoadingIndicator />;
+	const userPageResult = statePromise.val;
 	if (userPageResult.err) return <ErrorIndicator />;
-	const state = userPageResult.val;
+	const user = userPageResult.val;
 
 	return (
 		<>
 			<h1 className="mb-4 text-2xl">
-				{state.fullname}{" "}
+				{user.fullname}{" "}
 				<span className="text-xl font-normal text-slate-700">
-					@{state.username}
+					@{user.username}
 				</span>
 			</h1>
 
 			<div className="flex items-end justify-between mt-8 mb-4">
 				<h2 className="font-semibold text-slate-700">Collections</h2>
-				{state.editable && <NewCollectionButton />}
+				{user.editable && <NewCollectionButton ownerId={user.id} />}
 			</div>
 
 			<ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				{state.collections.map((collection) => (
+				{user.collections.map((collection) => (
 					<CollectionTile key={collection.id} collection={collection} />
 				))}
 			</ul>
@@ -118,7 +252,7 @@ function CollectionTile(props: { collection: UserPageCollection }) {
 			)}
 
 			<h3 className="mb-2 font-semibold">
-				<Link to={collectionPageRoute}>{props.collection.name}</Link>{" "}
+				<Link to={props.collection.link}>{props.collection.name}</Link>{" "}
 				<span className="text-base font-normal text-slate-600">
 					({props.collection.itemCount})
 				</span>

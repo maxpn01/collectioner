@@ -1,18 +1,272 @@
 import { Button } from "@/components/button";
+import { formatDateRelative } from "@/utils/date";
+import { Failure } from "@/utils/failure";
+import { formatDate } from "date-fns";
 import { EditPencil, Message } from "iconoir-react";
-import React, { createContext, useContext } from "react";
-import { Link } from "react-router-dom";
-import { Ok } from "ts-results";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Err, Ok, Result } from "ts-results";
 import { Table, TableBody, TableCell, TableRow } from "../components/table";
 import {
 	ErrorIndicator,
 	Loaded,
+	Loading,
 	LoadingIndicator,
 	StatePromise,
 } from "../utils/state-promise";
-import { editItemPageRoute } from "./edit-item";
-import { collectionPageRoute } from "@/collection/view-collection";
-import { userPageRoute } from "@/user/view-user";
+
+type ItemField<T> = {
+	id: string;
+	name: string;
+	value: T;
+};
+
+type Comment = {
+	id: string;
+	author: {
+		id: string;
+		username: string;
+		fullname: string;
+		blocked: boolean;
+	};
+	text: string;
+	createdAt: Date;
+};
+
+type Item = {
+	id: string;
+	name: string;
+	tags: string[];
+	createdAt: Date;
+	collection: {
+		id: string;
+		name: string;
+		owner: {
+			id: string;
+			username: string;
+		};
+	};
+	fields: {
+		numberFields: ItemField<number>[];
+		textFields: ItemField<string>[];
+		multilineTextFields: ItemField<string>[];
+		checkboxFields: ItemField<boolean>[];
+		dateFields: ItemField<Date>[];
+	};
+	comments: Comment[];
+};
+
+type ViewItemService = (id: string) => Promise<Result<Item, Failure>>;
+
+const httpViewItemService: ViewItemService = async (id) => {
+	return Ok({
+		id,
+		name: "The Lord of the Rings",
+		tags: ["fantasy", "epic"],
+		createdAt: new Date("2023-12-12T10:15:30"),
+		collection: {
+			id: "myfavouritebooks",
+			name: "My favourite books",
+			owner: {
+				id: "john",
+				username: "john",
+			},
+		},
+		fields: {
+			numberFields: [
+				{
+					id: "page",
+					name: "Pages",
+					value: 1216,
+				},
+				{
+					id: "words",
+					name: "Words",
+					value: 483359,
+				},
+			],
+			textFields: [
+				{
+					id: "author",
+					name: "Author",
+					value: "J.R.R. Tolkien",
+				},
+				{
+					id: "publisher",
+					name: "Publisher",
+					value: "George Allen & Unwin",
+				},
+			],
+			multilineTextFields: [
+				{
+					id: "description",
+					name: "Description",
+					value:
+						"The Lord of the Rings is an epic high-fantasy novel written by English author and scholar J. R. R. Tolkien. The story began as a sequel to Tolkien's 1937 fantasy novel The Hobbit, but eventually developed into a much larger work. The Lord of the Rings was published in three volumes over the course of a year from 29 July 1954 to 20 October 1955.",
+				},
+			],
+			checkboxFields: [],
+			dateFields: [
+				{
+					id: "publishDate",
+					name: "Publish date",
+					value: new Date("1954-07-29T08:20:45"),
+				},
+			],
+		},
+		comments: [
+			{
+				id: "1",
+				author: {
+					id: "1",
+					username: "johndoe",
+					fullname: "John Doe",
+					blocked: false,
+				},
+				text: "This is one of my all-time favorite books!",
+				createdAt: new Date("2024-01-22T14:05:00"),
+			},
+			{
+				id: "2",
+				author: {
+					id: "2",
+					username: "janedoe",
+					fullname: "Jane Doe",
+					blocked: false,
+				},
+				text: "I've read this book so many times, I've lost count!",
+				createdAt: new Date("2024-01-22T16:30:20"),
+			},
+			{
+				id: "3",
+				author: {
+					id: "3",
+					username: "bobsmith",
+					fullname: "Bob Smith",
+					blocked: true,
+				},
+				text: "I'm currently reading this book for the first time and I'm loving it!",
+				createdAt: new Date("2024-01-23T09:45:10"),
+			},
+			{
+				id: "4",
+				author: {
+					id: "4",
+					username: "alicesmith",
+					fullname: "Alice Smith",
+					blocked: false,
+				},
+				text: "I've seen the movies, but I've never read the books. I think it's time I give them a try!",
+				createdAt: new Date("2024-01-20T12:12:12"),
+			},
+			{
+				id: "5",
+				author: {
+					id: "5",
+					username: "charliebrown",
+					fullname: "Charlie Brown",
+					blocked: false,
+				},
+				text: "I've always wanted to read this book, but it's so long! I don't know if I'll be able to finish it.",
+				createdAt: new Date("2024-01-15T11:11:11"),
+			},
+			{
+				id: "6",
+				author: {
+					id: "6",
+					username: "sallysmith",
+					fullname: "Sally Smith",
+					blocked: false,
+				},
+				text: "I've read this book multiple times and I always find something new to appreciate about it.",
+				createdAt: new Date("2024-01-02T18:18:18"),
+			},
+			{
+				id: "7",
+				author: {
+					id: "7",
+					username: "lucyjones",
+					fullname: "Lucy Jones",
+					blocked: false,
+				},
+				text: "I'm a big fan of fantasy novels and this is one of the best I've ever read.",
+				createdAt: new Date("2024-01-22T20:20:20"),
+			},
+		],
+	});
+};
+
+class ViewItemUseCase {
+	viewItem: ViewItemService;
+
+	constructor(viewItem: ViewItemService) {
+		this.execute = this.execute.bind(this);
+		this.viewItem = viewItem;
+	}
+
+	execute(id: string): Promise<Result<Item, Failure>> {
+		return this.viewItem(id);
+	}
+}
+
+function mapItemField<T, R>(
+	map: (value: T) => R,
+): (itemField: ItemField<T>) => ItemField<R> {
+	return (itemField) => ({
+		...itemField,
+		value: map(itemField.value),
+	});
+}
+
+function viewItemPresenter(
+	itemOrFailure: Result<Item, Failure>,
+): Result<ItemPageState, Failure> {
+	return itemOrFailure.map((item) => {
+		const ownerLink = `/${item.collection.owner.username}`;
+		const collectionLink = `${ownerLink}/${item.collection.id}`;
+
+		const state: ItemPageState = {
+			id: item.id,
+			name: item.name,
+			editLink: `${collectionLink}/items/${item.id}/edit`,
+			collection: {
+				...item.collection,
+				link: collectionLink,
+				owner: {
+					...item.collection.owner,
+					link: ownerLink,
+				},
+			},
+			createdAt: formatDateRelative(item.createdAt),
+			comments: item.comments.map((comment): UiComment => {
+				return {
+					id: comment.id,
+					author: {
+						...comment.author,
+						link: `/${comment.author.username}`,
+					},
+					createdAt: formatDateRelative(comment.createdAt),
+					text: comment.text,
+				};
+			}),
+			editable: true,
+			fields: {
+				textFields: item.fields.textFields,
+				multilineTextFields: item.fields.multilineTextFields,
+				numberFields: item.fields.numberFields.map(mapItemField((n) => `${n}`)),
+				checkboxFields: item.fields.checkboxFields.map(
+					mapItemField((bool) => (bool ? "Yes" : "No")),
+				),
+				dateFields: item.fields.dateFields.map(
+					mapItemField((date) => formatDate(date, "dd-MM-yyyy")),
+				),
+			},
+			tags: item.tags,
+		};
+
+		return state;
+	});
+}
 
 type UiItemField<T> = {
 	id: string;
@@ -27,6 +281,7 @@ type UiComment = {
 		username: string;
 		fullname: string;
 		blocked: boolean;
+		link: string;
 	};
 	text: string;
 	createdAt: string;
@@ -35,15 +290,18 @@ type UiComment = {
 type ItemPageState = {
 	editable: boolean;
 	id: string;
+	editLink: string;
 	name: string;
 	tags: string[];
 	createdAt: string;
 	collection: {
 		id: string;
 		name: string;
+		link: string;
 		owner: {
 			id: string;
 			username: string;
+			link: string;
 		};
 	};
 	fields: {
@@ -56,187 +314,69 @@ type ItemPageState = {
 	comments: UiComment[];
 };
 
-const ItemPageStateContext = createContext<StatePromise<ItemPageState>>(
-	Loaded(
-		Ok({
-			editable: false,
-			id: "lordoftherings",
-			name: "The Lord of the Rings",
-			tags: ["fantasy", "epic"],
-			createdAt: "Today",
-			collection: {
-				id: "myfavouritebooks",
-				name: "My favourite books",
-				owner: {
-					id: "john",
-					username: "john",
-				},
-			},
-			fields: {
-				numberFields: [
-					{
-						id: "page",
-						name: "Pages",
-						value: "1216",
-					},
-					{
-						id: "words",
-						name: "Words",
-						value: "483359",
-					},
-				],
-				textFields: [
-					{
-						id: "author",
-						name: "Author",
-						value: "J.R.R. Tolkien",
-					},
-					{
-						id: "publisher",
-						name: "Publisher",
-						value: "George Allen & Unwin",
-					},
-				],
-				multilineTextFields: [
-					{
-						id: "description",
-						name: "Description",
-						value:
-							"The Lord of the Rings is an epic high-fantasy novel written by English author and scholar J. R. R. Tolkien. The story began as a sequel to Tolkien's 1937 fantasy novel The Hobbit, but eventually developed into a much larger work. The Lord of the Rings was published in three volumes over the course of a year from 29 July 1954 to 20 October 1955.",
-					},
-				],
-				checkboxFields: [],
-				dateFields: [
-					{
-						id: "publishDate",
-						name: "Publish date",
-						value: "1954-07-29",
-					},
-				],
-			},
-			comments: [
-				{
-					id: "1",
-					author: {
-						id: "1",
-						username: "johndoe",
-						fullname: "John Doe",
-						blocked: false,
-					},
-					text: "This is one of my all-time favorite books!",
-					createdAt: "Today",
-				},
-				{
-					id: "2",
-					author: {
-						id: "2",
-						username: "janedoe",
-						fullname: "Jane Doe",
-						blocked: false,
-					},
-					text: "I've read this book so many times, I've lost count!",
-					createdAt: "Today",
-				},
-				{
-					id: "3",
-					author: {
-						id: "3",
-						username: "bobsmith",
-						fullname: "Bob Smith",
-						blocked: true,
-					},
-					text: "I'm currently reading this book for the first time and I'm loving it!",
-					createdAt: "Today",
-				},
-				{
-					id: "4",
-					author: {
-						id: "4",
-						username: "alicesmith",
-						fullname: "Alice Smith",
-						blocked: false,
-					},
-					text: "I've seen the movies, but I've never read the books. I think it's time I give them a try!",
-					createdAt: "Today",
-				},
-				{
-					id: "5",
-					author: {
-						id: "5",
-						username: "charliebrown",
-						fullname: "Charlie Brown",
-						blocked: false,
-					},
-					text: "I've always wanted to read this book, but it's so long! I don't know if I'll be able to finish it.",
-					createdAt: "Today",
-				},
-				{
-					id: "6",
-					author: {
-						id: "6",
-						username: "sallysmith",
-						fullname: "Sally Smith",
-						blocked: false,
-					},
-					text: "I've read this book multiple times and I always find something new to appreciate about it.",
-					createdAt: "Today",
-				},
-				{
-					id: "7",
-					author: {
-						id: "7",
-						username: "lucyjones",
-						fullname: "Lucy Jones",
-						blocked: false,
-					},
-					text: "I'm a big fan of fantasy novels and this is one of the best I've ever read.",
-					createdAt: "Today",
-				},
-			],
-		}),
-	),
+const ViewItemUseCaseContext = createContext<ViewItemUseCase>(
+	new ViewItemUseCase(httpViewItemService),
 );
 
-export const itemPageRoute = "/item" as const;
 export function ItemPage() {
-	const itemPagePromise = useContext(ItemPageStateContext);
-	if (itemPagePromise.loading) return <LoadingIndicator />;
-	const itemPageResult = itemPagePromise.val;
-	if (itemPageResult.err) return <ErrorIndicator />;
-	const state = itemPageResult.val;
+	const viewItem = useContext(ViewItemUseCaseContext);
+	const [statePromise, setStatePromise] =
+		useState<StatePromise<ItemPageState>>(Loading);
+
+	const params = useParams();
+
+	useEffect(() => {
+		(async () => {
+			const itemId = params.itemId;
+			if (!itemId) {
+				console.error("Item ID not specified");
+				setStatePromise(Loaded(Err(new Failure())));
+				return;
+			}
+			setStatePromise(Loading);
+			const userOrFailure = await viewItem.execute(itemId);
+			const stateOrFailure = viewItemPresenter(userOrFailure);
+			setStatePromise(Loaded(stateOrFailure));
+		})();
+	}, [params.itemId]);
+
+	if (statePromise.loading) return <LoadingIndicator />;
+	const statePromiseResult = statePromise.val;
+	if (statePromiseResult.err) return <ErrorIndicator />;
+	const item = statePromiseResult.val;
 
 	return (
 		<>
 			<div className="flex mb-4 gap-x-2">
 				<Link
-					to={userPageRoute}
+					to={item.collection.owner.link}
 					className="font-medium underline text-slate-700 text"
 				>
-					@{state.collection.owner.username}
+					@{item.collection.owner.username}
 				</Link>
 				<span>/</span>
 				<Link
-					to={collectionPageRoute}
+					to={item.collection.link}
 					className="font-medium underline text-slate-700 text"
 				>
-					{state.collection.name}
+					{item.collection.name}
 				</Link>
-				<span className="ml-auto text-slate-600">{state.createdAt}</span>
+				<span className="ml-auto text-slate-600">{item.createdAt}</span>
 			</div>
 			<div className="justify-between mt-4 mb-8 md:flex">
 				<div className="mb-4 md:mb-0">
 					<h1 className="mb-1 font-serif text-3xl font-bold text-slate-800">
-						{state.name}
+						{item.name}
 					</h1>
 					<p className="flex flex-wrap items-center gap-2 text-slate-600">
-						{state.tags.map((tag, index) => (
+						{item.tags.map((tag, index) => (
 							<React.Fragment key={index}>#{tag} </React.Fragment>
 						))}
 					</p>
 				</div>
-				{state.editable && (
+				{item.editable && (
 					<Button variant="outline" className="md:mt-1" asChild>
-						<Link to={editItemPageRoute}>
+						<Link to={item.editLink}>
 							<EditPencil className="mr-2" />
 							Edit
 						</Link>
@@ -250,14 +390,14 @@ export function ItemPage() {
 					<col className="" />
 				</colgroup>
 				<TableBody>
-					<ItemFieldRows itemFields={state.fields.textFields} />
-					<ItemFieldRows itemFields={state.fields.dateFields} />
-					<ItemFieldRows itemFields={state.fields.numberFields} />
-					<ItemFieldRows itemFields={state.fields.checkboxFields} />
+					<ItemFieldRows itemFields={item.fields.textFields} />
+					<ItemFieldRows itemFields={item.fields.dateFields} />
+					<ItemFieldRows itemFields={item.fields.numberFields} />
+					<ItemFieldRows itemFields={item.fields.checkboxFields} />
 				</TableBody>
 			</Table>
 
-			{state.fields.multilineTextFields.map(({ id, name, value }) => (
+			{item.fields.multilineTextFields.map(({ id, name, value }) => (
 				<React.Fragment key={id}>
 					<h3 className="mt-4 mb-2 font-semibold text-slate-700">{name}</h3>
 					<p className="whitespace-pre-wrap">{value}</p>
@@ -265,7 +405,7 @@ export function ItemPage() {
 			))}
 
 			<h2 className="mt-8 mb-4 font-semibold text-slate-700">Comments</h2>
-			<Comments comments={state.comments} />
+			<Comments comments={item.comments} />
 		</>
 	);
 }
@@ -281,26 +421,16 @@ function ItemFieldRows({ itemFields }: { itemFields: UiItemField<string>[] }) {
 	));
 }
 
-function Comments(props: {
-	comments: {
-		id: string;
-		author: {
-			id: string;
-			username: string;
-			fullname: string;
-			blocked: boolean;
-		};
-		text: string;
-		createdAt: string;
-	}[];
-}) {
+function Comments(props: { comments: UiComment[] }) {
 	return (
 		<ul className="py-2 space-y-6 list-none list-inside">
 			{props.comments.map((comment) => (
 				<li key={comment.id} className="rounded-md">
 					<div className="mb-1 text-sm">
 						<Message className="inline-block mr-1 text-slate-500" />
-						<span className="font-bold">@{comment.author.username}</span>
+						<Link to={comment.author.link} className="font-bold">
+							@{comment.author.username}
+						</Link>
 						<span className="inline-block ml-2 lowercase text-slate-700">
 							{comment.createdAt}
 						</span>

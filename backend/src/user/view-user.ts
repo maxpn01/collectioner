@@ -11,7 +11,6 @@ type ViewUserResponse = {
 	id: string;
 	username: string;
 	fullname: string;
-	blocked: boolean;
 	collections: ViewUserResponseCollection[];
 };
 
@@ -33,8 +32,8 @@ export class ViewUserUseCase {
 		this.userRepository = userRepository;
 	}
 
-	async execute(id: string): Promise<Result<ViewUserResponse, Failure>> {
-		const userResult = await this.userRepository.get(id, {
+	async execute(username: string): Promise<Result<ViewUserResponse, Failure>> {
+		const userResult = await this.userRepository.get(username, {
 			include: { collections: true },
 		});
 		if (userResult.err) return userResult;
@@ -44,7 +43,6 @@ export class ViewUserUseCase {
 			id: user.id,
 			username: user.username,
 			fullname: user.fullname,
-			blocked: user.blocked,
 			collections: collections.map(this.toResponseCollection),
 		});
 	}
@@ -68,18 +66,27 @@ export class ViewUserUseCase {
 
 import { httpFailurePresenter, expressSendHttpFailure } from "../http";
 
+export function queryViewUserController(
+	username: any,
+): Result<string, BadRequestFailure> {
+	if (typeof username !== "string") return Err(new BadRequestFailure());
+
+	username = username.trim();
+	if (username.length === 0) return Err(new BadRequestFailure());
+
+	return Ok(username);
+}
+
 export function viewUserHttpBodyPresenter(response: ViewUserResponse): any {
 	return {
 		id: response.id,
 		username: response.username,
 		fullname: response.fullname,
-		blocked: response.blocked,
 		collections: response.collections,
 	};
 }
 
 import { Request, Response } from "express";
-import { idController } from "../utils/id";
 
 export class ExpressViewUser {
 	viewUser: ViewUserUseCase;
@@ -90,16 +97,16 @@ export class ExpressViewUser {
 	}
 
 	async execute(req: Request, res: Response): Promise<void> {
-		const controllerResult = idController(req.query.id);
+		const controllerResult = queryViewUserController(req.query.username);
 		if (controllerResult.err) {
 			const failure = controllerResult.val;
 			const httpFailure = httpFailurePresenter(failure);
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
-		const id = controllerResult.val;
+		const username = controllerResult.val;
 
-		const viewUserResult = await this.viewUser.execute(id);
+		const viewUserResult = await this.viewUser.execute(username);
 		if (viewUserResult.err) {
 			const failure = viewUserResult.val;
 			const httpFailure = httpFailurePresenter(failure);

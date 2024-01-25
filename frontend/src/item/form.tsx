@@ -21,13 +21,13 @@ import { CalendarIcon } from "lucide-react";
 import { UseFormReturn, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 
-type FormItemField<T extends number | string | boolean | Date> = {
-	id: string;
+export type FormItemField<T extends number | string | boolean | Date> = {
+	collectionFieldId: string;
 	name: string;
 	value: T;
 };
 
-type UiItemForm = {
+export type UiItemForm = {
 	name: string;
 	numberFields: FormItemField<number>[];
 	textFields: FormItemField<string>[];
@@ -45,23 +45,34 @@ const itemSchema = z.object({
 	),
 	numberFields: z.array(
 		z.object({
-			value: z.coerce.number({
-				errorMap: (error) => {
-					if (error.code === "invalid_type")
-						return { code: error.code, message: "Please, enter a number" };
-					if (error.message) return { message: error.message };
-
-					return { message: "Error" };
-				},
+			value: z.any().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+				message: "Please enter a number",
 			}),
+		}),
+	),
+	multilineTextFields: z.array(
+		z.object({
+			value: z.string(),
+		}),
+	),
+	checkboxFields: z.array(
+		z.object({
+			value: z.boolean(),
+		}),
+	),
+	dateFields: z.array(
+		z.object({
+			value: z.date(),
 		}),
 	),
 });
 
 export function ItemForm({
 	defaultValues,
+	onSubmit,
 }: {
 	defaultValues: DeepPartial<UiItemForm>;
+	onSubmit: (form: UiItemForm) => void;
 }) {
 	const form = useForm<UiItemForm>({
 		resolver: zodResolver(itemSchema),
@@ -90,7 +101,7 @@ export function ItemForm({
 
 	return (
 		<Form {...form}>
-			<form className="space-y-8" onSubmit={form.handleSubmit(console.log)}>
+			<form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
 				<div className="flex items-center justify-between">
 					<h1 className="text-xl font-bold text-slate-800">Item</h1>
 
@@ -117,18 +128,26 @@ export function ItemForm({
 				/>
 
 				{textFields.map((field, index) => (
-					<TextItemField key={field.id} label={field.name} index={index} />
+					<TextItemField
+						key={field.collectionFieldId}
+						label={field.name}
+						index={index}
+					/>
 				))}
 				{dateFields.map((field, index) => (
 					<DateItemField
-						key={field.id}
+						key={field.collectionFieldId}
 						label={field.name}
 						index={index}
 						form={form}
 					/>
 				))}
 				{numberFields.map((field, index) => (
-					<NumberItemField key={field.id} label={field.name} index={index} />
+					<NumberItemField
+						key={field.collectionFieldId}
+						label={field.name}
+						index={index}
+					/>
 				))}
 				{checkboxFields.length && (
 					<div>
@@ -137,7 +156,7 @@ export function ItemForm({
 						</h4>
 						{checkboxFields.map((field, index) => (
 							<CheckboxItemField
-								key={field.id}
+								key={field.collectionFieldId}
 								label={field.name}
 								index={index}
 							/>
@@ -146,7 +165,7 @@ export function ItemForm({
 				)}
 				{multilineTextFields.map((field, index) => (
 					<MultilineTextItemField
-						key={field.id}
+						key={field.collectionFieldId}
 						label={field.name}
 						index={index}
 					/>
@@ -202,6 +221,7 @@ function DateItemField({
 							onSelect={(date) => {
 								if (!date) return;
 								form.setValue(`dateFields.${index}.value`, date);
+								form.trigger();
 							}}
 						/>
 					</FormControl>

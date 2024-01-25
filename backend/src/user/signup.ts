@@ -169,6 +169,12 @@ type SignUpWithEmailRequest = {
 	password: string;
 };
 
+type SignUpWithEmailResponse = {
+	id: string;
+	username: string;
+	isAdmin: boolean;
+};
+
 export class SignUpWithEmailUseCase {
 	userRepository: UserRepository;
 
@@ -178,7 +184,7 @@ export class SignUpWithEmailUseCase {
 
 	async execute(
 		request: SignUpWithEmailRequest,
-	): Promise<Result<User, Failure>> {
+	): Promise<Result<SignUpWithEmailResponse, Failure>> {
 		const userResult = await createNewUser(request);
 		if (userResult.err) return userResult;
 		const user = userResult.val;
@@ -186,8 +192,22 @@ export class SignUpWithEmailUseCase {
 		const createResult = await this.userRepository.create(user);
 		if (createResult.err) return createResult;
 
-		return Ok(user);
+		return Ok({
+			id: user.id,
+			username: user.username,
+			isAdmin: user.isAdmin,
+		});
 	}
+}
+
+function jsonSignUpWithEmailResponsePresenter(
+	response: SignUpWithEmailResponse,
+): any {
+	return {
+		id: response.id,
+		username: response.username,
+		isAdmin: response.isAdmin,
+	};
 }
 
 export function jsonSignUpWithEmailController(
@@ -287,7 +307,8 @@ export class ExpressSignUpWithEmail {
 		req.session.regenerate(() => {
 			//@ts-ignore
 			req.session.userId = newUser.id;
-			res.status(200).send();
+			const json = jsonSignUpWithEmailResponsePresenter(newUser);
+			res.status(200).json(json);
 		});
 	}
 }

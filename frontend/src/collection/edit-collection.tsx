@@ -22,12 +22,16 @@ import {
 	StatePromise,
 } from "@/utils/state-promise";
 import { Plus } from "iconoir-react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { None, Ok, Option } from "ts-results";
 import { CollectionFieldType, collectionFieldTypes } from ".";
 import { CollectionNameField, CollectionTopicField } from "./form";
 import { TopicsStateContext } from "./view-collection";
+import { httpDeleteCollectionService } from "./delete-collection";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/utils/ui";
+import { CircleDashed } from "lucide-react";
 
 type EditCollectionPageState = {
 	id: string;
@@ -76,25 +80,34 @@ type UiEditCollectionForm = {
 	createdFields: { name: string; type: CollectionFieldType }[];
 };
 
-export const editCollectionPageRoute = "/collection/edit" as const;
 export function EditCollectionPage() {
+	const statePromise = useContext(EditCollectionPageStateContext);
+	if (statePromise.loading) return <LoadingIndicator />;
+	const statePromiseResult = statePromise.val;
+	if (statePromiseResult.err) return <ErrorIndicator />;
+	const collection = statePromiseResult.val;
+
+	return (
+		<>
+			<EditCollectionForm {...collection} />
+			<hr className="my-8" />
+			<DangerZone collectionId={collection.id} />
+		</>
+	);
+}
+
+function EditCollectionForm(props: EditCollectionPageState) {
 	const topicsPromise = useContext(TopicsStateContext);
 	if (topicsPromise.loading) return <LoadingIndicator />;
 	const topicsPromiseResult = topicsPromise.val;
 	if (topicsPromiseResult.err) return <ErrorIndicator />;
 	const topics = topicsPromiseResult.val;
 
-	const statePromise = useContext(EditCollectionPageStateContext);
-	if (statePromise.loading) return <LoadingIndicator />;
-	const statePromiseResult = statePromise.val;
-	if (statePromiseResult.err) return <ErrorIndicator />;
-	const state = statePromiseResult.val;
-
 	const form = useForm<UiEditCollectionForm>({
 		defaultValues: {
-			name: state.name,
-			topicId: state.topic.id,
-			updatedFields: state.fields,
+			name: props.name,
+			topicId: props.topic.id,
+			updatedFields: props.fields,
 			createdFields: [],
 		},
 	});
@@ -108,64 +121,62 @@ export function EditCollectionPage() {
 	});
 
 	return (
-		<>
-			<Form {...form}>
-				<div className="flex items-center justify-between mb-8">
-					<h1 className="text-xl font-bold text-slate-800">Collection edit</h1>
+		<Form {...form}>
+			<div className="flex items-center justify-between mb-8">
+				<h1 className="text-xl font-bold text-slate-800">Collection edit</h1>
 
-					<Button>Save</Button>
-				</div>
-				<form className="space-y-8">
-					<CollectionNameField form={form} />
-					<CollectionTopicField
-						form={form}
-						topics={topics}
-						defaultValue={state.topic.id}
-					/>
-					{updatedFields.fields.length > 0 && (
-						<div>
-							<h3 className="mb-2 font-bold text-slate-700">Fields</h3>
-							{updatedFields.fields.map((field, index) => (
+				<Button>Save</Button>
+			</div>
+			<form className="space-y-8">
+				<CollectionNameField form={form} />
+				<CollectionTopicField
+					form={form}
+					topics={topics}
+					defaultValue={props.topic.id}
+				/>
+				{updatedFields.fields.length > 0 && (
+					<div>
+						<h3 className="mb-2 font-bold text-slate-700">Fields</h3>
+						{updatedFields.fields.map((field, index) => (
+							<CollectionField
+								key={field.id}
+								index={index}
+								namePrefix="updatedFields"
+							/>
+						))}
+					</div>
+				)}
+				<div>
+					{createdFields.fields.length > 0 && (
+						<>
+							<h3 className="mb-2 font-bold text-slate-700">New fields</h3>
+							{createdFields.fields.map((field, index) => (
 								<CollectionField
 									key={field.id}
 									index={index}
-									namePrefix="updatedFields"
+									namePrefix="createdFields"
 								/>
 							))}
-						</div>
+						</>
 					)}
-					<div>
-						{createdFields.fields.length > 0 && (
-							<>
-								<h3 className="mb-2 font-bold text-slate-700">New fields</h3>
-								{createdFields.fields.map((field, index) => (
-									<CollectionField
-										key={field.id}
-										index={index}
-										namePrefix="createdFields"
-									/>
-								))}
-							</>
-						)}
 
-						<Button
-							onClick={() =>
-								createdFields.append({
-									name: "",
-									type: CollectionFieldType.Text,
-								})
-							}
-							type="button"
-							variant="secondary"
-							withIcon
-						>
-							<Plus className="mr-2" />
-							New field
-						</Button>
-					</div>
-				</form>
-			</Form>
-		</>
+					<Button
+						onClick={() =>
+							createdFields.append({
+								name: "",
+								type: CollectionFieldType.Text,
+							})
+						}
+						type="button"
+						variant="secondary"
+						withIcon
+					>
+						<Plus className="mr-2" />
+						New field
+					</Button>
+				</div>
+			</form>
+		</Form>
 	);
 }
 
@@ -227,5 +238,37 @@ function CollectionField({
 				)}
 			/>
 		</div>
+	);
+}
+
+function DangerZone({ collectionId }: { collectionId: string }) {
+	const navigate = useNavigate();
+	const [isLoading, setIsLoading] = useState(false);
+
+	return (
+		<>
+			<h3 className="mt-8 mb-4 font-semibold text-slate-700">Danger zone</h3>
+			<Button
+				variant="outline"
+				onClick={async () => {
+					setIsLoading(true);
+					await httpDeleteCollectionService(collectionId);
+					navigate("../..", { relative: "path" });
+				}}
+				className={cn(
+					"text-red-500 border-red-500 hover:text-red-500 hover:bg-red-50",
+					isLoading && "pl-2 bg-red-200",
+				)}
+				disabled={isLoading}
+			>
+				<CircleDashed
+					className={cn(
+						"transition-all animate-spin",
+						isLoading ? "w-5 mr-2" : "w-0",
+					)}
+				/>
+				Delete collection
+			</Button>
+		</>
 	);
 }

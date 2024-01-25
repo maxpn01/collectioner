@@ -1,10 +1,17 @@
 import express from "express";
+const cors = require("cors");
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import env from "./env";
 
 export const expressApp = express();
 
+const corsOptions = {
+	origin: "http://localhost:5173",
+	optionsSuccessStatus: 200,
+};
+
+expressApp.use(cors(corsOptions));
 expressApp.use(express.json());
 expressApp.use(express.urlencoded({ extended: false }));
 

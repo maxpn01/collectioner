@@ -1,27 +1,25 @@
-import { createItemPageRoute } from "@/item/create-item";
-import { itemPageRoute } from "@/item/view-item";
-import { userPageRoute } from "@/user/view-user";
+import { Failure } from "@/utils/failure";
 import { EditPencil, MultiplePages, Page, Plus } from "iconoir-react";
-import React, { createContext, useContext } from "react";
-import { Link } from "react-router-dom";
-import { None, Ok, Option } from "ts-results";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Err, None, Ok, Option, Result } from "ts-results";
 import { Button } from "../components/button";
 import {
 	ErrorIndicator,
 	Loaded,
+	Loading,
 	LoadingIndicator,
 	StatePromise,
 } from "../utils/state-promise";
-import { editCollectionPageRoute } from "./edit-collection";
 
-type CollectionPageItem = {
+type Item = {
 	id: string;
 	name: string;
 	tags: string[];
 	createdAt: string;
 };
 
-type CollectionPageState = {
+type Collection = {
 	editable: boolean;
 	id: string;
 	name: string;
@@ -36,93 +34,188 @@ type CollectionPageState = {
 		id: string;
 		name: string;
 	};
-	items: CollectionPageItem[];
+	items: Item[];
 };
 
-const CollectionPageStateContext = createContext<
-	StatePromise<CollectionPageState>
->(
-	Loaded(
-		Ok({
-			editable: true,
-			id: "favbooks",
-			name: "My favourite books",
-			imageOption: None,
-			itemCount: 17,
-			owner: {
-				id: "john",
-				fullname: "John",
-				username: "john",
+type ViewCollectionService = (
+	id: string,
+) => Promise<Result<Collection, Failure>>;
+
+const httpViewCollectionService: ViewCollectionService = async (id) => {
+	return Ok({
+		id,
+		editable: true,
+		name: "My favourite books",
+		imageOption: None,
+		itemCount: 17,
+		owner: {
+			id: "john",
+			fullname: "John",
+			username: "john",
+		},
+		topic: {
+			id: "books",
+			name: "Books",
+		},
+		items: [
+			{
+				id: "lordoftherings",
+				name: "The Lord of the Rings",
+				tags: ["fantasy", "epic"],
+				createdAt: "Today",
 			},
-			topic: {
-				id: "books",
-				name: "Books",
+			{
+				id: "gameofthrones",
+				name: "A Game of Thrones",
+				tags: ["fantasy", "adventure"],
+				createdAt: "Today",
 			},
-			items: [
-				{
-					id: "lordoftherings",
-					name: "The Lord of the Rings",
-					tags: ["fantasy", "epic"],
-					createdAt: "Today",
-				},
-				{
-					id: "gameofthrones",
-					name: "A Game of Thrones",
-					tags: ["fantasy", "adventure"],
-					createdAt: "Today",
-				},
-				{
-					id: "tokillamockingbird",
-					name: "To Kill a Mockingbird",
-					tags: ["classic", "literary fiction"],
-					createdAt: "Today",
-				},
-				{
-					id: "prideandprejudice",
-					name: "Pride and Prejudice",
-					tags: ["classic", "romance"],
-					createdAt: "Today",
-				},
-				{
-					id: "thegreatgatsby",
-					name: "The Great Gatsby",
-					tags: ["classic", "tragedy"],
-					createdAt: "Today",
-				},
-				{
-					id: "thecatcherintheRY",
-					name: "The Catcher in the Rye",
-					tags: ["classic", "coming-of-age"],
-					createdAt: "Today",
-				},
-				{
-					id: "thehobbit",
-					name: "The Hobbit",
-					tags: ["fantasy", "adventure"],
-					createdAt: "Today",
-				},
-				{
-					id: "thepictureofdoriangray",
-					name: "The Picture of Dorian Gray",
-					tags: ["classic", "horror"],
-					createdAt: "Today",
-				},
-				{
-					id: "1984",
-					name: "1984",
-					tags: ["dystopia", "science fiction"],
-					createdAt: "Today",
-				},
-				{
-					id: "animalfarm",
-					name: "Animal Farm",
-					tags: ["allegory", "political satire"],
-					createdAt: "Today",
-				},
-			],
-		}),
-	),
+			{
+				id: "tokillamockingbird",
+				name: "To Kill a Mockingbird",
+				tags: ["classic", "literary fiction"],
+				createdAt: "Today",
+			},
+			{
+				id: "prideandprejudice",
+				name: "Pride and Prejudice",
+				tags: ["classic", "romance"],
+				createdAt: "Today",
+			},
+			{
+				id: "thegreatgatsby",
+				name: "The Great Gatsby",
+				tags: ["classic", "tragedy"],
+				createdAt: "Today",
+			},
+			{
+				id: "thecatcherintheRY",
+				name: "The Catcher in the Rye",
+				tags: ["classic", "coming-of-age"],
+				createdAt: "Today",
+			},
+			{
+				id: "thehobbit",
+				name: "The Hobbit",
+				tags: ["fantasy", "adventure"],
+				createdAt: "Today",
+			},
+			{
+				id: "thepictureofdoriangray",
+				name: "The Picture of Dorian Gray",
+				tags: ["classic", "horror"],
+				createdAt: "Today",
+			},
+			{
+				id: "1984",
+				name: "1984",
+				tags: ["dystopia", "science fiction"],
+				createdAt: "Today",
+			},
+			{
+				id: "animalfarm",
+				name: "Animal Farm",
+				tags: ["allegory", "political satire"],
+				createdAt: "Today",
+			},
+		],
+	});
+};
+
+type ViewCollectionResponse = {
+	editable: boolean;
+	id: string;
+	name: string;
+	imageOption: Option<string>;
+	itemCount: number;
+	owner: {
+		id: string;
+		username: string;
+		fullname: string;
+	};
+	topic: {
+		id: string;
+		name: string;
+	};
+	items: Item[];
+};
+
+class ViewCollectionUseCase {
+	viewCollection: ViewCollectionService;
+
+	constructor(viewCollection: ViewCollectionService) {
+		this.viewCollection = viewCollection;
+	}
+
+	async execute(id: string): Promise<Result<ViewCollectionResponse, Failure>> {
+		const collectionResult = await this.viewCollection(id);
+		if (collectionResult.err) return collectionResult;
+		const collection = collectionResult.val;
+
+		const editable =
+			collection.owner.id === localStorage.getItem("userId") ||
+			localStorage.getItem("isAdmin") === "true";
+
+		return Ok({
+			...collection,
+			editable,
+		});
+	}
+}
+
+const ViewCollectionContext = createContext(
+	new ViewCollectionUseCase(httpViewCollectionService),
 );
+
+function collectionPageStatePresenter(
+	collection: ViewCollectionResponse,
+): CollectionPageState {
+	const ownerLink = `/${collection.owner.username}`;
+	const itemsWithLinks = collection.items.map((item) => ({
+		...item,
+		link: `${ownerLink}/${collection.id}/items/${item.id}`,
+	}));
+
+	return {
+		...collection,
+		editLink: `${ownerLink}/${collection.id}/edit`,
+		newItemLink: `${ownerLink}/${collection.id}/new-item`,
+		owner: {
+			...collection.owner,
+			link: ownerLink,
+		},
+		items: itemsWithLinks,
+	};
+}
+
+type CollectionPageItem = {
+	id: string;
+	name: string;
+	tags: string[];
+	createdAt: string;
+	link: string;
+};
+
+type CollectionPageState = {
+	editable: boolean;
+	id: string;
+	editLink: string;
+	newItemLink: string;
+	name: string;
+	imageOption: Option<string>;
+	itemCount: number;
+	owner: {
+		id: string;
+		username: string;
+		fullname: string;
+		link: string;
+	};
+	topic: {
+		id: string;
+		name: string;
+	};
+	items: CollectionPageItem[];
+};
 
 export function CollectionTopic(props: { name: string }) {
 	return (
@@ -135,51 +228,83 @@ export function CollectionTopic(props: { name: string }) {
 	);
 }
 
-export const collectionPageRoute = "/collection" as const;
 export function CollectionPage() {
-	const statePromise = useContext(CollectionPageStateContext);
-	if (statePromise.loading) return <LoadingIndicator />;
-	const statePromiseResult = statePromise.val;
-	if (statePromiseResult.err) return <ErrorIndicator />;
-	const state = statePromiseResult.val;
+	const viewCollection = useContext(ViewCollectionContext);
+	const [collectionPromise, setCollectionPromise] =
+		useState<StatePromise<CollectionPageState>>(Loading);
+
+	const params = useParams();
+
+	useEffect(() => {
+		(async () => {
+			const collectionId = params.collectionId;
+			if (!collectionId) {
+				console.error("Collection ID not specified");
+				setCollectionPromise(Loaded(Err(new Failure())));
+				return;
+			}
+
+			const result = await viewCollection.execute(collectionId);
+			if (result.err) {
+				console.error(result.val);
+				setCollectionPromise(Loaded(result));
+				return;
+			}
+			const response = result.val;
+
+			const state = collectionPageStatePresenter(response);
+			setCollectionPromise(Loaded(Ok(state)));
+		})();
+	}, [params.collectionId, viewCollection]);
+
+	if (collectionPromise.loading) return <LoadingIndicator />;
+	const result = collectionPromise.val;
+	if (result.err) return <ErrorIndicator />;
+	const collection = result.val;
 
 	return (
 		<>
-			<CollectionHeader state={state} />
+			<CollectionHeader collection={collection} />
 
-			<ItemsList editable={state.editable} items={state.items} />
+			<ItemsList
+				editable={collection.editable}
+				items={collection.items}
+				newItemLink={collection.newItemLink}
+			/>
 		</>
 	);
 }
 
-function CollectionHeader({ state }: { state: CollectionPageState }) {
+function CollectionHeader({ collection }: { collection: CollectionPageState }) {
 	return (
 		<div className="mb-4">
 			<Link
-				to={userPageRoute}
+				to={collection.owner.username}
 				className="font-medium underline text-slate-700 text"
 			>
-				@{state.owner.username}
+				@{collection.owner.username}
 			</Link>
 			<div className="flex items-end justify-between">
 				<h1 className="mb-2 text-xl font-bold leading-tight text-slate-700">
-					{state.name}{" "}
+					{collection.name}{" "}
 					<span className="text-base font-normal text-slate-600">
-						({state.itemCount})
+						({collection.itemCount})
 					</span>
 				</h1>
 
-				{state.editable && <EditCollectionButton />}
+				{collection.editable && (
+					<EditCollectionButton editLink={collection.editLink} />
+				)}
 			</div>
-			<CollectionTopic name={state.topic.name} />
+			<CollectionTopic name={collection.topic.name} />
 		</div>
 	);
 }
 
-function EditCollectionButton() {
+function EditCollectionButton({ editLink }: { editLink: string }) {
 	return (
 		<Button asChild variant="outline" withIcon size="sm" className="mt-2">
-			<Link to={editCollectionPageRoute}>
+			<Link to={editLink}>
 				<EditPencil className="mr-2" />
 				Edit
 			</Link>
@@ -187,27 +312,22 @@ function EditCollectionButton() {
 	);
 }
 
-type CollectionListProps = {
-	editable: boolean;
-	items: {
-		id: string;
-		name: string;
-		tags: string[];
-		createdAt: string;
-	}[];
-};
-
-export const ItemsList: React.FC<CollectionListProps> = ({
+export function ItemsList({
 	editable,
+	newItemLink,
 	items,
-}) => {
+}: {
+	editable: boolean;
+	newItemLink: string;
+	items: CollectionPageItem[];
+}) {
 	return (
 		<>
 			<div className="flex items-end justify-between mt-8 mb-4">
 				<h2 className="font-semibold text-slate-700">Items</h2>
 				{editable && (
-					<Button asChild withIcon size="sm">
-						<Link to={createItemPageRoute}>
+					<Button withIcon size="sm" asChild>
+						<Link to={newItemLink}>
 							<Plus className="mr-2" />
 							New item
 						</Link>
@@ -221,18 +341,9 @@ export const ItemsList: React.FC<CollectionListProps> = ({
 			</ul>
 		</>
 	);
-};
+}
 
-type CollectionItemProps = {
-	item: {
-		id: string;
-		name: string;
-		tags: string[];
-		createdAt: string;
-	};
-};
-
-export const ItemsListTile: React.FC<CollectionItemProps> = ({ item }) => {
+export function ItemsListTile({ item }: { item: CollectionPageItem }) {
 	return (
 		<li className="flex items-start py-4">
 			<div title="Item" className="flex items-end mr-2 text-xs">
@@ -240,7 +351,7 @@ export const ItemsListTile: React.FC<CollectionItemProps> = ({ item }) => {
 			</div>
 			<div className="space-y-2">
 				<h3 className="flex text-lg font-semibold leading-none text-slate-800">
-					<Link to={itemPageRoute}>{item.name}</Link>
+					<Link to={item.link}>{item.name}</Link>
 				</h3>
 
 				<p className="text-sm text-slate-700">
@@ -254,7 +365,7 @@ export const ItemsListTile: React.FC<CollectionItemProps> = ({ item }) => {
 			</span>
 		</li>
 	);
-};
+}
 
 export type TopicsState = {
 	id: string;

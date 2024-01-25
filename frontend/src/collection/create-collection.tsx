@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "iconoir-react";
-import { useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { TopicsStateContext } from "../collection/view-collection";
@@ -16,18 +16,63 @@ import {
 import { Form } from "../components/form";
 import { ErrorIndicator, LoadingIndicator } from "../utils/state-promise";
 import { CollectionNameField, CollectionTopicField } from "./form";
+import { None, Ok, Result } from "ts-results";
+import { Failure } from "@/utils/failure";
+import { useNavigate } from "react-router-dom";
+
+type CreateCollectionServiceRequest = {
+	ownerId: string;
+	name: string;
+	topicId: string;
+};
+type CreateCollectionService = (
+	req: CreateCollectionServiceRequest,
+) => Promise<Result<NewCollectionId, Failure>>;
+
+type NewCollectionId = string;
+type CreateCollectionRequest = {
+	ownerId: string;
+	name: string;
+	topicId: string;
+};
+class CreateCollectionUseCase {
+	createCollection: CreateCollectionService;
+	constructor(createCollection: CreateCollectionService) {
+		this.execute = this.execute.bind(this);
+		this.createCollection = createCollection;
+	}
+
+	async execute(
+		req: CreateCollectionRequest,
+	): Promise<Result<NewCollectionId, Failure>> {
+		return this.createCollection(req);
+	}
+}
+
+const CreateCollectionUseCaseContext = createContext(
+	new CreateCollectionUseCase(async () => Ok("newcollectionid")),
+);
 
 const createCollectionSchema = z.object({
 	name: z.string(),
 	topicId: z.string(),
 });
 
-export function NewCollectionButton() {
+export function NewCollectionButton(props: { ownerId: string }) {
+	const navigate = useNavigate();
 	const [isOpen, setIsOpen] = useState(false);
+	const createCollection = useContext(CreateCollectionUseCaseContext);
 
-	const onSubmit = (values: any) => {
-		console.log(values);
+	const onSubmit = async (form: any) => {
+		const createCollectionResult = await createCollection.execute({
+			...form,
+			ownerId: props.ownerId,
+		});
+		if (createCollectionResult.err) throw new Error("Not implemented");
+		const collectionId = createCollectionResult.val;
+
 		setIsOpen(false);
+		navigate(collectionId);
 	};
 
 	return (

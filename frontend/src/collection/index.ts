@@ -14,3 +14,10 @@ export const collectionFieldTypes: CollectionFieldType[] = [
 	"Checkbox",
 	"Date",
 ] as const;
+
+export function collectionLinkPresenter(
+	collectionId: string,
+	ownerLink: string,
+) {
+	return `${ownerLink}/${collectionId}`;
+}

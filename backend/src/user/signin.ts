@@ -63,7 +63,7 @@ function jsonSignInWithEmailResponsePresenter(
 	response: SignInWithEmailResponse,
 ): any {
 	return {
-		userId: response.id,
+		id: response.id,
 		username: response.username,
 		isAdmin: response.isAdmin,
 	};
