@@ -63,7 +63,7 @@ export class CreateCommentUseCase {
 	async execute(
 		request: CreateCommentRequest,
 		requesterId: string,
-	): Promise<Result<None, Failure>> {
+	): Promise<Result<string, Failure>> {
 		const itemResult = await this.itemRepository.get(request.itemId);
 		if (itemResult.err) return itemResult;
 		const { item } = itemResult.val;
@@ -86,7 +86,7 @@ export class CreateCommentUseCase {
 		const addResult = await this.commentSearchEngine.add(comment);
 		if (addResult.err) return addResult;
 
-		return Ok(None);
+		return Ok(comment.id);
 	}
 }
 
@@ -147,7 +147,8 @@ export class ExpressCreateComment {
 			expressSendHttpFailure(httpFailure, res);
 			return;
 		}
+		const id = createResult.val;
 
-		res.status(200).send();
+		res.status(200).json({ id });
 	}
 }
