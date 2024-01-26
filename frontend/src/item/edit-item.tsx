@@ -101,7 +101,7 @@ export function formEditItemController(
 	return {
 		id: item.id,
 		name: form.name,
-		tags: [],
+		tags: form.tags.map((t) => t.value),
 		numberFields: form.numberFields.map((field, i) => {
 			return {
 				collectionFieldId: item.numberFields[i].collectionFieldId,
@@ -173,6 +173,7 @@ function editItemPageStatePresenter(item: Item): EditItemPageState {
 }
 
 export function EditItemPage() {
+	const navigate = useNavigate();
 	const params = useParams();
 	const viewItem = useContext(ViewItemUseCaseContext);
 	const editItemUseCase = useContext(EditItemUseCaseContext);
@@ -209,6 +210,7 @@ export function EditItemPage() {
 			<ItemForm
 				defaultValues={{
 					name: item.name,
+					tags: item.tags,
 					numberFields: item.numberFields,
 					textFields: item.textFields,
 					multilineTextFields: item.multilineTextFields,
@@ -222,6 +224,8 @@ export function EditItemPage() {
 						console.error(editItemResult);
 						throw new Error("Not implemented");
 					}
+
+					navigate("..", { relative: "path" });
 				}}
 			/>
 			<DangerZone itemId={item.id} />
@@ -229,7 +233,7 @@ export function EditItemPage() {
 	);
 }
 
-function DangerZone({}: { itemId: string }) {
+function DangerZone({ itemId }: { itemId: string }) {
 	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -238,13 +242,13 @@ function DangerZone({}: { itemId: string }) {
 			<h3 className="mt-8 mb-4 font-semibold text-slate-700">Danger zone</h3>
 			<DangerButton
 				dialog={{
-					title: "Delete collection",
-					body: "Are you sure you want to delete this collection?",
+					title: "Delete item",
+					body: "Are you sure you want to delete this item?",
 					okButton: {
-						label: "Delete collection",
+						label: "Delete item",
 						onClick: async () => {
 							setIsLoading(true);
-							await httpDeleteItemService();
+							await httpDeleteItemService(itemId);
 							navigate("../../..", { relative: "path" });
 						},
 					},

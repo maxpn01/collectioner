@@ -212,11 +212,14 @@ export function ItemForm({
 						<h4 className="pl-2 mb-4 text-sm font-bold text-slate-600">
 							Checkbox fields
 						</h4>
-						{checkboxFields.map((_, index) => (
+						{checkboxFields.map((field, index) => (
 							<CheckboxItemField
 								key={defaultValues.checkboxFields![index]!.collectionFieldId!}
 								label={defaultValues.checkboxFields![index]!.name!}
 								index={index}
+								onClick={() => {
+									form.setValue(`checkboxFields.${index}.value`, !field.value);
+								}}
 							/>
 						))}
 					</div>
@@ -355,7 +358,15 @@ function NumberItemField({ label, index }: { label: string; index: number }) {
 	);
 }
 
-function CheckboxItemField({ label, index }: { label: string; index: number }) {
+function CheckboxItemField({
+	label,
+	index,
+	onClick,
+}: {
+	label: string;
+	index: number;
+	onClick: () => void;
+}) {
 	return (
 		<FormField
 			name={`checkboxFields.${index}.value`}
@@ -363,7 +374,11 @@ function CheckboxItemField({ label, index }: { label: string; index: number }) {
 				<FormItem className="mb-4">
 					<FormControl>
 						<Label className="flex items-center pl-2 gap-x-2">
-							<Checkbox {...field} defaultChecked={field.value} />
+							<Checkbox
+								{...field}
+								defaultChecked={field.value}
+								onClick={onClick}
+							/>
 							{label}
 						</Label>
 					</FormControl>

@@ -46,11 +46,9 @@ expressApp.set("trust proxy", 1);
 
 export function setupStatic() {
 	const __dirname = path.resolve();
-	expressApp.use(express.static(path.join(__dirname, "../frontend/dist")));
+	expressApp.use(express.static(path.join(__dirname, "static")));
 
 	expressApp.get("*", (req, res) =>
-		res.sendFile(
-			path.resolve(__dirname, "..", "frontend", "dist", "index.html"),
-		),
+		res.sendFile(path.resolve(__dirname, "static", "index.html")),
 	);
 }
