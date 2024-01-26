@@ -3,8 +3,6 @@ import {
 	Topic,
 	CollectionField,
 	Collection,
-	CollectionFieldNameIsTakenFailure,
-	CollectionNameIsTakenFailure,
 	ValidateCollectionNameFailure,
 	validateCollectionName,
 } from ".";
@@ -346,18 +344,6 @@ export function updateCollectionHttpFailurePresenter(
 		return new JsonHttpFailure(422, {
 			satisfiedMinLength: failure.satisfiesMinLength,
 			satisfiesMaxLength: failure.satisfiesMaxLength,
-		});
-	}
-
-	if (failure instanceof CollectionNameIsTakenFailure) {
-		return new JsonHttpFailure(409, {
-			collectionNameIsTaken: true,
-		});
-	}
-
-	if (failure instanceof CollectionFieldNameIsTakenFailure) {
-		return new JsonHttpFailure(409, {
-			collectionFieldNameIsTaken: true,
 		});
 	}
 

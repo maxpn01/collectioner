@@ -1,10 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { Result, None, Err, Ok } from "ts-results";
-import {
-	CollectionField,
-	CollectionFieldNameIsTakenFailure,
-	prismaCollectionFieldToEntity,
-} from "..";
+import { CollectionField, prismaCollectionFieldToEntity } from "..";
 import { Failure, NotFoundFailure } from "../../utils/failure";
 import { nullableToOption } from "../../utils/ts-results";
 import { PrismaErrors } from "../../utils/prisma";
@@ -93,51 +89,27 @@ export class PrismaCollectionFieldRepository
 	}
 
 	async create(field: CollectionField): Promise<Result<None, Failure>> {
-		try {
-			await this.prisma.collectionField.create({
-				data: {
-					id: field.id,
-					name: field.name,
-					type: field.type,
-					collectionId: field.collection.id,
-				},
-			});
-		} catch (e) {
-			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
-			if (!isPrismaError) throw e;
-
-			if (e.code === PrismaErrors.UniqueConstraintFailed) {
-				const target = e.meta?.target as string[];
-
-				if (target.includes("name"))
-					return Err(new CollectionFieldNameIsTakenFailure());
-			} else throw e;
-		}
+		await this.prisma.collectionField.create({
+			data: {
+				id: field.id,
+				name: field.name,
+				type: field.type,
+				collectionId: field.collection.id,
+			},
+		});
 
 		return Ok(None);
 	}
 
 	async createMany(fields: CollectionField[]): Promise<Result<None, Failure>> {
-		try {
-			await this.prisma.collectionField.createMany({
-				data: fields.map((f) => ({
-					id: f.id,
-					name: f.name,
-					type: f.type,
-					collectionId: f.collection.id,
-				})),
-			});
-		} catch (e) {
-			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
-			if (!isPrismaError) throw e;
-
-			if (e.code === PrismaErrors.UniqueConstraintFailed) {
-				const target = e.meta?.target as string[];
-
-				if (target.includes("name"))
-					return Err(new CollectionFieldNameIsTakenFailure());
-			} else throw e;
-		}
+		await this.prisma.collectionField.createMany({
+			data: fields.map((f) => ({
+				id: f.id,
+				name: f.name,
+				type: f.type,
+				collectionId: f.collection.id,
+			})),
+		});
 
 		return Ok(None);
 	}
@@ -146,25 +118,13 @@ export class PrismaCollectionFieldRepository
 		id: string,
 		field: CollectionField,
 	): Promise<Result<None, Failure>> {
-		try {
-			await this.prisma.collectionField.update({
-				where: { id },
-				data: {
-					name: field.name,
-					type: field.type,
-				},
-			});
-		} catch (e) {
-			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
-			if (!isPrismaError) throw e;
-
-			if (e.code === PrismaErrors.UniqueConstraintFailed) {
-				const target = e.meta?.target as string[];
-
-				if (target.includes("name"))
-					return Err(new CollectionFieldNameIsTakenFailure());
-			} else throw e;
-		}
+		await this.prisma.collectionField.update({
+			where: { id },
+			data: {
+				name: field.name,
+				type: field.type,
+			},
+		});
 
 		return Ok(None);
 	}
@@ -172,31 +132,19 @@ export class PrismaCollectionFieldRepository
 	async updateMany(
 		updatedFields: UpdatedField[],
 	): Promise<Result<None, Failure>> {
-		try {
-			await this.prisma.$transaction(() => {
-				return Promise.all(
-					updatedFields.map((uf) =>
-						this.prisma.collectionField.update({
-							where: { id: uf.id },
-							data: {
-								name: uf.field.name,
-								type: uf.field.type,
-							},
-						}),
-					),
-				);
-			});
-		} catch (e) {
-			const isPrismaError = e instanceof Prisma.PrismaClientKnownRequestError;
-			if (!isPrismaError) throw e;
-
-			if (e.code === PrismaErrors.UniqueConstraintFailed) {
-				const target = e.meta?.target as string[];
-
-				if (target.includes("name"))
-					return Err(new CollectionFieldNameIsTakenFailure());
-			} else throw e;
-		}
+		await this.prisma.$transaction(() => {
+			return Promise.all(
+				updatedFields.map((uf) =>
+					this.prisma.collectionField.update({
+						where: { id: uf.id },
+						data: {
+							name: uf.field.name,
+							type: uf.field.type,
+						},
+					}),
+				),
+			);
+		});
 
 		return Ok(None);
 	}

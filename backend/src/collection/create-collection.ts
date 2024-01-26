@@ -1,7 +1,6 @@
 import {
 	Collection,
 	CollectionField,
-	CollectionNameIsTakenFailure,
 	Topic,
 	ValidateCollectionNameFailure,
 	validateCollectionName,
@@ -142,12 +141,6 @@ export function createCollectionHttpFailurePresenter(
 		return new JsonHttpFailure(422, {
 			satisfiedMinLength: failure.satisfiesMinLength,
 			satisfiesMaxLength: failure.satisfiesMaxLength,
-		});
-	}
-
-	if (failure instanceof CollectionNameIsTakenFailure) {
-		return new JsonHttpFailure(409, {
-			collectionNameIsTaken: true,
 		});
 	}
 

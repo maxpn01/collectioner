@@ -34,7 +34,7 @@ model Topic {
 model Collection {
     owner            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
     id               String            @id
-    name             String            @unique
+    name             String
     topic            Topic             @relation(fields: [topicId], references: [id])
     image            String?
     userId           String
@@ -49,7 +49,7 @@ model Collection {
 
 model CollectionField {
     id                  String               @id
-    name                String               @unique
+    name                String
     collection          Collection           @relation(fields: [collectionId], references: [id], onDelete: Cascade)
     type                CollectionFieldType
     collectionId        String

@@ -52,9 +52,6 @@ export function validateCollectionName(
 	return Ok(None);
 }
 
-export class CollectionNameIsTakenFailure extends Failure {}
-export class CollectionFieldNameIsTakenFailure extends Failure {}
-
 export const CollectionFieldType = {
 	Number: "Number",
 	Text: "Text",
