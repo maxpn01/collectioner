@@ -2,7 +2,6 @@ import env from "@/env";
 import { Failure } from "@/utils/failure";
 import { createContext } from "react";
 import { Err, Ok, Result } from "ts-results";
-import { Comment } from "../item/view-item";
 import {
 	AuthenticatedUserRepository,
 	localStorageAuthenticatedUserRepository,
@@ -22,6 +21,18 @@ type CreateCommentRequest = {
 	text: string;
 };
 
+export type CreateCommentResponse = {
+	id: string;
+	author: {
+		id: string;
+		username: string;
+		blocked: boolean;
+	};
+	text: string;
+	createdAt: Date;
+	editable: boolean;
+};
+
 class CreateCommentUseCase {
 	createComment: CreateCommentService;
 	repo: AuthenticatedUserRepository;
@@ -35,7 +46,9 @@ class CreateCommentUseCase {
 		this.repo = repo;
 	}
 
-	async execute(req: CreateCommentRequest): Promise<Result<Comment, Failure>> {
+	async execute(
+		req: CreateCommentRequest,
+	): Promise<Result<CreateCommentResponse, Failure>> {
 		const result = await this.createComment(req);
 		if (result.err) return result;
 		const id = result.val;
@@ -51,6 +64,7 @@ class CreateCommentUseCase {
 			},
 			text: req.text,
 			createdAt: new Date(),
+			editable: true,
 		});
 	}
 }

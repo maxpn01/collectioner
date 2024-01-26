@@ -41,8 +41,14 @@ class LocalStorageAuthenticatedUserRepository
 		const authenticatedUser = authenticatedUserOption.val;
 
 		localStorage.setItem("authenticatedUser.id", authenticatedUser.id);
-		localStorage.setItem("authenticatedUser.username", authenticatedUser.username);
-		localStorage.setItem("authenticatedUser.isAdmin", `${authenticatedUser.isAdmin}`);
+		localStorage.setItem(
+			"authenticatedUser.username",
+			authenticatedUser.username,
+		);
+		localStorage.setItem(
+			"authenticatedUser.isAdmin",
+			`${authenticatedUser.isAdmin}`,
+		);
 	}
 }
 

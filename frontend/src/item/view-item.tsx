@@ -18,6 +18,11 @@ import {
 	StatePromise,
 } from "../utils/state-promise";
 import { CreateCommentUseCaseContext } from "@/comment/create-comment";
+import { httpDeleteCommentService } from "@/comment/delete-comment";
+import {
+	AuthenticatedUserRepository,
+	localStorageAuthenticatedUserRepository,
+} from "@/user/auth";
 
 type ItemField<T> = {
 	id: string;
@@ -89,16 +94,96 @@ const httpViewItemService: ViewItemService = async (id) => {
 	});
 };
 
+export type ViewItemResponseComment = {
+	id: string;
+	author: {
+		id: string;
+		username: string;
+		blocked: boolean;
+	};
+	text: string;
+	createdAt: Date;
+	editable: boolean;
+};
+
+type ViewItemResponse = {
+	id: string;
+	name: string;
+	editable: boolean;
+	tags: string[];
+	createdAt: Date;
+	collection: {
+		id: string;
+		name: string;
+		owner: {
+			id: string;
+			username: string;
+		};
+	};
+	fields: {
+		numberFields: ItemField<number>[];
+		textFields: ItemField<string>[];
+		multilineTextFields: ItemField<string>[];
+		checkboxFields: ItemField<boolean>[];
+		dateFields: ItemField<Date>[];
+	};
+	comments: ViewItemResponseComment[];
+};
+
 class ViewItemUseCase {
 	viewItem: ViewItemService;
+	authenticatedUserRepository: AuthenticatedUserRepository;
 
-	constructor(viewItem: ViewItemService) {
+	constructor(
+		viewItem: ViewItemService,
+		authenticatedUserRepository: AuthenticatedUserRepository,
+	) {
 		this.execute = this.execute.bind(this);
 		this.viewItem = viewItem;
+		this.authenticatedUserRepository = authenticatedUserRepository;
 	}
 
-	execute(id: string): Promise<Result<Item, Failure>> {
-		return this.viewItem(id);
+	async execute(id: string): Promise<Result<ViewItemResponse, Failure>> {
+		const authenticatedUserResult = this.authenticatedUserRepository.get();
+
+		const result = await this.viewItem(id);
+
+		if (authenticatedUserResult.none) {
+			return result.map((item) => {
+				return {
+					...item,
+					comments: item.comments.map((comment) => {
+						return {
+							...comment,
+							editable: false,
+						};
+					}),
+					editable: false,
+				};
+			});
+		}
+		const authenticatedUser = authenticatedUserResult.val;
+
+		return result.map((item) => {
+			const editable =
+				authenticatedUser.isAdmin ||
+				authenticatedUser.id === item.collection.owner.id;
+
+			return {
+				...item,
+				comments: item.comments.map((comment) => {
+					const editable =
+						authenticatedUser.isAdmin ||
+						authenticatedUser.id === comment.author.id;
+
+					return {
+						...comment,
+						editable,
+					};
+				}),
+				editable,
+			};
+		});
 	}
 }
 
@@ -112,7 +197,7 @@ function mapItemField<T, R>(
 }
 
 function viewItemPresenter(
-	itemOrFailure: Result<Item, Failure>,
+	itemOrFailure: Result<ViewItemResponse, Failure>,
 ): Result<ItemPageState, Failure> {
 	return itemOrFailure.map((item) => {
 		const ownerLink = `/${item.collection.owner.username}`;
@@ -121,6 +206,7 @@ function viewItemPresenter(
 		const state: ItemPageState = {
 			id: item.id,
 			name: item.name,
+			editable: item.editable,
 			editLink: `${collectionLink}/items/${item.id}/edit`,
 			collection: {
 				...item.collection,
@@ -132,7 +218,6 @@ function viewItemPresenter(
 			},
 			createdAt: formatDateRelative(item.createdAt),
 			comments: item.comments.map(uiCommentPresenter),
-			editable: true,
 			fields: {
 				textFields: item.fields.textFields,
 				multilineTextFields: item.fields.multilineTextFields,
@@ -166,6 +251,7 @@ type UiComment = {
 		link: string;
 	};
 	text: string;
+	editable: boolean;
 	createdAt: string;
 };
 
@@ -334,7 +420,7 @@ const dummyViewItemService: ViewItemService = async (id) => {
 	});
 };
 
-function uiCommentPresenter(comment: Comment): UiComment {
+function uiCommentPresenter(comment: ViewItemResponseComment): UiComment {
 	return {
 		id: comment.id,
 		author: {
@@ -345,12 +431,14 @@ function uiCommentPresenter(comment: Comment): UiComment {
 		},
 		createdAt: formatDateRelative(comment.createdAt),
 		text: comment.text,
+		editable: comment.editable,
 	};
 }
 
 export const ViewItemUseCaseContext = createContext<ViewItemUseCase>(
 	new ViewItemUseCase(
 		env.isProduction ? httpViewItemService : httpViewItemService,
+		localStorageAuthenticatedUserRepository,
 	),
 );
 
@@ -449,6 +537,12 @@ export function ItemPage() {
 					itemCopy.comments.unshift(comment);
 					setStatePromise(Loaded(Ok(itemCopy)));
 				}}
+				removeComment={(commentId) => {
+					const itemCopy = structuredClone(item);
+					const index = item.comments.findIndex((c) => c.id === commentId);
+					itemCopy.comments.splice(index, 1);
+					setStatePromise(Loaded(Ok(itemCopy)));
+				}}
 			/>
 		</>
 	);
@@ -469,6 +563,7 @@ function Comments(props: {
 	itemId: string;
 	comments: UiComment[];
 	addComment: (uiComment: UiComment) => void;
+	removeComment: (commentId: string) => void;
 }) {
 	const [commentText, setCommentText] = useState("");
 	const createComment = useContext(CreateCommentUseCaseContext);
@@ -513,6 +608,18 @@ function Comments(props: {
 							<span className="inline-block ml-2 lowercase text-slate-700">
 								{comment.createdAt}
 							</span>
+							{comment.editable && (
+								<Button
+									variant="link"
+									className="float"
+									onClick={async () => {
+										await httpDeleteCommentService(comment.id);
+										props.removeComment(comment.id);
+									}}
+								>
+									delete
+								</Button>
+							)}
 						</div>
 						<p className="p-1">{comment.text}</p>
 					</li>
