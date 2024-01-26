@@ -94,9 +94,9 @@ const httpEditCollectionService: EditCollectionService = async (
 	return Ok(None);
 };
 
-const dummyEditCollectionService: EditCollectionService = async () => {
-	return Ok(None);
-};
+// const dummyEditCollectionService: EditCollectionService = async () => {
+// 	return Ok(None);
+// };
 
 const EditCollectionUseCaseContext = createContext(
 	new EditCollectionUseCase(

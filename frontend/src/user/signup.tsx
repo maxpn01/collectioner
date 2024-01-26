@@ -15,7 +15,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { signInPageRoute } from "./signin";
 import { homePageRoute } from "@/home";
 import env from "@/env";
-import { AuthenticatedUser, AuthenticatedUserRepository, authenticatedUserPresenter, authenticatedUserState, localStorageAuthenticatedUserRepository } from "./auth";
+import {
+	AuthenticatedUser,
+	AuthenticatedUserRepository,
+	authenticatedUserPresenter,
+	authenticatedUserState,
+	localStorageAuthenticatedUserRepository,
+} from "./auth";
 import { Err, None, Ok, Option, Result, Some } from "ts-results";
 import { Failure } from "@/utils/failure";
 import { createContext, useContext } from "react";
@@ -76,15 +82,13 @@ const httpSignUpWithEmailService: SignUpWithEmailService = async (
 	return Ok(authenticatedUser);
 };
 
-const dummySignInWithEmailService: SignUpWithEmailService = async () => {
-	return Ok({ id: "john", username: "john", isAdmin: true })
-}
+// const dummySignInWithEmailService: SignUpWithEmailService = async () => {
+// 	return Ok({ id: "john", username: "john", isAdmin: true })
+// }
 
 const SignUpWithEmailUseCaseContext = createContext(
 	new SignUpWithEmailUseCase(
-		env.isProduction
-			? httpSignUpWithEmailService
-			: httpSignUpWithEmailService,
+		env.isProduction ? httpSignUpWithEmailService : httpSignUpWithEmailService,
 		localStorageAuthenticatedUserRepository,
 	),
 );

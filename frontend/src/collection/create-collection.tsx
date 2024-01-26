@@ -69,9 +69,9 @@ const httpCreateCollectionService: CreateCollectionService = async (
 	return Ok(json.id);
 };
 
-const dummyCreateCollectionService: CreateCollectionService = async () => {
-	return Ok("newcollectionid");
-}
+// const dummyCreateCollectionService: CreateCollectionService = async () => {
+// 	return Ok("newcollectionid");
+// }
 
 const CreateCollectionUseCaseContext = createContext(
 	new CreateCollectionUseCase(
@@ -102,8 +102,7 @@ export function NewCollectionButton(props: { ownerId: string }) {
 		setIsOpen(false);
 		navigate(collectionId);
 	};
-        
-        
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>

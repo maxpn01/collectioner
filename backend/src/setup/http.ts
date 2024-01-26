@@ -44,15 +44,13 @@ expressApp.use(
 
 expressApp.set("trust proxy", 1);
 
-if (env.isProduction) {
+export function setupStatic() {
 	const __dirname = path.resolve();
-	expressApp.use(express.static(path.join(__dirname, "/frontend/dist")));
+	expressApp.use(express.static(path.join(__dirname, "../frontend/dist")));
 
 	expressApp.get("*", (req, res) =>
-		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html")),
+		res.sendFile(
+			path.resolve(__dirname, "..", "frontend", "dist", "index.html"),
+		),
 	);
-} else {
-	expressApp.get("/", (req, res) => {
-		res.send("Server is running....");
-	});
 }

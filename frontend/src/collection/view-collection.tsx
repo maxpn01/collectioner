@@ -130,89 +130,89 @@ export class ViewCollectionUseCase {
 	}
 }
 
-const dummyViewCollectionService: ViewCollectionService = async (
-	id: string,
-) => {
-	return Ok({
-		id,
-		editable: true,
-		name: "My favourite books",
-		imageOption: None,
-		size: 17,
-		owner: {
-			id: "john",
-			fullname: "John",
-			username: "john",
-		},
-		topic: {
-			id: "books",
-			name: "Books",
-		},
-		fields: [],
-		items: [
-			{
-				id: "lordoftherings",
-				name: "The Lord of the Rings",
-				tags: ["fantasy", "epic"],
-				createdAt: new Date(),
-			},
-			{
-				id: "gameofthrones",
-				name: "A Game of Thrones",
-				tags: ["fantasy", "adventure"],
-				createdAt: new Date(),
-			},
-			{
-				id: "tokillamockingbird",
-				name: "To Kill a Mockingbird",
-				tags: ["classic", "literary fiction"],
-				createdAt: new Date(),
-			},
-			{
-				id: "prideandprejudice",
-				name: "Pride and Prejudice",
-				tags: ["classic", "romance"],
-				createdAt: new Date(),
-			},
-			{
-				id: "thegreatgatsby",
-				name: "The Great Gatsby",
-				tags: ["classic", "tragedy"],
-				createdAt: new Date(),
-			},
-			{
-				id: "thecatcherintheRY",
-				name: "The Catcher in the Rye",
-				tags: ["classic", "coming-of-age"],
-				createdAt: new Date(),
-			},
-			{
-				id: "thehobbit",
-				name: "The Hobbit",
-				tags: ["fantasy", "adventure"],
-				createdAt: new Date(),
-			},
-			{
-				id: "thepictureofdoriangray",
-				name: "The Picture of Dorian Gray",
-				tags: ["classic", "horror"],
-				createdAt: new Date(),
-			},
-			{
-				id: "1984",
-				name: "1984",
-				tags: ["dystopia", "science fiction"],
-				createdAt: new Date(),
-			},
-			{
-				id: "animalfarm",
-				name: "Animal Farm",
-				tags: ["allegory", "political satire"],
-				createdAt: new Date(),
-			},
-		],
-	});
-};
+// const dummyViewCollectionService: ViewCollectionService = async (
+// 	id: string,
+// ) => {
+// 	return Ok({
+// 		id,
+// 		editable: true,
+// 		name: "My favourite books",
+// 		imageOption: None,
+// 		size: 17,
+// 		owner: {
+// 			id: "john",
+// 			fullname: "John",
+// 			username: "john",
+// 		},
+// 		topic: {
+// 			id: "books",
+// 			name: "Books",
+// 		},
+// 		fields: [],
+// 		items: [
+// 			{
+// 				id: "lordoftherings",
+// 				name: "The Lord of the Rings",
+// 				tags: ["fantasy", "epic"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "gameofthrones",
+// 				name: "A Game of Thrones",
+// 				tags: ["fantasy", "adventure"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "tokillamockingbird",
+// 				name: "To Kill a Mockingbird",
+// 				tags: ["classic", "literary fiction"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "prideandprejudice",
+// 				name: "Pride and Prejudice",
+// 				tags: ["classic", "romance"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "thegreatgatsby",
+// 				name: "The Great Gatsby",
+// 				tags: ["classic", "tragedy"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "thecatcherintheRY",
+// 				name: "The Catcher in the Rye",
+// 				tags: ["classic", "coming-of-age"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "thehobbit",
+// 				name: "The Hobbit",
+// 				tags: ["fantasy", "adventure"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "thepictureofdoriangray",
+// 				name: "The Picture of Dorian Gray",
+// 				tags: ["classic", "horror"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "1984",
+// 				name: "1984",
+// 				tags: ["dystopia", "science fiction"],
+// 				createdAt: new Date(),
+// 			},
+// 			{
+// 				id: "animalfarm",
+// 				name: "Animal Farm",
+// 				tags: ["allegory", "political satire"],
+// 				createdAt: new Date(),
+// 			},
+// 		],
+// 	});
+// };
 
 export const ViewCollectionContext = createContext(
 	new ViewCollectionUseCase(

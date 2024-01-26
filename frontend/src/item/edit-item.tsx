@@ -12,10 +12,10 @@ import { CircleDashed } from "lucide-react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Err, None, Ok, Result } from "ts-results";
-import { httpDeleteItemService } from "./delete-item";
 import { FormItemField, ItemForm, UiItemForm } from "./form";
 import env from "@/env";
 import { Item, ViewItemUseCaseContext } from "./view-item";
+import { httpDeleteItemService } from "./delete-item";
 
 type EditItemServiceRequest = {
 	id: string;
@@ -229,7 +229,7 @@ export function EditItemPage() {
 	);
 }
 
-function DangerZone({ itemId }: { itemId: string }) {
+function DangerZone({}: { itemId: string }) {
 	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -244,7 +244,7 @@ function DangerZone({ itemId }: { itemId: string }) {
 						label: "Delete collection",
 						onClick: async () => {
 							setIsLoading(true);
-							await httpDeleteItemService(itemId);
+							await httpDeleteItemService();
 							navigate("../../..", { relative: "path" });
 						},
 					},

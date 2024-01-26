@@ -16,7 +16,7 @@ export class ValidateLengthFailure extends Failure {
 		super();
 
 		const isValid = satisfiesMinLength && satisfiesMaxLength;
-		if (!isValid) throw new Error("This failure is not really a failure");
+		if (isValid) throw new Error("This failure is not really a failure");
 
 		this.satisfiesMinLength = satisfiesMinLength;
 		this.satisfiesMaxLength = satisfiesMaxLength;

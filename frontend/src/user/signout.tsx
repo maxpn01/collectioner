@@ -26,7 +26,9 @@ class SignOutUseCase {
 	}
 }
 
-const httpSignOutService: SignOutService = async (): Promise<Result<None, Failure>> => {
+const httpSignOutService: SignOutService = async (): Promise<
+	Result<None, Failure>
+> => {
 	const res = await fetch(`${env.backendApiBase}/signout`, {
 		method: "POST",
 		headers: {
@@ -35,19 +37,17 @@ const httpSignOutService: SignOutService = async (): Promise<Result<None, Failur
 		credentials: "include",
 	});
 	if (!res.ok) return Err(new Failure());
-	
+
 	return Ok(None);
 };
 
-const dummySignOutService: SignOutService = async () => {
-	return Ok(None);
-}
+// const dummySignOutService: SignOutService = async () => {
+// 	return Ok(None);
+// }
 
 export const SignOutUseCaseContext = createContext(
 	new SignOutUseCase(
-		env.isProduction
-			? httpSignOutService
-			: httpSignOutService,
+		env.isProduction ? httpSignOutService : httpSignOutService,
 		localStorageAuthenticatedUserRepository,
 	),
 );

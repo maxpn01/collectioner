@@ -123,9 +123,9 @@ const httpCreateItemService: CreateItemService = async (
 	return Ok(json.id);
 };
 
-const dummyCreateItemService: CreateItemService = async () => {
-	return Ok("test");
-};
+// const dummyCreateItemService: CreateItemService = async () => {
+// 	return Ok("test");
+// };
 
 const CreateItemUseCaseContext = createContext(
 	new CreateItemUseCase(

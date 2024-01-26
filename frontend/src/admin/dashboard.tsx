@@ -8,14 +8,11 @@ import {
 import { createContext, useContext, useEffect, useState } from "react";
 import { Err, Ok, Result, Some } from "ts-results";
 
-import { ColumnDef } from "@tanstack/react-table";
-
 import { DangerButton } from "@/components/button";
-import { Checkbox } from "@/components/checkbox";
 import { Failure } from "@/utils/failure";
-import { Signal, signal, useComputed } from "@preact/signals-react";
+import { Signal, signal } from "@preact/signals-react";
 import { UserTable } from "./user-table";
-import { UserBlockedSetManyContext, UserIsAdminSetManyContext } from ".";
+import { UserIsAdminSetManyContext } from ".";
 import env from "@/env";
 import {
 	authenticatedUserState,
@@ -57,47 +54,47 @@ class ViewDashboardUseCase {
 	}
 }
 
-const dummyViewDashboardService: ViewDashboardService = async (
-	pageN: number,
-) => {
-	return Ok({
-		page: [
-			{
-				id: "john",
-				username: "john from page " + pageN,
-				email: "john@example.com",
-				fullname: "John",
-				blocked: false,
-				isAdmin: false,
-			},
-			{
-				id: "tyler",
-				username: "tyler",
-				email: "tyler@example.com",
-				fullname: "Tyler",
-				blocked: false,
-				isAdmin: true,
-			},
-			{
-				id: "john",
-				username: "john",
-				email: "john@example.com",
-				fullname: "John",
-				blocked: false,
-				isAdmin: false,
-			},
-			{
-				id: "tyler",
-				username: "tyler",
-				email: "tyler@example.com",
-				fullname: "Tyler",
-				blocked: false,
-				isAdmin: true,
-			},
-		],
-		lastPage: 50,
-	});
-};
+// const dummyViewDashboardService: ViewDashboardService = async (
+// 	pageN: number,
+// ) => {
+// 	return Ok({
+// 		page: [
+// 			{
+// 				id: "john",
+// 				username: "john from page " + pageN,
+// 				email: "john@example.com",
+// 				fullname: "John",
+// 				blocked: false,
+// 				isAdmin: false,
+// 			},
+// 			{
+// 				id: "tyler",
+// 				username: "tyler",
+// 				email: "tyler@example.com",
+// 				fullname: "Tyler",
+// 				blocked: false,
+// 				isAdmin: true,
+// 			},
+// 			{
+// 				id: "john",
+// 				username: "john",
+// 				email: "john@example.com",
+// 				fullname: "John",
+// 				blocked: false,
+// 				isAdmin: false,
+// 			},
+// 			{
+// 				id: "tyler",
+// 				username: "tyler",
+// 				email: "tyler@example.com",
+// 				fullname: "Tyler",
+// 				blocked: false,
+// 				isAdmin: true,
+// 			},
+// 		],
+// 		lastPage: 50,
+// 	});
+// };
 
 const httpViewDashboardService: ViewDashboardService = async (
 	pageN: number,

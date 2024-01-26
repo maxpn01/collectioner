@@ -2,7 +2,7 @@ import { NewCollectionButton } from "@/collection/create-collection";
 import { Failure } from "@/utils/failure";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Err, None, Ok, Option, Result } from "ts-results";
+import { Err, Ok, Option, Result } from "ts-results";
 import { CollectionTopic } from "../collection/view-collection";
 import {
 	ErrorIndicator,
@@ -165,46 +165,46 @@ type UserPageState =
 	  }
 	| { username: string; blocked: true };
 
-const dummyViewUserService: ViewUserService = async (username: string) => {
-	return Ok({
-		username,
-		blocked: true,
-		id: "john",
-		fullname: "John",
-		collections: [
-			{
-				id: "favbooks",
-				name: "My favourite books",
-				topic: {
-					id: "books",
-					name: "Books",
-				},
-				imageOption: None,
-				size: 17,
-			},
-			{
-				id: "coins",
-				name: "Coins Wiki",
-				topic: {
-					id: "coins",
-					name: "Coins",
-				},
-				imageOption: None,
-				size: 24,
-			},
-			{
-				id: "paintings",
-				name: "Classic Paintings",
-				topic: {
-					id: "art",
-					name: "Art",
-				},
-				imageOption: None,
-				size: 11,
-			},
-		],
-	});
-};
+// const dummyViewUserService: ViewUserService = async (username: string) => {
+// 	return Ok({
+// 		username,
+// 		blocked: true,
+// 		id: "john",
+// 		fullname: "John",
+// 		collections: [
+// 			{
+// 				id: "favbooks",
+// 				name: "My favourite books",
+// 				topic: {
+// 					id: "books",
+// 					name: "Books",
+// 				},
+// 				imageOption: None,
+// 				size: 17,
+// 			},
+// 			{
+// 				id: "coins",
+// 				name: "Coins Wiki",
+// 				topic: {
+// 					id: "coins",
+// 					name: "Coins",
+// 				},
+// 				imageOption: None,
+// 				size: 24,
+// 			},
+// 			{
+// 				id: "paintings",
+// 				name: "Classic Paintings",
+// 				topic: {
+// 					id: "art",
+// 					name: "Art",
+// 				},
+// 				imageOption: None,
+// 				size: 11,
+// 			},
+// 		],
+// 	});
+// };
 
 const ViewUserContext = createContext<ViewUserUseCase>(
 	new ViewUserUseCase(
