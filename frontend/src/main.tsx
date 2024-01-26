@@ -8,6 +8,7 @@ import { EditCollectionPage } from "./collection/edit-collection";
 import { CollectionPage } from "./collection/view-collection";
 import { HomePage, homePageRoute } from "./home";
 import "./index.css";
+import "@mdxeditor/editor/style.css";
 import { CreateItemPage } from "./item/create-item";
 import { EditItemPage } from "./item/edit-item";
 import { SearchPage, searchPageRoute } from "./item/search";

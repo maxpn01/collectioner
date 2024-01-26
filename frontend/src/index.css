@@ -84,3 +84,42 @@
   font-weight: 400;
   font-style: normal;
 }
+
+.markdown h1,
+.mdxeditor h1 {
+  @apply text-2xl;
+}
+.markdown h2,
+.mdxeditor h2 {
+  @apply text-xl;
+}
+.markdown h3,
+.mdxeditor h3 {
+  @apply text-lg;
+}
+.markdown h4,
+.mdxeditor h4 {
+  @apply text-base;
+}
+.markdown h5,
+.mdxeditor h5 {
+  @apply text-sm;
+}
+.markdown h6,
+.mdxeditor h6 {
+  @apply text-xs;
+}
+.markdown ul,
+.mdxeditor ul {
+  @apply list-disc;
+}
+.markdown ol,
+.mdxeditor ol {
+  @apply list-decimal;
+}
+.markdown blockquote,
+.mdxeditor blockquote {
+  @apply p-2 rounded bg-slate-50 before:font-bold before:text-slate-400 after:font-bold after:text-slate-400;
+  @apply before:inline-block before:content-['"'] before:text-lg;
+  @apply after:inline-block after:content-['"'] after:text-lg;
+}

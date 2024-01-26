@@ -12,7 +12,6 @@ import {
 import { Input } from "@/components/input";
 import { Label } from "@/components/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
-import { Textarea } from "@/components/textarea";
 import { DeepPartial } from "@/utils/generics";
 import { cn } from "@/utils/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +21,20 @@ import { CalendarIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { UseFormReturn, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
+import {
+	MDXEditor,
+	headingsPlugin,
+	listsPlugin,
+	quotePlugin,
+	thematicBreakPlugin,
+	markdownShortcutPlugin,
+	toolbarPlugin,
+	UndoRedo,
+	BoldItalicUnderlineToggles,
+	BlockTypeSelect,
+	CodeToggle,
+	ListsToggle,
+} from "@mdxeditor/editor";
 
 export type FormItemField<T extends number | string | boolean | Date> = {
 	collectionFieldId: string;
@@ -229,6 +242,10 @@ export function ItemForm({
 						key={defaultValues.multilineTextFields![index]!.collectionFieldId!}
 						label={defaultValues.multilineTextFields![index]!.name!}
 						index={index}
+						onChange={(val) => {
+							form.setValue(`multilineTextFields.${index}.value`, val);
+							form.trigger(`multilineTextFields.${index}.value`);
+						}}
 					/>
 				))}
 			</form>
@@ -396,9 +413,11 @@ function CheckboxItemField({
 function MultilineTextItemField({
 	label,
 	index,
+	onChange,
 }: {
 	label: string;
 	index: number;
+	onChange: (val: string) => void;
 }) {
 	return (
 		<FormField
@@ -409,10 +428,27 @@ function MultilineTextItemField({
 						{label}
 					</FormLabel>
 					<FormControl>
-						<Textarea
-							className="h-48 max-w-full w-2xl"
-							{...field}
-							value={field.value ?? ""}
+						<MDXEditor
+							plugins={[
+								headingsPlugin(),
+								listsPlugin(),
+								quotePlugin(),
+								thematicBreakPlugin(),
+								markdownShortcutPlugin(),
+								toolbarPlugin({
+									toolbarContents: () => (
+										<>
+											<UndoRedo />
+											<BoldItalicUnderlineToggles />
+											<BlockTypeSelect />
+											<CodeToggle />
+											<ListsToggle />
+										</>
+									),
+								}),
+							]}
+							markdown={field.value ?? ""}
+							onChange={onChange}
 						/>
 					</FormControl>
 					{fieldState.error && (

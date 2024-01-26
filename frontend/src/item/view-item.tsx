@@ -23,6 +23,7 @@ import {
 	AuthenticatedUserRepository,
 	localStorageAuthenticatedUserRepository,
 } from "@/user/auth";
+import Markdown from "react-markdown";
 
 type ItemField<T> = {
 	id: string;
@@ -524,7 +525,9 @@ export function ItemPage() {
 			{item.fields.multilineTextFields.map(({ id, name, value }) => (
 				<React.Fragment key={id}>
 					<h3 className="mt-4 mb-2 font-semibold text-slate-700">{name}</h3>
-					<p className="whitespace-pre-wrap">{value}</p>
+					<div className="markdown">
+						<Markdown>{value}</Markdown>
+					</div>
 				</React.Fragment>
 			))}
 
