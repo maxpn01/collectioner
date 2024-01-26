@@ -56,39 +56,32 @@ class ViewDashboardUseCase {
 
 // const dummyViewDashboardService: ViewDashboardService = async (
 // 	pageN: number,
+// 	size,
 // ) => {
 // 	return Ok({
 // 		page: [
 // 			{
-// 				id: "john",
-// 				username: "john from page " + pageN,
-// 				email: "john@example.com",
-// 				fullname: "John",
-// 				blocked: false,
-// 				isAdmin: false,
-// 			},
-// 			{
-// 				id: "tyler",
-// 				username: "tyler",
-// 				email: "tyler@example.com",
-// 				fullname: "Tyler",
-// 				blocked: false,
+// 				email: "alexandergalloway@example.net",
+// 				password: "#&@EPvWrS7",
+// 				username: "jonesjeffrey",
+// 				fullname: "Joseph Odom",
+// 				blocked: true,
 // 				isAdmin: true,
 // 			},
 // 			{
-// 				id: "john",
-// 				username: "john",
-// 				email: "john@example.com",
-// 				fullname: "John",
-// 				blocked: false,
-// 				isAdmin: false,
+// 				email: "kjackson@example.com",
+// 				password: "&1ETrl_FTg",
+// 				username: "victorialindsey",
+// 				fullname: "Eric Hernandez",
+// 				blocked: true,
+// 				isAdmin: true,
 // 			},
 // 			{
-// 				id: "tyler",
-// 				username: "tyler",
-// 				email: "tyler@example.com",
-// 				fullname: "Tyler",
-// 				blocked: false,
+// 				email: "wrightkayla@example.org",
+// 				password: "Yd1mJyp6_)",
+// 				username: "kristawilson",
+// 				fullname: "Matthew King",
+// 				blocked: true,
 // 				isAdmin: true,
 // 			},
 // 		],
@@ -160,7 +153,7 @@ export function DashboardPage() {
 	useEffect(() => {
 		(async () => {
 			setStatePromise(Loading);
-			const result = await viewDashboard.execute(pageN, 10);
+			const result = await viewDashboard.execute(pageN, 20);
 			if (result.err) {
 				console.error(result);
 				setStatePromise(Loaded(result));
@@ -189,7 +182,7 @@ export function DashboardPage() {
 				lastPageN={state.lastPageN}
 				refreshData={async () => {
 					setStatePromise(Loading);
-					const result = await viewDashboard.execute(pageN, 10);
+					const result = await viewDashboard.execute(pageN, 20);
 					if (result.err) {
 						console.error(result);
 						setStatePromise(Loaded(result));

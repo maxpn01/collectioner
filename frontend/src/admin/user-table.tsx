@@ -127,6 +127,11 @@ export function UserTable({
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
+		initialState: {
+			pagination: {
+				pageSize: 20,
+			},
+		},
 	});
 	const selectedRows = table.getFilteredSelectedRowModel().rows;
 	const hasSelectedRows = selectedRows.length > 0;
