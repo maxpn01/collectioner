@@ -160,7 +160,7 @@ export function DashboardPage() {
 	useEffect(() => {
 		(async () => {
 			setStatePromise(Loading);
-			const result = await viewDashboard.execute(pageN, 50);
+			const result = await viewDashboard.execute(pageN, 10);
 			if (result.err) {
 				console.error(result);
 				setStatePromise(Loaded(result));
@@ -189,7 +189,7 @@ export function DashboardPage() {
 				lastPageN={state.lastPageN}
 				refreshData={async () => {
 					setStatePromise(Loading);
-					const result = await viewDashboard.execute(pageN, 50);
+					const result = await viewDashboard.execute(pageN, 10);
 					if (result.err) {
 						console.error(result);
 						setStatePromise(Loaded(result));
