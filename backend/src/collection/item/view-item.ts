@@ -3,10 +3,17 @@ import { ItemRepository } from ".";
 import { Failure } from "../../utils/failure";
 import { User } from "../../user";
 
+type ItemField<T> = {
+	id: string;
+	name: string;
+	value: T;
+};
+
 type ViewItemResponse = {
 	id: string;
 	name: string;
 	tags: Set<string>;
+	createdAt: Date;
 	collection: {
 		id: string;
 		name: string;
@@ -16,11 +23,11 @@ type ViewItemResponse = {
 		};
 	};
 	fields: {
-		numberFields: Map<CollectionFieldId, number>;
-		textFields: Map<CollectionFieldId, string>;
-		multilineTextFields: Map<CollectionFieldId, string>;
-		checkboxFields: Map<CollectionFieldId, boolean>;
-		dateFields: Map<CollectionFieldId, Date>;
+		numberFields: ItemField<number>[];
+		textFields: ItemField<string>[];
+		multilineTextFields: ItemField<string>[];
+		checkboxFields: ItemField<boolean>[];
+		dateFields: ItemField<Date>[];
 	};
 	comments: {
 		id: string;
@@ -46,46 +53,53 @@ export class ViewItemUseCase {
 		if (itemResult.err) return itemResult;
 		const { item, fields, comments } = itemResult.val;
 
-		const numberFieldsMap = new Map<CollectionFieldId, number>();
-		const textFieldsMap = new Map<CollectionFieldId, string>();
-		const multilineTextFieldsMap = new Map<CollectionFieldId, string>();
-		const checkboxFieldsMap = new Map<CollectionFieldId, boolean>();
-		const dateFieldsMap = new Map<CollectionFieldId, Date>();
-
-		fields.numberFields.forEach((numberField) => {
-			numberFieldsMap.set(numberField.collectionField.id, numberField.value);
-		});
-		fields.textFields.forEach((textField) => {
-			textFieldsMap.set(textField.collectionField.id, textField.value);
-		});
-		fields.multilineTextFields.forEach((multilineTextField) => {
-			multilineTextFieldsMap.set(
-				multilineTextField.collectionField.id,
-				multilineTextField.value,
-			);
-		});
-		fields.checkboxFields.forEach((checkboxField) => {
-			checkboxFieldsMap.set(
-				checkboxField.collectionField.id,
-				checkboxField.value,
-			);
-		});
-		fields.dateFields.forEach((dateField) => {
-			dateFieldsMap.set(dateField.collectionField.id, dateField.value);
+		const numberFields = fields.numberFields.map((numberField) => {
+			return {
+				id: numberField.collectionField.id,
+				name: numberField.collectionField.name,
+				value: numberField.value,
+			};
 		});
 
-		const responseFields = {
-			numberFields: numberFieldsMap,
-			textFields: textFieldsMap,
-			multilineTextFields: multilineTextFieldsMap,
-			checkboxFields: checkboxFieldsMap,
-			dateFields: dateFieldsMap,
-		};
+		const textFields = fields.textFields.map((textField) => {
+			return {
+				id: textField.collectionField.id,
+				name: textField.collectionField.name,
+				value: textField.value,
+			};
+		});
+
+		const multilineTextFields = fields.multilineTextFields.map(
+			(multilineTextField) => {
+				return {
+					id: multilineTextField.collectionField.id,
+					name: multilineTextField.collectionField.name,
+					value: multilineTextField.value,
+				};
+			},
+		);
+
+		const checkboxFields = fields.checkboxFields.map((checkboxField) => {
+			return {
+				id: checkboxField.collectionField.id,
+				name: checkboxField.collectionField.name,
+				value: checkboxField.value,
+			};
+		});
+
+		const dateFields = fields.dateFields.map((dateField) => {
+			return {
+				id: dateField.collectionField.id,
+				name: dateField.collectionField.name,
+				value: dateField.value,
+			};
+		});
 
 		return Ok({
 			id,
 			name: item.name,
 			tags: item.tags,
+			createdAt: item.createdAt,
 			collection: {
 				id: item.collection.id,
 				name: item.collection.name,
@@ -94,7 +108,13 @@ export class ViewItemUseCase {
 					username: item.collection.owner.username,
 				},
 			},
-			fields: responseFields,
+			fields: {
+				numberFields,
+				textFields,
+				multilineTextFields,
+				checkboxFields,
+				dateFields,
+			},
 			comments,
 		});
 	}
@@ -105,6 +125,7 @@ export function viewItemHttpBodyPresenter(response: ViewItemResponse) {
 		id: response.id,
 		name: response.name,
 		tags: Array.from(response.tags),
+		createdAt: response.createdAt,
 		collection: {
 			id: response.collection.id,
 			name: response.collection.name,
@@ -113,16 +134,15 @@ export function viewItemHttpBodyPresenter(response: ViewItemResponse) {
 				username: response.collection.owner.username,
 			},
 		},
-		fields: {
-			numberFields: Array.from(response.fields.numberFields),
-			textFields: Array.from(response.fields.textFields),
-			multilineTextFields: Array.from(response.fields.multilineTextFields),
-			checkboxFields: Array.from(response.fields.checkboxFields),
-			dateFields: Array.from(response.fields.dateFields),
-		},
+		fields: response.fields,
 		comments: response.comments.map((comment) => ({
 			id: comment.id,
-			author: comment.author,
+			author: {
+				id: comment.author.id,
+				username: comment.author.username,
+				fullname: comment.author.fullname,
+				blocked: comment.author.blocked,
+			},
 			text: comment.text,
 			createdAt: comment.createdAt,
 		})),

@@ -107,7 +107,6 @@ export function formCreateItemController(
 const httpCreateItemService: CreateItemService = async (
 	req: CreateItemServiceRequest,
 ): Promise<Result<NewItemId, Failure>> => {
-	console.log(req);
 	const res = await fetch(`${env.backendApiBase}/item`, {
 		method: "POST",
 		headers: {
@@ -124,13 +123,13 @@ const httpCreateItemService: CreateItemService = async (
 	return Ok(json.id);
 };
 
-const dummyCreateCollectionService: CreateItemService = async () => {
+const dummyCreateItemService: CreateItemService = async () => {
 	return Ok("test");
 };
 
 const CreateItemUseCaseContext = createContext(
 	new CreateItemUseCase(
-		env.isProduction ? httpCreateItemService : dummyCreateCollectionService,
+		env.isProduction ? httpCreateItemService : httpCreateItemService,
 	),
 );
 

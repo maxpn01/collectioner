@@ -258,8 +258,6 @@ export class ExpressUpdateItem {
 		}
 		const request = controllerResult.val;
 
-		console.log(request);
-
 		//@ts-ignore
 		const requesterId = req.session.userId;
 		const updateResult = await this.updateItem.execute(request, requesterId);

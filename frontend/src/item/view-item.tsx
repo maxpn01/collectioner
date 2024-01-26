@@ -14,6 +14,7 @@ import {
 	LoadingIndicator,
 	StatePromise,
 } from "../utils/state-promise";
+import env from "@/env";
 
 type ItemField<T> = {
 	id: string;
@@ -33,7 +34,7 @@ type Comment = {
 	createdAt: Date;
 };
 
-type Item = {
+export type Item = {
 	id: string;
 	name: string;
 	tags: string[];
@@ -59,6 +60,152 @@ type Item = {
 type ViewItemService = (id: string) => Promise<Result<Item, Failure>>;
 
 const httpViewItemService: ViewItemService = async (id) => {
+	const res = await fetch(`${env.backendApiBase}/item?id=${id}`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+	if (!res.ok) return Err(new Failure());
+	const json = await res.json();
+
+	return Ok({
+		...json,
+		createdAt: new Date(json.createdAt),
+		fields: {
+			...json.fields,
+			dateFields: json.fields.dateFields.map(
+				mapItemField((val: any) => new Date(val)),
+			),
+		},
+		comments: json.comments.map((comment: any) => {
+			return {
+				...comment,
+				createdAt: new Date(comment.createdAt),
+			};
+		}),
+	});
+};
+
+class ViewItemUseCase {
+	viewItem: ViewItemService;
+
+	constructor(viewItem: ViewItemService) {
+		this.execute = this.execute.bind(this);
+		this.viewItem = viewItem;
+	}
+
+	execute(id: string): Promise<Result<Item, Failure>> {
+		return this.viewItem(id);
+	}
+}
+
+function mapItemField<T, R>(
+	map: (value: T) => R,
+): (itemField: ItemField<T>) => ItemField<R> {
+	return (itemField) => ({
+		...itemField,
+		value: map(itemField.value),
+	});
+}
+
+function viewItemPresenter(
+	itemOrFailure: Result<Item, Failure>,
+): Result<ItemPageState, Failure> {
+	return itemOrFailure.map((item) => {
+		const ownerLink = `/${item.collection.owner.username}`;
+		const collectionLink = `${ownerLink}/${item.collection.id}`;
+
+		const state: ItemPageState = {
+			id: item.id,
+			name: item.name,
+			editLink: `${collectionLink}/items/${item.id}/edit`,
+			collection: {
+				...item.collection,
+				link: collectionLink,
+				owner: {
+					...item.collection.owner,
+					link: ownerLink,
+				},
+			},
+			createdAt: formatDateRelative(item.createdAt),
+			comments: item.comments.map((comment): UiComment => {
+				return {
+					id: comment.id,
+					author: {
+						...comment.author,
+						link: `/${comment.author.username}`,
+					},
+					createdAt: formatDateRelative(comment.createdAt),
+					text: comment.text,
+				};
+			}),
+			editable: true,
+			fields: {
+				textFields: item.fields.textFields,
+				multilineTextFields: item.fields.multilineTextFields,
+				numberFields: item.fields.numberFields.map(mapItemField((n) => `${n}`)),
+				checkboxFields: item.fields.checkboxFields.map(
+					mapItemField((bool) => (bool ? "Yes" : "No")),
+				),
+				dateFields: item.fields.dateFields.map(
+					mapItemField((date) => formatDate(date, "dd-MM-yyyy")),
+				),
+			},
+			tags: item.tags,
+		};
+
+		return state;
+	});
+}
+
+type UiItemField<T> = {
+	id: string;
+	name: string;
+	value: T;
+};
+
+type UiComment = {
+	id: string;
+	author: {
+		id: string;
+		username: string;
+		fullname: string;
+		blocked: boolean;
+		link: string;
+	};
+	text: string;
+	createdAt: string;
+};
+
+type ItemPageState = {
+	editable: boolean;
+	id: string;
+	editLink: string;
+	name: string;
+	tags: string[];
+	createdAt: string;
+	collection: {
+		id: string;
+		name: string;
+		link: string;
+		owner: {
+			id: string;
+			username: string;
+			link: string;
+		};
+	};
+	fields: {
+		numberFields: UiItemField<string>[];
+		textFields: UiItemField<string>[];
+		multilineTextFields: UiItemField<string>[];
+		checkboxFields: UiItemField<string>[];
+		dateFields: UiItemField<string>[];
+	};
+	comments: UiComment[];
+};
+
+const dummyViewItemService: ViewItemService = async (id) => {
 	return Ok({
 		id,
 		name: "The Lord of the Rings",
@@ -196,126 +343,10 @@ const httpViewItemService: ViewItemService = async (id) => {
 	});
 };
 
-class ViewItemUseCase {
-	viewItem: ViewItemService;
-
-	constructor(viewItem: ViewItemService) {
-		this.execute = this.execute.bind(this);
-		this.viewItem = viewItem;
-	}
-
-	execute(id: string): Promise<Result<Item, Failure>> {
-		return this.viewItem(id);
-	}
-}
-
-function mapItemField<T, R>(
-	map: (value: T) => R,
-): (itemField: ItemField<T>) => ItemField<R> {
-	return (itemField) => ({
-		...itemField,
-		value: map(itemField.value),
-	});
-}
-
-function viewItemPresenter(
-	itemOrFailure: Result<Item, Failure>,
-): Result<ItemPageState, Failure> {
-	return itemOrFailure.map((item) => {
-		const ownerLink = `/${item.collection.owner.username}`;
-		const collectionLink = `${ownerLink}/${item.collection.id}`;
-
-		const state: ItemPageState = {
-			id: item.id,
-			name: item.name,
-			editLink: `${collectionLink}/items/${item.id}/edit`,
-			collection: {
-				...item.collection,
-				link: collectionLink,
-				owner: {
-					...item.collection.owner,
-					link: ownerLink,
-				},
-			},
-			createdAt: formatDateRelative(item.createdAt),
-			comments: item.comments.map((comment): UiComment => {
-				return {
-					id: comment.id,
-					author: {
-						...comment.author,
-						link: `/${comment.author.username}`,
-					},
-					createdAt: formatDateRelative(comment.createdAt),
-					text: comment.text,
-				};
-			}),
-			editable: true,
-			fields: {
-				textFields: item.fields.textFields,
-				multilineTextFields: item.fields.multilineTextFields,
-				numberFields: item.fields.numberFields.map(mapItemField((n) => `${n}`)),
-				checkboxFields: item.fields.checkboxFields.map(
-					mapItemField((bool) => (bool ? "Yes" : "No")),
-				),
-				dateFields: item.fields.dateFields.map(
-					mapItemField((date) => formatDate(date, "dd-MM-yyyy")),
-				),
-			},
-			tags: item.tags,
-		};
-
-		return state;
-	});
-}
-
-type UiItemField<T> = {
-	id: string;
-	name: string;
-	value: T;
-};
-
-type UiComment = {
-	id: string;
-	author: {
-		id: string;
-		username: string;
-		fullname: string;
-		blocked: boolean;
-		link: string;
-	};
-	text: string;
-	createdAt: string;
-};
-
-type ItemPageState = {
-	editable: boolean;
-	id: string;
-	editLink: string;
-	name: string;
-	tags: string[];
-	createdAt: string;
-	collection: {
-		id: string;
-		name: string;
-		link: string;
-		owner: {
-			id: string;
-			username: string;
-			link: string;
-		};
-	};
-	fields: {
-		numberFields: UiItemField<string>[];
-		textFields: UiItemField<string>[];
-		multilineTextFields: UiItemField<string>[];
-		checkboxFields: UiItemField<string>[];
-		dateFields: UiItemField<string>[];
-	};
-	comments: UiComment[];
-};
-
-const ViewItemUseCaseContext = createContext<ViewItemUseCase>(
-	new ViewItemUseCase(httpViewItemService),
+export const ViewItemUseCaseContext = createContext<ViewItemUseCase>(
+	new ViewItemUseCase(
+		env.isProduction ? httpViewItemService : httpViewItemService,
+	),
 );
 
 export function ItemPage() {

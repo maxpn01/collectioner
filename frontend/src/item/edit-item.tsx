@@ -3,16 +3,19 @@ import { Failure } from "@/utils/failure";
 import {
 	ErrorIndicator,
 	Loaded,
+	Loading,
 	LoadingIndicator,
 	StatePromise,
 } from "@/utils/state-promise";
 import { cn } from "@/utils/ui";
 import { CircleDashed } from "lucide-react";
-import { createContext, useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { None, Ok, Result } from "ts-results";
+import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Err, None, Ok, Result } from "ts-results";
 import { httpDeleteItemService } from "./delete-item";
 import { FormItemField, ItemForm, UiItemForm } from "./form";
+import env from "@/env";
+import { Item, ViewItemUseCaseContext } from "./view-item";
 
 type EditItemServiceRequest = {
 	id: string;
@@ -28,6 +31,24 @@ type EditItemServiceRequest = {
 type EditItemService = (
 	req: EditItemServiceRequest,
 ) => Promise<Result<None, Failure>>;
+
+const httpEditItemService: EditItemService = async (
+	req: EditItemServiceRequest,
+): Promise<Result<None, Failure>> => {
+	const res = await fetch(`${env.backendApiBase}/item`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(req),
+		credentials: "include",
+	});
+	if (!res.ok) {
+		return Err(new Failure());
+	}
+
+	return Ok(None);
+};
 
 type ItemField<T extends number | string | boolean | Date> = {
 	collectionFieldId: string;
@@ -67,57 +88,10 @@ type EditItemPageState = {
 	dateFields: FormItemField<Date>[];
 };
 
-const EditItemPageStateContext = createContext<StatePromise<EditItemPageState>>(
-	Loaded(
-		Ok({
-			id: "thelordoftherings",
-			name: "The Lord of the Rings",
-			tags: [{ value: "fantasyorsmt" }],
-			numberFields: [
-				{
-					collectionFieldId: "pages",
-					name: "Pages",
-					value: 1216,
-				},
-			],
-			textFields: [
-				{
-					collectionFieldId: "author",
-					name: "Author",
-					value: "J.R.R. Tolkien",
-				},
-			],
-			multilineTextFields: [
-				{
-					collectionFieldId: "description",
-					name: "Description",
-					value:
-						"The Lord of the Rings is an epic high-fantasy novel written by English author and scholar J. R. R. Tolkien. The story began as a sequel to Tolkien's 1937 fantasy novel The Hobbit, but eventually developed into a much larger work. The Lord of the Rings was published in three volumes over the course of a year from 29 July 1954 to 20 October 1955.",
-				},
-			],
-			checkboxFields: [
-				{
-					collectionFieldId: "read",
-					name: "Read",
-					value: true,
-				},
-			],
-			dateFields: [
-				{
-					collectionFieldId: "publish-date",
-					name: "Publish date",
-					value: new Date("1954-07-29"),
-				},
-			],
-		}),
-	),
-);
-
 const EditItemUseCaseContext = createContext(
-	new EditItemUseCase(async (req: EditItemServiceRequest) => {
-		console.log(req);
-		return Ok(None);
-	}),
+	new EditItemUseCase(
+		env.isProduction ? httpEditItemService : httpEditItemService,
+	),
 );
 
 export function formEditItemController(
@@ -161,17 +135,74 @@ export function formEditItemController(
 	};
 }
 
+function editItemPageStatePresenter(item: Item): EditItemPageState {
+	return {
+		...item,
+		numberFields: item.fields.numberFields.map((field) => {
+			return {
+				...field,
+				collectionFieldId: field.id,
+			};
+		}),
+		textFields: item.fields.textFields.map((field) => {
+			return {
+				...field,
+				collectionFieldId: field.id,
+			};
+		}),
+		multilineTextFields: item.fields.multilineTextFields.map((field) => {
+			return {
+				...field,
+				collectionFieldId: field.id,
+			};
+		}),
+		checkboxFields: item.fields.checkboxFields.map((field) => {
+			return {
+				...field,
+				collectionFieldId: field.id,
+			};
+		}),
+		dateFields: item.fields.dateFields.map((field) => {
+			return {
+				...field,
+				collectionFieldId: field.id,
+			};
+		}),
+		tags: item.tags.map((tag: any) => ({ value: tag })),
+	};
+}
+
 export function EditItemPage() {
-	const statePromise = useContext(EditItemPageStateContext);
+	const params = useParams();
+	const viewItem = useContext(ViewItemUseCaseContext);
 	const editItemUseCase = useContext(EditItemUseCaseContext);
-	const [showsError, setShowsError] = useState(false);
+	const [statePromise, setStatePromise] =
+		useState<StatePromise<EditItemPageState>>(Loading);
+
+	useEffect(() => {
+		(async () => {
+			setStatePromise(Loading);
+			const itemId = params.itemId!;
+			if (!itemId) {
+				setStatePromise(Loaded(Err(new Failure())));
+			}
+			const viewItemResult = await viewItem.execute(itemId);
+			if (viewItemResult.err) {
+				console.error(viewItemResult);
+				setStatePromise(Loaded(viewItemResult));
+				return;
+			}
+			const item = viewItemResult.val;
+			const state = editItemPageStatePresenter(item);
+
+			setStatePromise(Loaded(Ok(state)));
+		})();
+	}, [params.itemId]);
 
 	if (statePromise.loading) return <LoadingIndicator />;
 	const statePromiseResult = statePromise.val;
 	if (statePromiseResult.err) return <ErrorIndicator />;
 	const item = statePromiseResult.val;
-
-	if (showsError) return <ErrorIndicator />;
 
 	return (
 		<>
@@ -189,8 +220,7 @@ export function EditItemPage() {
 					const editItemResult = await editItemUseCase.execute(req);
 					if (editItemResult.err) {
 						console.error(editItemResult);
-						setShowsError(true);
-						return;
+						throw new Error("Not implemented");
 					}
 				}}
 			/>

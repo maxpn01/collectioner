@@ -6,8 +6,6 @@ export const requireAuth = (
 	next: NextFunction,
 ) => {
 	//@ts-ignore
-	// console.log(req.session.userId);
-	//@ts-ignore
 	if (req.session.userId) next();
 	else res.redirect("/signin");
 };

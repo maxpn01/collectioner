@@ -3,6 +3,7 @@ const cors = require("cors");
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import env from "./env";
+import path from "path";
 
 export const expressApp = express();
 
@@ -43,4 +44,15 @@ expressApp.use(
 
 expressApp.set("trust proxy", 1);
 
-expressApp.get("/", (req, res) => res.send("Server is running ..."));
+if (env.isProduction) {
+	const __dirname = path.resolve();
+	expressApp.use(express.static(path.join(__dirname, "/frontend/dist")));
+
+	expressApp.get("*", (req, res) =>
+		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html")),
+	);
+} else {
+	expressApp.get("/", (req, res) => {
+		res.send("Server is running....");
+	});
+}

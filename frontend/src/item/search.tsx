@@ -189,7 +189,6 @@ export function SearchPage() {
 				return;
 			}
 			const items = result.val;
-			console.log(items);
 
 			const state = searchPageStatePresenter(items);
 
