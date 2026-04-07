@@ -35,6 +35,10 @@ export class UserRepository {
 		return this.repo.save(user);
 	}
 
+	deleteUser(id: number) {
+		return this.repo.delete(id);
+	}
+
 	async updateRefreshTokenHash(
 		userId: number,
 		refreshTokenHash: string | null,
