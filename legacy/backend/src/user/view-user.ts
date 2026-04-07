@@ -1,11 +1,11 @@
-import { Result, Option, Ok, Err } from "ts-results";
-import { SizedCollection, UserRepository } from ".";
+import { Result, Option, Ok, Err } from 'ts-results';
+import { SizedCollection, UserRepository } from '.';
 import {
 	BadRequestFailure,
 	Failure,
 	NotAuthorizedFailure,
 	NotFoundFailure,
-} from "../utils/failure";
+} from '../utils/failure';
 
 type ViewUserResponse =
 	| {
@@ -72,12 +72,12 @@ export class ViewUserUseCase {
 	}
 }
 
-import { httpFailurePresenter, expressSendHttpFailure } from "../http";
+import { httpFailurePresenter, expressSendHttpFailure } from '../http';
 
 export function queryViewUserController(
 	username: any,
 ): Result<string, BadRequestFailure> {
-	if (typeof username !== "string") return Err(new BadRequestFailure());
+	if (typeof username !== 'string') return Err(new BadRequestFailure());
 
 	username = username.trim();
 	if (username.length === 0) return Err(new BadRequestFailure());
@@ -96,7 +96,7 @@ export function viewUserHttpBodyPresenter(response: ViewUserResponse): any {
 	};
 }
 
-import { Request, Response } from "express";
+import { Request, Response } from 'express';
 
 export class ExpressViewUser {
 	viewUser: ViewUserUseCase;

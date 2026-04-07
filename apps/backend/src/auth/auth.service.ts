@@ -93,16 +93,10 @@ export class AuthService {
 
 	async signIn({ email, password }: SigninDto): Promise<AuthTokens> {
 		const user = await this.userRepository.findOneByEmail(email);
-
-		if (!user) {
-			throw new UnauthorizedException('Invalid credentials');
-		}
+		if (!user) throw new UnauthorizedException('Invalid credentials');
 
 		const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
-
-		if (!passwordsMatch) {
-			throw new UnauthorizedException('Invalid credentials');
-		}
+		if (!passwordsMatch) throw new UnauthorizedException('Invalid credentials');
 
 		return this.issueTokens(user.id);
 	}
@@ -110,20 +104,18 @@ export class AuthService {
 	async refresh(refreshToken: string | undefined): Promise<AuthResponse> {
 		const payload = await this.verifyRefreshToken(refreshToken);
 		const token = refreshToken as string;
-		const user = await this.userRepository.findOneById(payload.sub);
 
-		if (!user?.refreshTokenHash) {
+		const user = await this.userRepository.findOneById(payload.sub);
+		if (!user?.refreshTokenHash)
 			throw new UnauthorizedException('Invalid refresh token');
-		}
 
 		const refreshTokenMatches = await bcrypt.compare(
 			token,
 			user.refreshTokenHash,
 		);
 
-		if (!refreshTokenMatches) {
+		if (!refreshTokenMatches)
 			throw new UnauthorizedException('Invalid refresh token');
-		}
 
 		return {
 			accessToken: await this.signAccessToken({ sub: user.id }),
@@ -131,9 +123,7 @@ export class AuthService {
 	}
 
 	async signOut(refreshToken: string | undefined): Promise<void> {
-		if (!refreshToken) {
-			return;
-		}
+		if (!refreshToken) return;
 
 		try {
 			const payload = await this.verifyRefreshToken(refreshToken);
@@ -171,9 +161,8 @@ export class AuthService {
 	}
 
 	private async verifyRefreshToken(refreshToken: string | undefined) {
-		if (!refreshToken) {
+		if (!refreshToken)
 			throw new UnauthorizedException('Refresh token is required');
-		}
 
 		try {
 			return await this.jwtService.verifyAsync<{ sub: number }>(refreshToken, {
@@ -191,9 +180,7 @@ export class AuthService {
 	}
 
 	private isUniqueViolation(error: unknown) {
-		if (!(error instanceof QueryFailedError)) {
-			return false;
-		}
+		if (!(error instanceof QueryFailedError)) return false;
 
 		const driverError: unknown = error.driverError;
 

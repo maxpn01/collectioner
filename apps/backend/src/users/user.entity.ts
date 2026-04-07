@@ -18,7 +18,7 @@ export class User {
 	refreshTokenHash: string | null;
 
 	@Column({ type: 'text', nullable: true })
-	fullname: string;
+	fullname: string | null;
 
 	@Column({ default: false })
 	blocked: boolean;
