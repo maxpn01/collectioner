@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
@@ -10,22 +10,29 @@ export class UserRepository {
 		private readonly repo: Repository<User>,
 	) {}
 
-	findOneById(id: number) {
+	async findOneById(id: number): Promise<User | null> {
 		return this.repo.findOne({ where: { id } });
 	}
 
-	findOneByEmail(email: string) {
+	async findOneByEmail(email: string): Promise<User | null> {
 		return this.repo.findOne({ where: { email } });
 	}
 
-	findAllByEmailOrUsername(email: string, username: string) {
+	async findAllByEmailOrUsername(
+		email: string,
+		username: string,
+	): Promise<User[]> {
 		return this.repo.find({
 			where: [{ email }, { username }],
 			select: { id: true, email: true, username: true },
 		});
 	}
 
-	createUser(email: string, username: string, passwordHash: string) {
+	async createUser(
+		email: string,
+		username: string,
+		passwordHash: string,
+	): Promise<User> {
 		const user = this.repo.create({
 			email,
 			username,
@@ -35,8 +42,34 @@ export class UserRepository {
 		return this.repo.save(user);
 	}
 
-	deleteUser(id: number) {
-		return this.repo.delete(id);
+	async deleteUser(id: number): Promise<void> {
+		await this.repo.delete(id);
+	}
+
+	async setUserAdmin(id: number, isAdmin: boolean): Promise<User> {
+		const user = await this.findOneById(id);
+
+		if (!user) throw new NotFoundException('User not found');
+
+		await this.repo.update(id, { isAdmin });
+
+		return {
+			...user,
+			isAdmin,
+		};
+	}
+
+	async setUserBlocked(id: number, blocked: boolean): Promise<User> {
+		const user = await this.findOneById(id);
+
+		if (!user) throw new NotFoundException('User not found');
+
+		await this.repo.update(id, { blocked });
+
+		return {
+			...user,
+			blocked,
+		};
 	}
 
 	async updateRefreshTokenHash(

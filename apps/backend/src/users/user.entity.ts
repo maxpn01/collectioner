@@ -3,26 +3,26 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity()
 export class User {
 	@PrimaryGeneratedColumn()
-	id: number;
+	id!: number;
 
 	@Column({ unique: true })
-	email: string;
+	email!: string;
 
-	@Column({ type: 'text', unique: true, nullable: true })
-	username: string;
+	@Column({ type: 'text', unique: true })
+	username!: string;
 
 	@Column()
-	passwordHash: string;
+	passwordHash!: string;
 
 	@Column({ type: 'text', nullable: true })
-	refreshTokenHash: string | null;
+	refreshTokenHash!: string | null;
 
 	@Column({ type: 'text', nullable: true })
-	fullname: string | null;
+	fullname!: string | null;
 
 	@Column({ default: false })
-	blocked: boolean;
+	blocked!: boolean;
 
 	@Column({ default: false })
-	isAdmin: boolean;
+	isAdmin!: boolean;
 }

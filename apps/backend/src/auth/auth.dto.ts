@@ -33,5 +33,8 @@ export type SignupDto = z.infer<typeof signupSchema>;
 export type SigninDto = z.infer<typeof signinSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;
 
-export type AuthResponse = { accessToken: string };
-export type AuthTokens = { accessToken: string; refreshToken: string };
+export type AuthResponse = {
+	accessToken: string;
+	refreshToken?: string;
+	userId?: string;
+};

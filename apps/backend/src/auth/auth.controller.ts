@@ -1,6 +1,6 @@
 import { Body, Controller, Post, Req, Res, UsePipes } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { ZodValidationPipe } from 'src/shared/pipes/zod-validation-pipe/zod-validation.pipe';
+import { ZodValidationPipe } from '../shared/pipes/zod-validation-pipe/zod-validation.pipe';
 import { AuthService } from './auth.service';
 import {
 	refreshSchema,
@@ -21,11 +21,12 @@ export class AuthController {
 		@Body() signupDto: SignupDto,
 		@Res({ passthrough: true }) res: Response,
 	) {
-		const { accessToken, refreshToken } =
+		const { accessToken, refreshToken, userId } =
 			await this.authService.signUp(signupDto);
-		this.authService.setRefreshTokenCookie(res, refreshToken);
 
-		return { accessToken };
+		this.authService.setRefreshTokenCookie(res, refreshToken!);
+
+		return { accessToken, refreshToken, userId };
 	}
 
 	@Post('signin')
@@ -34,11 +35,11 @@ export class AuthController {
 		@Body() signinDto: SigninDto,
 		@Res({ passthrough: true }) res: Response,
 	) {
-		const { accessToken, refreshToken } =
+		const { accessToken, refreshToken, userId } =
 			await this.authService.signIn(signinDto);
-		this.authService.setRefreshTokenCookie(res, refreshToken);
+		this.authService.setRefreshTokenCookie(res, refreshToken!);
 
-		return { accessToken };
+		return { accessToken, refreshToken, userId };
 	}
 
 	@Post('signout')
