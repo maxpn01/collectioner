@@ -10,10 +10,29 @@ export const userSchema = z.object({
 	isAdmin: z.boolean(),
 });
 
-export type GetUserAuthRequest = Request & { user: { sub: number } };
-export type GetUserResponse = Omit<
-	z.infer<typeof userSchema>,
-	'passwordHash' | 'refreshTokenHash'
+export type User = z.infer<typeof userSchema>;
+
+export type AuthRequest = Request & { user: { sub: number } };
+
+export type UserResponse = Pick<
+	User,
+	'id' | 'username' | 'fullname' | 'blocked'
 >;
 
-export type DeleteUserAuthRequest = Request & { user: { sub: number } };
+export const deleteUserSchema = z.object({
+	targetId: z.number().int().positive(),
+});
+
+export const setAdminSchema = z.object({
+	targetId: z.number().int().positive(),
+	isAdmin: z.boolean(),
+});
+
+export const setBlockedSchema = z.object({
+	targetId: z.number().int().positive(),
+	blocked: z.boolean(),
+});
+
+export type DeleteUserDto = z.infer<typeof deleteUserSchema>;
+export type SetAdminDto = z.infer<typeof setAdminSchema>;
+export type SetBlockedDto = z.infer<typeof setBlockedSchema>;

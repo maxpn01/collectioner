@@ -8,9 +8,9 @@ import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
 import bcrypt from 'bcrypt';
 import { QueryFailedError } from 'typeorm';
-import type { User } from 'src/users/user.entity';
-import { UserRepository } from 'src/users/user.repository';
-import { AuthResponse, AuthTokens, SigninDto, SignupDto } from './auth.dto';
+import type { User } from '../users/user.entity';
+import { UserRepository } from '../users/user.repository';
+import { AuthResponse, SigninDto, SignupDto } from './auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +39,11 @@ export class AuthService {
 		});
 	}
 
-	async signUp({ email, username, password }: SignupDto): Promise<AuthTokens> {
+	async signUp({
+		email,
+		username,
+		password,
+	}: SignupDto): Promise<AuthResponse> {
 		const existingUsers = await this.userRepository.findAllByEmailOrUsername(
 			email,
 			username,
@@ -91,7 +95,7 @@ export class AuthService {
 		return this.issueTokens(user.id);
 	}
 
-	async signIn({ email, password }: SigninDto): Promise<AuthTokens> {
+	async signIn({ email, password }: SigninDto): Promise<AuthResponse> {
 		const user = await this.userRepository.findOneByEmail(email);
 		if (!user) throw new UnauthorizedException('Invalid credentials');
 
@@ -133,7 +137,7 @@ export class AuthService {
 		}
 	}
 
-	private async issueTokens(userId: number): Promise<AuthTokens> {
+	private async issueTokens(userId: number): Promise<AuthResponse> {
 		const payload = { sub: userId };
 		const [accessToken, refreshToken] = await Promise.all([
 			this.signAccessToken(payload),
@@ -146,7 +150,7 @@ export class AuthService {
 
 		await this.userRepository.updateRefreshTokenHash(userId, refreshTokenHash);
 
-		return { accessToken, refreshToken };
+		return { accessToken, refreshToken, userId: String(userId) };
 	}
 
 	private signAccessToken(payload: { sub: number }) {
