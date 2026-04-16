@@ -137,7 +137,7 @@ export class AuthService {
 		}
 	}
 
-	private async issueTokens(userId: number): Promise<AuthResponse> {
+	private async issueTokens(userId: string): Promise<AuthResponse> {
 		const payload = { sub: userId };
 		const [accessToken, refreshToken] = await Promise.all([
 			this.signAccessToken(payload),
@@ -153,11 +153,11 @@ export class AuthService {
 		return { accessToken, refreshToken, userId: String(userId) };
 	}
 
-	private signAccessToken(payload: { sub: number }) {
+	private signAccessToken(payload: { sub: string }) {
 		return this.jwtService.signAsync(payload);
 	}
 
-	private signRefreshToken(payload: { sub: number }) {
+	private signRefreshToken(payload: { sub: string }) {
 		return this.jwtService.signAsync(payload, {
 			secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
 			expiresIn: this.getRefreshTokenExpirySeconds(),
@@ -169,7 +169,7 @@ export class AuthService {
 			throw new UnauthorizedException('Refresh token is required');
 
 		try {
-			return await this.jwtService.verifyAsync<{ sub: number }>(refreshToken, {
+			return await this.jwtService.verifyAsync<{ sub: string }>(refreshToken, {
 				secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
 			});
 		} catch {

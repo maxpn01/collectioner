@@ -10,11 +10,11 @@ export class UserRepository {
 		private readonly repo: Repository<User>,
 	) {}
 
-	async findOneById(id: number): Promise<User | null> {
+	async findOneById(id: string): Promise<User | null> {
 		return this.repo.findOne({ where: { id } });
 	}
 
-	async findAllByIds(ids: number[]): Promise<User[]> {
+	async findAllByIds(ids: string[]): Promise<User[]> {
 		const uniqueIds = [...new Set(ids)];
 		return this.repo.find({ where: { id: In(uniqueIds) } });
 	}
@@ -47,11 +47,29 @@ export class UserRepository {
 		return this.repo.save(user);
 	}
 
-	async deleteUsers(ids: number[]): Promise<void> {
+	async deleteUsers(ids: string[]): Promise<void> {
 		await this.repo.delete(ids);
 	}
 
-	async setUsersAdmin(ids: number[], isAdmin: boolean): Promise<User[]> {
+	async getUsersPage(
+		size: number,
+		pageN: number,
+	): Promise<{ page: User[]; lastPage: number }> {
+		const offset = size * (pageN - 1);
+
+		const [page, total] = await this.repo.findAndCount({
+			skip: offset,
+			take: size,
+			order: { createdAt: 'DESC' },
+		});
+
+		return {
+			page,
+			lastPage: Math.ceil(total / size),
+		};
+	}
+
+	async setUsersAdmin(ids: string[], isAdmin: boolean): Promise<User[]> {
 		const uniqueIds = [...new Set(ids)];
 		const users = await this.findAllByIds(uniqueIds);
 
@@ -66,7 +84,7 @@ export class UserRepository {
 		}));
 	}
 
-	async setUsersBlocked(ids: number[], blocked: boolean): Promise<User[]> {
+	async setUsersBlocked(ids: string[], blocked: boolean): Promise<User[]> {
 		const uniqueIds = [...new Set(ids)];
 		const users = await this.findAllByIds(uniqueIds);
 
@@ -82,7 +100,7 @@ export class UserRepository {
 	}
 
 	async updateRefreshTokenHash(
-		userId: number,
+		userId: string,
 		refreshTokenHash: string | null,
 	) {
 		await this.repo.update(userId, { refreshTokenHash });
