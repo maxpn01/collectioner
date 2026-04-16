@@ -4,8 +4,8 @@ import {
 	Delete,
 	Get,
 	Param,
-	ParseIntPipe,
 	Patch,
+	Query,
 	Req,
 	UseGuards,
 	UsePipes,
@@ -14,12 +14,14 @@ import { ZodValidationPipe } from '../shared/pipes/zod-validation-pipe/zod-valid
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type {
+	AdminViewUsersDto,
 	AuthRequest,
 	DeleteUserDto,
 	SetAdminDto,
 	SetBlockedDto,
 } from './users.dto';
 import {
+	adminViewUsersSchema,
 	deleteUserSchema,
 	setAdminSchema,
 	setBlockedSchema,
@@ -48,7 +50,7 @@ export class UsersController {
 	}
 
 	@Get(':id')
-	async viewUser(@Param('id', ParseIntPipe) id: number) {
+	async viewUser(@Param('id') id: string) {
 		const user = await this.usersService.getUserById(id);
 
 		if (user.blocked)
@@ -72,6 +74,33 @@ export class UsersController {
 		@Body() { targetIds }: DeleteUserDto,
 	): Promise<void> {
 		return await this.usersService.deleteUsersByIds(req.user.sub, targetIds);
+	}
+
+	@Get()
+	@UseGuards(JwtAuthGuard)
+	async adminViewUsers(
+		@Req() req: AuthRequest,
+		@Query(new ZodValidationPipe(adminViewUsersSchema))
+		query: AdminViewUsersDto,
+	) {
+		const { page, lastPage } = await this.usersService.getUsersPage(
+			req.user.sub,
+			query,
+		);
+
+		return {
+			page: page.map((user) => ({
+				id: user.id,
+				username: user.username,
+				email: user.email,
+				fullname: user.fullname,
+				blocked: user.blocked,
+				isAdmin: user.isAdmin,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
+			})),
+			lastPage,
+		};
 	}
 
 	@Patch('admin')

@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { z } from 'zod';
 
 export const userSchema = z.object({
-	id: z.number(),
+	id: z.uuid(),
 	email: z.email(),
 	username: z.string(),
 	fullname: z.string().nullable(),
@@ -12,14 +12,19 @@ export const userSchema = z.object({
 
 export type User = z.infer<typeof userSchema>;
 
-export type AuthRequest = Request & { user: { sub: number } };
+export type AuthRequest = Request & { user: { sub: string } };
 
 export type UserResponse = Pick<
 	User,
 	'id' | 'username' | 'fullname' | 'blocked'
 >;
 
-const targetIdsSchema = z.array(z.number().int().positive()).min(1);
+const targetIdsSchema = z.array(z.uuid()).min(1);
+
+export const adminViewUsersSchema = z.object({
+	size: z.coerce.number().int().min(1).max(100),
+	pageN: z.coerce.number().int().positive(),
+});
 
 export const deleteUserSchema = z.object({
 	targetIds: targetIdsSchema,
@@ -38,3 +43,4 @@ export const setBlockedSchema = z.object({
 export type DeleteUserDto = z.infer<typeof deleteUserSchema>;
 export type SetAdminDto = z.infer<typeof setAdminSchema>;
 export type SetBlockedDto = z.infer<typeof setBlockedSchema>;
+export type AdminViewUsersDto = z.infer<typeof adminViewUsersSchema>;
