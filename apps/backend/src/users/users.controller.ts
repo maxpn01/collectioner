@@ -67,52 +67,52 @@ export class UsersController {
 	@Delete('delete')
 	@UseGuards(JwtAuthGuard)
 	@UsePipes(new ZodValidationPipe(deleteUserSchema))
-	async deleteUserById(
+	async deleteUsersByIds(
 		@Req() req: AuthRequest,
-		@Body() { targetId }: DeleteUserDto,
+		@Body() { targetIds }: DeleteUserDto,
 	): Promise<void> {
-		return await this.usersService.deleteUserById(req.user.sub, targetId);
+		return await this.usersService.deleteUsersByIds(req.user.sub, targetIds);
 	}
 
 	@Patch('admin')
 	@UseGuards(JwtAuthGuard)
 	@UsePipes(new ZodValidationPipe(setAdminSchema))
-	async setAdminForUser(
+	async setAdminForUsers(
 		@Req() req: AuthRequest,
-		@Body() { targetId, isAdmin }: SetAdminDto,
+		@Body() { targetIds, isAdmin }: SetAdminDto,
 	) {
-		const user = await this.usersService.setAdmin(
+		const users = await this.usersService.setAdminForUsers(
 			req.user.sub,
-			targetId,
+			targetIds,
 			isAdmin,
 		);
 
-		return {
+		return users.map((user) => ({
 			id: user.id,
 			username: user.username,
 			fullname: user.fullname,
 			isAdmin: user.isAdmin,
-		};
+		}));
 	}
 
 	@Patch('block')
 	@UseGuards(JwtAuthGuard)
 	@UsePipes(new ZodValidationPipe(setBlockedSchema))
-	async setBlockedForUser(
+	async setBlockedForUsers(
 		@Req() req: AuthRequest,
-		@Body() { targetId, blocked }: SetBlockedDto,
+		@Body() { targetIds, blocked }: SetBlockedDto,
 	) {
-		const user = await this.usersService.setBlocked(
+		const users = await this.usersService.setBlockedForUsers(
 			req.user.sub,
-			targetId,
+			targetIds,
 			blocked,
 		);
 
-		return {
+		return users.map((user) => ({
 			id: user.id,
 			username: user.username,
 			fullname: user.fullname,
 			blocked: user.blocked,
-		};
+		}));
 	}
 }
