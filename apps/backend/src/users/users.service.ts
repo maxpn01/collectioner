@@ -16,42 +16,41 @@ export class UsersService {
 		return user;
 	}
 
-	async deleteUserById(actorId: number, targetId: number): Promise<void> {
-		const user = await this.userRepository.findOneById(actorId);
-		if (actorId !== targetId && !user?.isAdmin)
+	async deleteUsersByIds(actorId: number, targetIds: number[]): Promise<void> {
+		const actor = await this.userRepository.findOneById(actorId);
+		const uniqueTargetIds = [...new Set(targetIds)];
+		const isSelfDelete =
+			uniqueTargetIds.length === 1 && uniqueTargetIds[0] === actorId;
+
+		if (!isSelfDelete && !actor?.isAdmin)
 			throw new ForbiddenException('Admin access required');
 
-		const target = await this.userRepository.findOneById(targetId);
-		if (!target) throw new NotFoundException('Target user not found');
+		const targets = await this.userRepository.findAllByIds(uniqueTargetIds);
+		if (targets.length !== uniqueTargetIds.length)
+			throw new NotFoundException('Target user not found');
 
-		await this.userRepository.deleteUser(targetId);
+		await this.userRepository.deleteUsers(uniqueTargetIds);
 	}
 
-	async setAdmin(
+	async setAdminForUsers(
 		actorId: number,
-		targetId: number,
+		targetIds: number[],
 		isAdmin: boolean,
-	): Promise<User> {
+	): Promise<User[]> {
 		const actor = await this.userRepository.findOneById(actorId);
 		if (!actor?.isAdmin) throw new ForbiddenException('Admin access required');
 
-		const target = await this.userRepository.findOneById(targetId);
-		if (!target) throw new NotFoundException('Target user not found');
-
-		return await this.userRepository.setUserAdmin(targetId, isAdmin);
+		return await this.userRepository.setUsersAdmin(targetIds, isAdmin);
 	}
 
-	async setBlocked(
+	async setBlockedForUsers(
 		actorId: number,
-		targetId: number,
+		targetIds: number[],
 		blocked: boolean,
-	): Promise<User> {
+	): Promise<User[]> {
 		const actor = await this.userRepository.findOneById(actorId);
 		if (!actor?.isAdmin) throw new ForbiddenException('Admin access required');
 
-		const target = await this.userRepository.findOneById(targetId);
-		if (!target) throw new NotFoundException('Target user not found');
-
-		return await this.userRepository.setUserBlocked(targetId, blocked);
+		return await this.userRepository.setUsersBlocked(targetIds, blocked);
 	}
 }

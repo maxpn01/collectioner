@@ -19,17 +19,19 @@ export type UserResponse = Pick<
 	'id' | 'username' | 'fullname' | 'blocked'
 >;
 
+const targetIdsSchema = z.array(z.number().int().positive()).min(1);
+
 export const deleteUserSchema = z.object({
-	targetId: z.number().int().positive(),
+	targetIds: targetIdsSchema,
 });
 
 export const setAdminSchema = z.object({
-	targetId: z.number().int().positive(),
+	targetIds: targetIdsSchema,
 	isAdmin: z.boolean(),
 });
 
 export const setBlockedSchema = z.object({
-	targetId: z.number().int().positive(),
+	targetIds: targetIdsSchema,
 	blocked: z.boolean(),
 });
 
