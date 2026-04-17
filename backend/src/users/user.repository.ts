@@ -23,6 +23,10 @@ export class UserRepository {
 		return this.repo.findOne({ where: { email } });
 	}
 
+	async findOneByUsername(username: string): Promise<User | null> {
+		return this.repo.findOne({ where: { username } });
+	}
+
 	async findAllByEmailOrUsername(
 		email: string,
 		username: string,
@@ -104,5 +108,17 @@ export class UserRepository {
 		refreshTokenHash: string | null,
 	) {
 		await this.repo.update(userId, { refreshTokenHash });
+	}
+
+	async updateProfile(
+		userId: string,
+		profile: Pick<User, 'email' | 'username' | 'fullname'>,
+	): Promise<User> {
+		await this.repo.update(userId, profile);
+
+		const user = await this.findOneById(userId);
+		if (!user) throw new NotFoundException('User not found');
+
+		return user;
 	}
 }

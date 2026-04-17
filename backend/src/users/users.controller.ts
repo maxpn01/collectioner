@@ -19,12 +19,14 @@ import type {
 	DeleteUserDto,
 	SetAdminDto,
 	SetBlockedDto,
+	UpdateMeDto,
 } from './users.dto';
 import {
 	adminViewUsersSchema,
 	deleteUserSchema,
 	setAdminSchema,
 	setBlockedSchema,
+	updateMeSchema,
 } from './users.dto';
 
 @Controller('users')
@@ -67,6 +69,22 @@ export class UsersController {
 			id: user.id,
 			username: user.username,
 			fullname: user.fullname,
+		};
+	}
+
+	@Patch('me')
+	@UseGuards(JwtAuthGuard)
+	@UsePipes(new ZodValidationPipe(updateMeSchema))
+	async updateMe(@Req() req: AuthRequest, @Body() body: UpdateMeDto) {
+		const user = await this.usersService.updateMe(req.user.sub, body);
+
+		return {
+			id: user.id,
+			username: user.username,
+			email: user.email,
+			fullname: user.fullname,
+			blocked: user.blocked,
+			isAdmin: user.isAdmin,
 		};
 	}
 

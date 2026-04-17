@@ -26,3 +26,12 @@ export const guestGuard: CanActivateFn = () => {
     .bootstrapSession()
     .pipe(map((user) => (user ? router.createUrlTree(['/profile']) : true)));
 };
+
+export const adminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth
+    .bootstrapSession()
+    .pipe(map((user) => (user?.isAdmin ? true : router.createUrlTree(['/profile']))));
+};

@@ -3,7 +3,7 @@
     <div>
       <p class="eyebrow">Profile</p>
       <h1>{{ displayName() }}</h1>
-      <p>Manage your current session.</p>
+      <p>Manage your profile.</p>
     </div>
 
     <button
@@ -34,39 +34,64 @@
           {{ (currentUser.username || currentUser.email || 'U').slice(0, 1).toUpperCase() }}
         </div>
 
-        <div class="profile-details">
-          <div>
-            <span>User ID</span>
-            <strong>{{ currentUser.id }}</strong>
+        <form
+          [formGroup]="form"
+          (ngSubmit)="saveProfile()"
+          class="profile-form"
+          novalidate
+        >
+          <div class="field">
+            <label appLabel for="profile-email">Email</label>
+            <input
+              id="profile-email"
+              appInput
+              type="email"
+              autocomplete="email"
+              formControlName="email"
+              [attr.aria-invalid]="fieldError('email') ? true : null"
+              [attr.aria-describedby]="fieldError('email') ? 'profile-email-error' : null"
+            />
+            @if (fieldError('email'); as error) {
+              <p id="profile-email-error" class="field-error">{{ error }}</p>
+            }
           </div>
 
-          @if (currentUser.username) {
-            <div>
-              <span>Username</span>
-              <strong>{{ currentUser.username }}</strong>
-            </div>
-          }
-
-          @if (currentUser.email) {
-            <div>
-              <span>Email</span>
-              <strong>{{ currentUser.email }}</strong>
-            </div>
-          }
-
-          <div>
-            <span>Full name</span>
-            <strong>{{ currentUser.fullname || '--' }}</strong>
+          <div class="field">
+            <label appLabel for="profile-username">Username</label>
+            <input
+              id="profile-username"
+              appInput
+              type="text"
+              autocomplete="username"
+              formControlName="username"
+              [attr.aria-invalid]="fieldError('username') ? true : null"
+              [attr.aria-describedby]="fieldError('username') ? 'profile-username-error' : null"
+            />
+            @if (fieldError('username'); as error) {
+              <p id="profile-username-error" class="field-error">{{ error }}</p>
+            }
           </div>
 
-          @if (currentUser.isAdmin !== undefined) {
-            <div>
-              <span>Role</span>
-              <strong>{{ currentUser.isAdmin ? 'Admin' : 'Member' }}</strong>
-            </div>
-          }
-        </div>
+          <div class="field">
+            <label appLabel for="profile-fullname">Full name</label>
+            <input
+              id="profile-fullname"
+              appInput
+              type="text"
+              autocomplete="name"
+              formControlName="fullname"
+              [attr.aria-invalid]="fieldError('fullname') ? true : null"
+              [attr.aria-describedby]="fieldError('fullname') ? 'profile-fullname-error' : null"
+            />
+            @if (fieldError('fullname'); as error) {
+              <p id="profile-fullname-error" class="field-error">{{ error }}</p>
+            }
+          </div>
 
+          <button appButton type="submit" [disabled]="saving()">
+            {{ saving() ? 'Saving...' : 'Save profile' }}
+          </button>
+        </form>
       </section>
     }
   }

@@ -1,11 +1,12 @@
 import {
+	ConflictException,
 	ForbiddenException,
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { User } from './user.entity';
-import { AdminViewUsersDto } from './users.dto';
+import { AdminViewUsersDto, UpdateMeDto } from './users.dto';
 
 @Injectable()
 export class UsersService {
@@ -15,6 +16,33 @@ export class UsersService {
 		const user = await this.userRepository.findOneById(id);
 		if (!user) throw new NotFoundException('User not found');
 		return user;
+	}
+
+	async updateMe(
+		userId: string,
+		{ email, username, fullname }: UpdateMeDto,
+	) {
+		const userWithUsername =
+			await this.userRepository.findOneByUsername(username);
+		const userWithEmail = await this.userRepository.findOneByEmail(email);
+
+		const usernameIsTaken =
+			userWithUsername !== null && userWithUsername.id !== userId;
+		const emailIsTaken = userWithEmail !== null && userWithEmail.id !== userId;
+
+		if (emailIsTaken && usernameIsTaken)
+			throw new ConflictException({
+				emailIsTaken: true,
+				usernameIsTaken: true,
+			});
+		if (emailIsTaken) throw new ConflictException({ emailIsTaken: true });
+		if (usernameIsTaken) throw new ConflictException({ usernameIsTaken: true });
+
+		return this.userRepository.updateProfile(userId, {
+			email,
+			username,
+			fullname,
+		});
 	}
 
 	async deleteUsersByIds(actorId: string, targetIds: string[]): Promise<void> {

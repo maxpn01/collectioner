@@ -1,0 +1,253 @@
+<section class="admin-page">
+  <div class="admin-heading">
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Manage user access and account status.</p>
+    </div>
+  </div>
+
+  @if (error(); as message) {
+    <p class="form-error">{{ message }}</p>
+  }
+
+  <section class="admin-panel" aria-label="User management">
+    <div class="admin-toolbar">
+      <p><span>{{ selectedCount() }}</span> selected</p>
+
+      <div class="admin-actions">
+        <button
+          appButton
+          size="sm"
+          variant="secondary"
+          type="button"
+          [disabled]="!hasSelectedRows() || selectedIncludesCurrentUser() || actionPending()"
+          (click)="setBlocked(selectedTargetIds(), true)"
+        >
+          Block
+        </button>
+        <button
+          appButton
+          size="sm"
+          variant="secondary"
+          type="button"
+          [disabled]="!hasSelectedRows() || selectedIncludesCurrentUser() || actionPending()"
+          (click)="setBlocked(selectedTargetIds(), false)"
+        >
+          Unblock
+        </button>
+        <button
+          appButton
+          size="sm"
+          variant="secondary"
+          type="button"
+          [disabled]="!hasSelectedRows() || selectedIncludesCurrentUser() || actionPending()"
+          (click)="setAdmin(selectedTargetIds(), false)"
+        >
+          Revoke admin
+        </button>
+        <button
+          appButton
+          size="sm"
+          variant="destructive"
+          type="button"
+          [disabled]="!hasSelectedRows() || selectedIncludesCurrentUser() || actionPending()"
+          (click)="grantAdminToSelected()"
+        >
+          Grant admin
+        </button>
+        <button
+          appButton
+          size="sm"
+          variant="destructive"
+          type="button"
+          [disabled]="!hasSelectedRows() || selectedIncludesCurrentUser() || actionPending()"
+          (click)="deleteSelected()"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>
+              <input
+                type="checkbox"
+                aria-label="Select all users on this page"
+                [checked]="allRowsSelected()"
+                (change)="toggleAllRows($any($event.target).checked)"
+              />
+            </th>
+            <th>Username</th>
+            <th>Full name</th>
+            <th>Email</th>
+            <th>Blocked</th>
+            <th>Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr>
+              <td colspan="6" class="empty-cell">Loading users...</td>
+            </tr>
+          } @else {
+            @for (user of users(); track user.id) {
+              <tr [class.selected]="selectedIds().has(user.id)">
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label="Select user"
+                    [checked]="selectedIds().has(user.id)"
+                    (change)="toggleRow(user.id, $any($event.target).checked)"
+                  />
+                </td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.fullname || '--' }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label="Toggle blocked status"
+                    [checked]="user.blocked"
+                    disabled
+                  />
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label="Toggle admin status"
+                    [checked]="user.isAdmin"
+                    disabled
+                  />
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-cell">No results.</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      @if (!pageButtons().includes(1)) {
+        <button
+          appButton
+          size="icon"
+          variant="ghost"
+          type="button"
+          [disabled]="pageN() === 1 || loading()"
+          (click)="loadPage(1)"
+        >
+          1
+        </button>
+      }
+
+      @for (page of pageButtons(); track page) {
+        <button
+          appButton
+          size="icon"
+          [variant]="pageN() === page ? 'secondary' : 'ghost'"
+          type="button"
+          [disabled]="page === pageN() || loading()"
+          (click)="loadPage(page)"
+        >
+          {{ page }}
+        </button>
+      }
+
+      @if (!pageButtons().includes(lastPageN())) {
+        <button
+          appButton
+          size="icon"
+          variant="ghost"
+          type="button"
+          [disabled]="pageN() === lastPageN() || loading()"
+          (click)="loadPage(lastPageN())"
+        >
+          {{ lastPageN() }}
+        </button>
+      }
+
+      <form class="go-to-page" (submit)="$event.preventDefault(); goToPage()">
+        <input
+          appInput
+          name="page"
+          placeholder="Page"
+          [ngModel]="goToPageInput()"
+          (ngModelChange)="goToPageInput.set($event)"
+          required
+        />
+        <button appButton size="sm" variant="secondary" type="submit">Go</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="danger-zone">
+    <h2>Danger zone</h2>
+    <button
+      appButton
+      variant="destructive"
+      type="button"
+      [disabled]="actionPending()"
+      (click)="giveUpAdminPrivileges()"
+    >
+      Give up admin privileges
+    </button>
+  </section>
+
+  @if (confirmationDialog(); as dialog) {
+    <div
+      class="dialog-overlay"
+      role="presentation"
+      (click)="closeConfirmation()"
+    ></div>
+    <section
+      class="confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+    >
+      <button
+        class="dialog-close"
+        type="button"
+        aria-label="Close"
+        [disabled]="actionPending()"
+        (click)="closeConfirmation()"
+      >
+        x
+      </button>
+
+      <header class="confirm-dialog-header">
+        <h2 id="confirm-dialog-title">{{ dialog.title }}</h2>
+      </header>
+
+      <p>{{ dialog.body }}</p>
+
+      <footer class="confirm-dialog-footer">
+        <button
+          appButton
+          variant="secondary"
+          type="button"
+          [disabled]="actionPending()"
+          (click)="closeConfirmation()"
+        >
+          Cancel
+        </button>
+        <button
+          appButton
+          variant="destructive"
+          type="button"
+          [disabled]="actionPending()"
+          (click)="confirmDialogAction()"
+        >
+          {{ dialog.confirmLabel }}
+        </button>
+      </footer>
+    </section>
+  }
+</section>

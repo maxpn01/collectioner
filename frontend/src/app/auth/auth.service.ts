@@ -46,6 +46,12 @@ export class AuthService {
       .pipe(tap((user) => this.user.set(user)));
   }
 
+  updateMe(payload: { email: string; username: string; fullname: string | null }) {
+    return this.http
+      .patch<AuthUser>('/api/users/me', payload, { withCredentials: true })
+      .pipe(tap((user) => this.user.set(user)));
+  }
+
   refreshAccessToken() {
     if (this.refreshRequest$) return this.refreshRequest$;
 

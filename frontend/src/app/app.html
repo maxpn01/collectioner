@@ -2,7 +2,15 @@
   <header class="topbar">
     <a class="brand" routerLink="/profile">Collectioner</a>
 
-    <nav aria-label="Primary navigation"></nav>
+    <nav aria-label="Primary navigation">
+      @if (auth.user(); as user) {
+        @if (user.isAdmin) {
+          <a routerLink="/dashboard" routerLinkActive="active-link">Dashboard</a>
+        }
+
+        <a routerLink="/profile" routerLinkActive="active-link">Profile</a>
+      }
+    </nav>
   </header>
 
   <main>
