@@ -39,13 +39,17 @@ export class UsersController {
 		if (user.blocked)
 			return {
 				id: user.id,
+				email: user.email,
 				blocked: user.blocked,
 			};
 
 		return {
 			id: user.id,
 			username: user.username,
+			email: user.email,
 			fullname: user.fullname,
+			blocked: user.blocked,
+			isAdmin: user.isAdmin,
 		};
 	}
 
