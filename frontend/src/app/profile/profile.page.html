@@ -1,0 +1,73 @@
+<section class="profile-page">
+  <div class="profile-heading">
+    <div>
+      <p class="eyebrow">Profile</p>
+      <h1>{{ displayName() }}</h1>
+      <p>Manage your current session.</p>
+    </div>
+
+    <button
+      appButton
+      variant="secondary"
+      type="button"
+      (click)="signOut()"
+      [disabled]="signingOut()"
+    >
+      {{ signingOut() ? 'Signing out...' : 'Log out' }}
+    </button>
+  </div>
+
+  @if (error(); as message) {
+    <p class="form-error">{{ message }}</p>
+  }
+
+  @if (user(); as currentUser) {
+    @if (currentUser.blocked) {
+      <section class="profile-card">
+        <p class="status-pill danger">Blocked</p>
+        <h2>Account access is blocked</h2>
+        <p>Your profile is currently unavailable.</p>
+      </section>
+    } @else {
+      <section class="profile-card">
+        <div class="avatar" aria-hidden="true">
+          {{ (currentUser.username || currentUser.email || 'U').slice(0, 1).toUpperCase() }}
+        </div>
+
+        <div class="profile-details">
+          <div>
+            <span>User ID</span>
+            <strong>{{ currentUser.id }}</strong>
+          </div>
+
+          @if (currentUser.username) {
+            <div>
+              <span>Username</span>
+              <strong>{{ currentUser.username }}</strong>
+            </div>
+          }
+
+          @if (currentUser.email) {
+            <div>
+              <span>Email</span>
+              <strong>{{ currentUser.email }}</strong>
+            </div>
+          }
+
+          <div>
+            <span>Full name</span>
+            <strong>{{ currentUser.fullname || '--' }}</strong>
+          </div>
+
+          @if (currentUser.isAdmin !== undefined) {
+            <div>
+              <span>Role</span>
+              <strong>{{ currentUser.isAdmin ? 'Admin' : 'Member' }}</strong>
+            </div>
+          }
+        </div>
+
+      </section>
+    }
+  }
+</section>
