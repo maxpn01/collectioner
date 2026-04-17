@@ -187,7 +187,7 @@
   }
 
   .profile-card {
-    @apply flex flex-col gap-6 rounded-lg border bg-card p-6 shadow-sm md:p-8;
+    @apply flex flex-col gap-8 rounded-lg border bg-card p-6 shadow-sm md:p-8;
   }
 
   .avatar {
@@ -196,6 +196,14 @@
 
   .profile-details {
     @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .profile-form {
+    @apply grid gap-6 md:grid-cols-2;
+  }
+
+  .profile-form button[type='submit'] {
+    @apply mt-2 md:col-span-2 md:w-fit;
   }
 
   .profile-details div {
@@ -216,5 +224,129 @@
 
   .status-pill.danger {
     @apply bg-destructive/10 text-destructive;
+  }
+
+  .admin-page {
+    @apply mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-8 md:px-8 lg:py-12;
+  }
+
+  .admin-heading {
+    @apply flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
+  }
+
+  .admin-heading h1 {
+    @apply text-4xl font-semibold tracking-normal;
+  }
+
+  .admin-heading p:last-child {
+    @apply mt-2 text-muted-foreground;
+  }
+
+  .admin-panel {
+    @apply flex flex-col gap-4;
+  }
+
+  .admin-toolbar {
+    @apply flex flex-col gap-3 md:flex-row md:items-center md:justify-between;
+  }
+
+  .admin-toolbar p {
+    @apply m-0 text-sm text-muted-foreground;
+  }
+
+  .admin-toolbar p span {
+    @apply font-medium text-foreground;
+  }
+
+  .admin-actions {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .admin-table-wrap {
+    @apply overflow-x-auto rounded-md border;
+  }
+
+  .admin-table {
+    @apply w-full min-w-[760px] border-collapse text-sm;
+  }
+
+  .admin-table th {
+    @apply h-12 border-b px-4 text-left align-middle font-medium text-muted-foreground;
+  }
+
+  .admin-table td {
+    @apply border-b px-4 py-3 align-middle;
+  }
+
+  .admin-table tbody tr {
+    @apply transition-colors hover:bg-secondary/50;
+  }
+
+  .admin-table tbody tr.selected {
+    @apply bg-secondary;
+  }
+
+  .admin-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .admin-table input[type='checkbox'] {
+    @apply h-4 w-4 rounded border-border accent-primary;
+  }
+
+  .empty-cell {
+    @apply h-24 text-center text-muted-foreground;
+  }
+
+  .pagination {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .go-to-page {
+    @apply flex items-center gap-2;
+  }
+
+  .go-to-page input {
+    @apply w-20;
+  }
+
+  .danger-zone {
+    @apply mt-8 flex flex-col items-start gap-4 border-t pt-8;
+  }
+
+  .danger-zone h2 {
+    @apply text-base font-semibold text-foreground;
+  }
+
+  .dialog-overlay {
+    @apply fixed inset-0 z-50 bg-black/80;
+  }
+
+  .confirm-dialog {
+    @apply fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-6 rounded-lg border bg-background p-6 shadow-lg;
+  }
+
+  .dialog-close {
+    @apply absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-md text-base text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .confirm-dialog-header {
+    @apply flex flex-col gap-4 pr-8 text-left;
+  }
+
+  .confirm-dialog-header h2 {
+    @apply text-lg font-semibold leading-none tracking-normal;
+  }
+
+  .confirm-dialog p {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .confirm-dialog-footer {
+    @apply mt-4 grid grid-cols-2 gap-2;
+  }
+
+  .confirm-dialog-footer button {
+    @apply w-full;
   }
 }

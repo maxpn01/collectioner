@@ -21,6 +21,24 @@ export type UserResponse = Pick<
 
 const targetIdsSchema = z.array(z.uuid()).min(1);
 
+export const updateMeSchema = z.object({
+	email: z.email().trim().toLowerCase(),
+	username: z
+		.string()
+		.trim()
+		.min(3, 'Username must be at least 3 characters long')
+		.max(32, 'Username must be at most 32 characters long')
+		.regex(
+			/^[a-zA-Z0-9_]+$/,
+			'Username can only contain letters, numbers, and underscores',
+		),
+	fullname: z
+		.string()
+		.trim()
+		.max(120, 'Full name must be at most 120 characters long')
+		.nullable(),
+});
+
 export const adminViewUsersSchema = z.object({
 	size: z.coerce.number().int().min(1).max(100),
 	pageN: z.coerce.number().int().positive(),
@@ -44,3 +62,4 @@ export type DeleteUserDto = z.infer<typeof deleteUserSchema>;
 export type SetAdminDto = z.infer<typeof setAdminSchema>;
 export type SetBlockedDto = z.infer<typeof setBlockedSchema>;
 export type AdminViewUsersDto = z.infer<typeof adminViewUsersSchema>;
+export type UpdateMeDto = z.infer<typeof updateMeSchema>;
